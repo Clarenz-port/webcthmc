@@ -75,23 +75,19 @@ useEffect(() => {
 
   {/* CONTENT */}
   <div className="ml-30 relative z-10 max-w-3xl px-10">
-    <h2 className="text-5xl xl:text-6xl font-extrabold text-emerald-900 leading-tight">
+    <h2 className="mb-10 text-5xl xl:text-6xl font-extrabold text-emerald-900 leading-tight">
       Do you want to become a member
       <br />
       of <span className="text-emerald-700">CTHMC</span>?
     </h2>
-
-    <p className="mt-4 text-emerald-800 max-w-xl">
-      Comprehensive financial consulting services tailored to your needs.
-    </p>
-
-    <button
-      className="mt-8 px-32 py-4 bg-emerald-800 text-white font-bold rounded-md
+    <Link
+      to="/signup"
+      className="mt-18 px-32 py-4  bg-emerald-800 text-white font-bold rounded-md
       hover:bg-emerald-700 transition
-      animate-[buttonPulse_3.5s_ease-in-out_infinite] hover:scale-110 active:scale-95"
+      animate-[buttonPulse_3.5s_ease-in-out_infinite] "
     >
       Join Now
-    </button>
+    </Link>
   </div>
 </div>
 
