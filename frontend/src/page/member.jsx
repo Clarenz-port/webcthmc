@@ -1,4 +1,5 @@
 // src/page/Member.jsx
+import { notify } from "../utils/toast";
 import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
@@ -223,7 +224,7 @@ export default function Member() {
     try {
       const token = localStorage.getItem("token");
       if (!token) {
-        alert("You must be logged in.");
+        notify.success("You must be logged in.");
         return;
       }
       const res = await axios.get(`http://localhost:8000/api/bills/member/${memberId}`, {
@@ -252,7 +253,7 @@ export default function Member() {
     try {
       const token = localStorage.getItem("token");
       if (!token) {
-        alert("You must be logged in.");
+        notify.success("You must be logged in.");
         return;
       }
       const res = await axios.get(`/api/purchases/member/${encodeURIComponent(memberId)}`, {
@@ -312,7 +313,7 @@ export default function Member() {
     try {
       const token = localStorage.getItem("token");
       if (!token) {
-        alert("You must be logged in.");
+        notify.success("You must be logged in.");
         return;
       }
 
@@ -346,7 +347,7 @@ export default function Member() {
 
   const handleLoanNowClick = () => {
     if (hasActiveLoan) {
-      alert("⚠️ You cannot apply for a new loan until your approved loan is fully paid or closed.");
+      notify.success("⚠️ You cannot apply for a new loan until your approved loan is fully paid or closed.");
       return;
     }
     setIsLoanNowOpen(true);

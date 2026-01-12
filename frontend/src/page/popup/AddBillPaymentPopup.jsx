@@ -1,22 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import axios from "axios";
+import { notify } from "../../utils/toast";
 
-/**
- * AddBillPaymentPopup (create + edit)
- *
- * Props:
- * - isOpen: boolean
- * - onClose: fn
- * - memberId: number|string (used for creating new bills)
- * - onSaved: fn(response) called after successful create/update
- * - bill: optional object -> when provided, the form edits this bill (expects bill.id or billId)
- * - onDeleted: optional fn(response) called after successful delete
- *
- * Notes:
- * - Create uses POST /api/bills/add
- * - Update uses PUT  /api/bills/:id
- * - Delete uses DELETE /api/bills/:id
- */
 export default function AddBillPaymentPopup({ isOpen, onClose, memberId, onSaved, bill = null, onDeleted }) {
   const overlayRef = useRef(null);
   const firstFieldRef = useRef(null);
@@ -122,13 +107,13 @@ export default function AddBillPaymentPopup({ isOpen, onClose, memberId, onSaved
         });
       }
 
-      alert(isEditing ? "Bill payment updated!" : "Bill payment recorded!");
+      notify.success(isEditing ? "Bill payment updated!" : "Bill payment recorded!");
       onSaved && onSaved(res.data);
       onClose && onClose();
     } catch (err) {
       console.error("Error saving bill payment:", err);
       const msg = err?.response?.data?.message || err.message || "Failed to save bill payment";
-      alert(msg);
+      notify.success(msg);
     } finally {
       setSaving(false);
     }
@@ -146,12 +131,12 @@ export default function AddBillPaymentPopup({ isOpen, onClose, memberId, onSaved
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
       });
-      alert("Bill payment deleted.");
+      notify.success("Bill payment deleted.");
       onDeleted && onDeleted(res.data);
       onClose && onClose();
     } catch (err) {
       console.error("Error deleting bill:", err);
-      alert(err?.response?.data?.message || "Failed to delete bill payment");
+      notify.success(err?.response?.data?.message || "Failed to delete bill payment");
     } finally {
       setDeleting(false);
     }

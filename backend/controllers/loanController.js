@@ -1,6 +1,7 @@
 
 // controllers/loanController.js
 const Loan = require("../models/loans");
+const { logActivity } = require("../utils/activityLogger");
 const Payment = require("../models/loanpay"); // new
 const { Op } = require("sequelize");
 // ... other requires if any
@@ -155,6 +156,14 @@ exports.approveLoan = async (req, res) => {
 
     await loan.save();
 
+    await logActivity({
+        userId: req.user?.id,
+        role: req.user?.role,
+        action: "Approved Loan",
+        details: { loanId: loan.id, memberId: loan.userId, checkNumber: loan.checkNumber },
+        ip: req.ip,
+    });
+
     console.log("Loan approved:", { id: loan.id, approvalDate, dueDate, approvedBy: req.user.id, checkNumber: loan.checkNumber });
 
     res.json({
@@ -185,6 +194,14 @@ exports.rejectLoan = async (req, res) => {
 
     loan.status = "Rejected";
     await loan.save();
+
+    await logActivity({
+      userId: req.user?.id,
+      role: req.user?.role,
+      action: "Rejected Loan",
+      details: { loanId: loan.id, memberId: loan.userId },
+      ip: req.ip,
+    });
 
     res.json({ message: "Loan rejected successfully", loan });
   } catch (error) {
@@ -293,6 +310,14 @@ exports.recordPayment = async (req, res) => {
     }
 
     await loan.save();
+
+    await logActivity({
+      userId: req.user?.id,
+      role: req.user?.role,
+      action: "Paid Loan",
+      details: { loanId, paymentId: payment.id, amount: numericPaid, memberId },
+      ip: req.ip,
+    });
 
     console.log("Payment recorded:", {
       loanId,

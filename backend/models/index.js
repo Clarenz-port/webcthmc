@@ -3,6 +3,7 @@ const Shares = require("../models/shares");
 const Loan = require("../models/loans");
 const User = require("../models/users");
 const Bill = require("../models/BillPayment");
+const ActivityLog = require("../models/activityLog");
 
 Shares.belongsTo(User, {
   foreignKey: "userId",
@@ -43,10 +44,15 @@ User.hasMany(Bill, {
   sourceKey: "id",
 });
 
+ActivityLog.belongsTo(User, { foreignKey: "userId", targetKey: "id" });
+User.hasMany(ActivityLog, { foreignKey: "userId", sourceKey: "id" });
+
+
 module.exports = {
   User,
   Shares,
   Loan,
   Purchase,
   Bill,
+  ActivityLog,
 };

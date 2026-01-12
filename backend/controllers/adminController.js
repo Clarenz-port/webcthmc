@@ -1,6 +1,7 @@
 // controllers/adminController.js
 const bcrypt = require("bcryptjs");
 const User = require("../models/users");
+const { logActivity } = require("../utils/activityLogger");
 
 // ✅ Add new admin (superadmin only)
 exports.addAdmin = async (req, res) => {
@@ -46,7 +47,13 @@ exports.addAdmin = async (req, res) => {
       password: hashedPassword,
       role: "admin",
     });
-
+  await logActivity({
+  userId: req.user?.id,
+  role: req.user?.role,
+  action: "Created Admin",
+  details: { adminId: newAdmin.id, username: newAdmin.username },
+  ip: req.ip,
+});
     res
       .status(201)
       .json({ message: "Admin created successfully", admin: newAdmin });
@@ -118,6 +125,14 @@ exports.updateAdmin = async (req, res) => {
     const updatedSafe = updated.toJSON ? updated.toJSON() : { ...updated };
     delete updatedSafe.password;
 
+    await logActivity({
+  userId: req.user?.id,
+  role: req.user?.role,
+  action: "Updated Admin",
+  details: { adminId: updatedSafe.id, changes: updatePayload },
+  ip: req.ip,
+});
+
     res.json({ message: "Admin updated successfully", admin: updatedSafe });
   } catch (error) {
     console.error("❌ Error updating admin:", error);
@@ -137,6 +152,14 @@ exports.deleteAdmin = async (req, res) => {
     // if (req.user && req.user.id === admin.id) return res.status(400).json({ message: "Cannot delete yourself" });
 
     await User.destroy({ where: { id } });
+
+    await logActivity({
+  userId: req.user?.id,
+  role: req.user?.role,
+  action: "Deleted Admin",
+  details: { adminId: id, username: admin.username },
+  ip: req.ip,
+});
 
     res.json({ message: "Admin deleted successfully" });
   } catch (error) {

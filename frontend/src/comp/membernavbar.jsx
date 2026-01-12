@@ -1,5 +1,6 @@
 
 import axios from "axios";
+import { notify } from "../utils/toast";
 import React, { useState, useRef, useEffect } from "react";
 import { FaBell, FaCog } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
@@ -81,7 +82,7 @@ useEffect(() => {
     navigate("/login", { replace: true });
   };
 
-  const handleViewClick = (type) => alert(`Viewing ${type} details...`);
+  const handleViewClick = (type) => notify.success(`Viewing ${type} details...`);
 
   useEffect(() => {
     const handleClickOutside = (event) => {

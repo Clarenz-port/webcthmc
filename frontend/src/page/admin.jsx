@@ -27,6 +27,7 @@ import SharesPage from "../page/popup/SharesPage.jsx";
 import ReportModal from "./popup/ReportModal.jsx";
 
 export default function Admin() {
+  const [memberDetailsAction, setMemberDetailsAction] = useState(null);
   const [selectedMember, setSelectedMember] = useState(null);
   const [activeSection, setActiveSection] = useState("dashboard");
   const [members, setMembers] = useState([]);
@@ -40,6 +41,11 @@ export default function Admin() {
 
   // Report modal open state
   const [showReportModal, setShowReportModal] = useState(false);
+
+  const handlePaidLoan = (m) => { setSelectedMember(m); setMemberDetailsAction("paidLoan"); setActiveSection("memberDetails"); };
+const handlePurchase = (m) => { setSelectedMember(m); setMemberDetailsAction("purchase"); setActiveSection("memberDetails"); };
+const handleAddShares = (m) => { setSelectedMember(m); setMemberDetailsAction("addShares"); setActiveSection("memberDetails"); };
+const handlePayBills = (m) => { setSelectedMember(m); setMemberDetailsAction("payBills"); setActiveSection("memberDetails"); };
 
   /* -------------------------------------------------------------------------
      REPORT BUTTON HANDLER
@@ -277,51 +283,160 @@ export default function Admin() {
   /* -------------------------------------------------------------------------
      UI COMPONENT: Users -> Members
   ------------------------------------------------------------------------- */
-  const UsersMembersView = () => (
-    <div className="bg-white shadow-lg p-4 rounded-lg">
-      <div className="flex items-center mt-4 relative">
+  const UsersMembersView = () => {
+  const [searchTerm, setSearchTerm] = useState("");
+  const filteredMembers = React.useMemo(() => {
+    const q = (searchTerm || "").trim().toLowerCase();
+    if (!q) return members;
+    return members.filter((m) => {
+      const name = `${m.firstName || ""} ${m.middleName || ""} ${m.lastName || ""} ${m.memberName || ""} ${m.name || ""}`.toLowerCase();
+      return name.includes(q);
+    });
+  }, [members, searchTerm]);
+
+  return (
+    <div className="bg-white shadow-lg p-4 rounded-lg overflow-auto">
+      <div className="flex items-center mt-4 relative mb-4">
         <button
-          onClick={() => {
-            setActiveSection("dashboard");
-          }}
+          onClick={() => setActiveSection("dashboard")}
           className="absolute left-0 text-[#5a7350] hover:text-[#7e9e6c] transition text-2xl"
         >
           <FaArrowLeft />
         </button>
+
+        <div className="flex-1 text-center">
+          <h2 className="text-4xl text-[#5a7350] font-bold">Members</h2>
+          <p className="text-md text-gray-500 mb-4 mt-1">{members.length} members</p>
+        </div>
       </div>
 
-      <div className="flex-1 text-center">
-        <h2 className="text-4xl text-[#5a7350] font-bold">Members</h2>
-        <p className="text-md text-gray-500 mb-4 mt-1">{members.length} members</p>
+      {/* Search Row */}
+      <div className="flex items-center justify-between gap-4 mb-4">
+        <input
+          type="text"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Search by member name..."
+          className="border px-3 py-2 rounded w-full max-w-lg"
+        />
+        <div className="text-sm text-gray-500">{filteredMembers.length} result{filteredMembers.length !== 1 ? "s" : ""}</div>
       </div>
 
-      <div className="grid border-t border-gray-300 pt-4 grid-cols-2 gap-4">
-        {members.length === 0 ? (
-          <div className="text-gray-500 italic">No members found</div>
-        ) : (
-          members.map((m) => (
-            <div
-              key={m.id}
-              className="bg-gray-50 p-4 rounded shadow-lg cursor-pointer hover:bg-[#dce8c8]"
-              onClick={() => handleSelectMember(m)}
-            >
-              <p className="font-semibold">
-                {m.firstName} {m.middleName || ""} {m.lastName}
-              </p>
-              <p className="text-sm text-gray-500">{m.email || "—"}</p>
-            </div>
-          ))
+      <table className="min-w-full divide-y divide-gray-200">
+        <thead className="bg-gray-50">
+          <tr>
+            <th className="px-4 py-2 text-left text-sm font-medium text-gray-600">Member Name</th>
+            <th className="px-4 py-2 text-left text-sm font-medium text-gray-600">Email</th>
+            <th className="px-4 py-2 text-left text-sm font-medium text-gray-600">Phone</th>
+            <th className="px-4 py-2 text-left text-sm font-medium text-gray-600">Address</th>
+            <th className="px-4 py-2 text-center text-sm font-medium text-gray-600">Actions</th>
+          </tr>
+        </thead>
+        <tbody className="bg-white divide-y divide-gray-200">
+          {members.length === 0 ? (
+            <tr>
+              <td colSpan="5" className="px-4 py-6 text-center text-gray-500 italic">No members found</td>
+            </tr>
+          ) : filteredMembers.length === 0 ? (
+            <tr>
+              <td colSpan="5" className="px-4 py-6 text-center text-gray-500 italic">No results for "{searchTerm}"</td>
+            </tr>
+          ) : (
+            filteredMembers.map((m) => {
+              const name = `${m.firstName || ""} ${m.middleName || ""} ${m.lastName || ""}`.trim();
+              const address = [m.street, m.block ? `Block ${m.block}` : null, m.lot ? `Lot ${m.lot}` : null].filter(Boolean).join(", ") || "—";
+              return (
+                <tr key={m.id} className="hover:bg-[#f5f9ef] cursor-pointer">
+                  <td className="px-4 py-3 text-sm">{name || "—"}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600">{m.email || "—"}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600">{m.phoneNumber || "—"}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600">{address}</td>
+                  <td className="px-4 py-3 text-sm text-center space-x-2">
+                    <button onClick={() => handlePaidLoan(m)} className="px-2 py-1 text-xs bg-[#7e9e6c] text-white rounded hover:bg-[#6a8b5a]">Paid Loan</button>
+                    <button onClick={() => handlePurchase(m)} className="px-2 py-1 text-xs bg-[#6b8fd7] text-white rounded hover:bg-[#5278c0]">Purchase</button>
+                    <button onClick={() => handleAddShares(m)} className="px-2 py-1 text-xs bg-[#f6b26b] text-white rounded hover:bg-[#e09b3f]">Add Shares</button>
+                    <button onClick={() => handlePayBills(m)} className="px-2 py-1 text-xs bg-[#e06b6b] text-white rounded hover:bg-[#c85050]">Pay Bills</button>
+                  </td>
+                </tr>
+              );
+            })
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
+  // inside admin.jsx — replace UsersActivityView with this:
+const UsersActivityView = () => {
+  const [logs, setLogs] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [limit] = useState(50);
+
+  const fetchLogs = async (p = page) => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("token");
+      const res = await axios.get("/api/activity", {
+        params: { page: p, limit },
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setLogs(res.data.rows || []);
+    } catch (err) {
+      console.error("Failed to fetch activity logs:", err);
+      setLogs([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchLogs(1); }, []);
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-2xl font-bold">Activity Logs</h2>
+        <div className="space-x-2">
+          <button onClick={() => fetchLogs(1)} className="px-3 py-1 border rounded">Refresh</button>
+        </div>
+      </div>
+
+      <div className="bg-white p-4 rounded shadow overflow-auto">
+        {loading ? <p>Loading...</p> : (
+          logs.length === 0 ? (
+            <p className="text-gray-500 italic">No activity logs found</p>
+          ) : (
+            <table className="min-w-full text-sm">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-2 py-2 text-left">Date</th>
+                  <th className="px-2 py-2 text-left">User</th>
+                  <th className="px-2 py-2 text-left">Role</th>
+                  <th className="px-2 py-2 text-left">Action</th>
+                  <th className="px-2 py-2 text-left">Details</th>
+                  <th className="px-2 py-2 text-left">IP</th>
+                </tr>
+              </thead>
+              <tbody>
+                {logs.map((r) => (
+                  <tr key={r.id} className="odd:bg-white even:bg-gray-50">
+                    <td className="px-2 py-2">{new Date(r.createdAt).toLocaleString()}</td>
+                    <td className="px-2 py-2">{r.User ? `${r.User.firstName || ""} ${r.User.lastName || ""}`.trim() : "System"}</td>
+                    <td className="px-2 py-2">{r.userRole || "—"}</td>
+                    <td className="px-2 py-2">{r.action}</td>
+                    <td className="px-2 py-2">{r.details ? (typeof r.details === "string" ? r.details : JSON.stringify(r.details)) : "-"}</td>
+                    <td className="px-2 py-2">{r.ip || "-"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )
         )}
       </div>
     </div>
   );
-
-  const UsersActivityView = () => (
-    <div>
-      <h2 className="text-2xl font-bold mb-3">Activity Logs</h2>
-      <div className="bg-white p-6 rounded shadow">Activity logs go here.</div>
-    </div>
-  );
+};
 
   const formatCurrency = (n) =>
     Number(n || 0).toLocaleString("en-PH", { style: "currency", currency: "PHP" });
@@ -373,13 +488,11 @@ export default function Admin() {
             }}
           />
         ) : activeSection === "memberDetails" && selectedMember ? (
-          <MemberDetails
-            member={selectedMember}
-            onBack={() => {
-              setSelectedMember(null);
-              setActiveSection("dashboard");
-            }}
-          />
+  <MemberDetails
+    member={selectedMember}
+    onBack={() => { setSelectedMember(null); setActiveSection("dashboard"); setMemberDetailsAction(null); }}
+    openAction={memberDetailsAction}
+  />
         ) : activeSection === "shares" ? (
           <SharesPage onBack={() => setActiveSection("dashboard")} members={members} />
         ) : activeSection === "users:members" ? (

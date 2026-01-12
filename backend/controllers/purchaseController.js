@@ -1,5 +1,6 @@
 // controllers/purchasesController.js
 const Purchase = require("../models/purchase");
+const { logActivity } = require("../utils/activityLogger");
 
 // Helper to detect one-month payment method
 function isOneMonthMethod(pm) {
@@ -58,6 +59,7 @@ exports.createPurchase = async (req, res) => {
     const status = oneMonth ? "not paid" : "paid";
 
     const purchase = await Purchase.create({
+
       userId: String(memberId),
       memberName: memberName ?? (requester ? `${requester.firstName ?? ""} ${requester.lastName ?? ""}`.trim() : null),
       items: normalizedItems,
@@ -68,6 +70,13 @@ exports.createPurchase = async (req, res) => {
       paymentMethod: paymentMethod ?? "cash",
       status,
       notes: notes ?? null,
+    });
+     await logActivity({
+      userId: req.user?.id,
+      role: req.user?.role,
+      action: "Create Purchase",
+      details: { purchaseId: purchase.id, memberId: purchase.userId, total: purchase.total, paymentMethod: purchase.paymentMethod },
+      ip: req.ip,
     });
 
     console.log("[createPurchase] CREATED =>", { id: purchase.id, paymentMethod: purchase.paymentMethod, status: purchase.status, total: purchase.total, dueDate: purchase.dueDate });
@@ -107,6 +116,14 @@ exports.payPurchase = async (req, res) => {
 
     purchase.status = "paid";
     await purchase.save();
+
+    await logActivity({
+      userId: req.user?.id,
+      role: req.user?.role,
+      action: "Paid Purchase",
+      details: { purchaseId: purchase.id, memberId: purchase.userId, total: purchase.total },
+      ip: req.ip,
+    });
 
     console.log(`[payPurchase] purchase ${id} marked paid`);
     return res.json({ message: "Purchase marked as paid", purchase });

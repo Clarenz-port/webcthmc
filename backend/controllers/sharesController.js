@@ -1,5 +1,6 @@
 // controllers/sharesController.js
 const Shares = require("../models/shares");
+const { logActivity } = require("../utils/activityLogger");
 const sequelize = require("../config/database"); // your sequelize instance
 const { fn, col, literal, QueryTypes } = require("sequelize");
 
@@ -13,6 +14,14 @@ exports.addShares = async (req, res) => {
       shareamount,
       date: date ? new Date(date) : new Date(),
       paymentMethod: ["GCash", "Cash"].includes(paymentMethod) ? paymentMethod : "Cash",
+    });
+
+    await logActivity({
+      userId: req.user?.id,
+      role: req.user?.role,
+      action: "Add Shares",
+      details: { shareId: newShare.id, memberId: newShare.userId, amount: newShare.shareamount },
+      ip: req.ip,
     });
 
     return res.status(201).json({ message: "Shares added successfully", share: newShare });

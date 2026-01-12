@@ -120,6 +120,31 @@ export default function Approvedloan({ onBack }) {
 
     const readCheckNumber = (loan) =>
     loan?.checkNumber ?? loan?.check_number ?? loan?.checkNo ?? loan?.check_no ?? loan?.check ?? "—";
+
+      // generic numeric reader - returns 0 if not found / not numeric
+  const getNumber = (loan, ...keys) => {
+    if (!loan) return 0;
+    for (const key of keys) {
+      const val = loan[key];
+      if (val !== undefined && val !== null && val !== "") {
+        const n = parseFloat(val);
+        if (!isNaN(n)) return n;
+      }
+    }
+    return 0;
+  };
+
+  const readServiceCharge = (loan) =>
+    getNumber(loan, "serviceCharge", "service_charge", "serviceFee", "service_fee", "service_charge_amount");
+
+  const readFilingFee = (loan) =>
+    getNumber(loan, "filingFee", "fillingFee", "filing_fee", "filling_fee", "filingFeeAmount");
+
+  const readCapitalBuildup = (loan) =>
+    getNumber(loan, "capitalBuildup", "capital_buildup", "capital", "capital_build_up", "capitalBuildUp");
+
+  const readPenalties = (loan) =>
+    getNumber(loan, "penalties", "penalty", "penaltyAmount", "penalty_amount", "lateFee", "late_fee");
     
   return (
     <div className="flex-1 bg-white rounded-lg shadow-lg p-3 relative">
@@ -230,6 +255,10 @@ export default function Approvedloan({ onBack }) {
                   <tr className="bg-[#f4f9f4] text-[#56794a] border-b">
                     <th className="py-2 px-2 text-left">Month</th>
                     <th className="py-2 px-2 text-right">Interest</th>
+            <th className="py-2 px-2 text-right">Service Fee</th>
+                    <th className="py-2 px-2 text-right">Filing Fee</th>
+                    <th className="py-2 px-2 text-right">Build up</th>
+                    <th className="py-2 px-2 text-right">Penalties</th>
                     <th className="py-2 px-2 text-right">Balance</th>
                     <th className="py-2 px-2 text-right">Amortization</th>
                     <th className="py-2 px-2 text-center">Due Date</th>
@@ -241,6 +270,10 @@ export default function Approvedloan({ onBack }) {
                     <tr key={row.month} className="border-b ">
                       <td className="py-1 px-2">{row.month}</td>
                       <td className="py-1 px-2 text-right">{formatCurrency(row.interestPayment)}</td>
+                      <td className="py-2 px-2 text-right font-medium">{formatCurrency(readServiceCharge(selectedLoan))}</td>
+                      <td className="py-2 px-2 text-right font-medium">{formatCurrency(readFilingFee(selectedLoan))}</td>
+                      <td className="py-2 px-2 text-right font-medium">{formatCurrency(readCapitalBuildup(selectedLoan))}</td>
+                      <td className="py-2 px-2 text-right font-medium">{formatCurrency(readPenalties(selectedLoan))}</td>
                       <td className="py-1 px-2 text-right">{formatCurrency(row.remainingBalance)}</td>
                       <td className="py-1 px-2 text-right">{formatCurrency(row.totalPayment)}</td>
                       <td className="py-1 px-2 text-center">

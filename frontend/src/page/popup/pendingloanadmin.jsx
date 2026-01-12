@@ -1,5 +1,6 @@
 // src/page/popup/PendingLoanApplications.jsx
 import React, { useEffect, useState } from "react";
+import { notify } from "../../utils/toast";
 import { FaArrowLeft } from "react-icons/fa";
 import axios from "axios";
 
@@ -97,12 +98,12 @@ export default function PendingLoanApplications({ onBack }) {
     try {
       // require check number
       if (!checkNumber || String(checkNumber).trim() === "") {
-        alert("Please enter check number before approving.");
+        notify.success("Please enter check number before approving.");
         return;
       }
       const token = localStorage.getItem("token");
       if (!token) {
-        alert("Not authenticated.");
+        notify.success("Not authenticated.");
         return;
       }
 
@@ -113,13 +114,13 @@ export default function PendingLoanApplications({ onBack }) {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      alert(res.data?.message || "Loan approved");
+      notify.success(res.data?.message || "Loan approved");
       fetchPendingLoans();
       setSelectedLoan(null);
       setCheckNumber("");
     } catch (err) {
       console.error("❌ Approve failed:", err);
-      alert(err.response?.data?.message || "Approve failed");
+      notify.success(err.response?.data?.message || "Approve failed");
     }
   };
 
@@ -128,18 +129,18 @@ export default function PendingLoanApplications({ onBack }) {
     try {
       const token = localStorage.getItem("token");
       if (!token) {
-        alert("Not authenticated.");
+        notify.success("Not authenticated.");
         return;
       }
       const endpoint = `http://localhost:8000/api/loans/loan/${loanId}/reject`;
       const res = await axios.post(endpoint, {}, { headers: { Authorization: `Bearer ${token}` } });
-      alert(res.data?.message || "Loan rejected");
+      notify.success(res.data?.message || "Loan rejected");
       fetchPendingLoans();
       setSelectedLoan(null);
       setCheckNumber("");
     } catch (err) {
       console.error("❌ Reject failed:", err);
-      alert(err.response?.data?.message || "Reject failed");
+      notify.success(err.response?.data?.message || "Reject failed");
     }
   };
 

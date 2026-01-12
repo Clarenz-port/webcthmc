@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { notify } from "../../utils/toast";
 import axios from "axios";
 
 export default function AddDividendPopup({ isOpen, onClose, memberId, memberName, onSaved }) {
@@ -63,7 +64,7 @@ export default function AddDividendPopup({ isOpen, onClose, memberId, memberName
       });
 
       const msg = res.data?.message ?? "Dividend recorded";
-      alert(msg);
+      notify.success(msg);
       if (typeof onSaved === "function") onSaved(payload, res.data);
       onClose();
     } catch (err) {

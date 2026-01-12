@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { notify } from "../../utils/toast";
 import PaidLoanPopup from "./adminmem/paidloan.jsx";
 import AddSharesPopup from "../popup/AddSharesPopup.jsx";
 import AddPurchasePopup from "../popup/AddPurchasePopup.jsx";
@@ -8,8 +9,21 @@ import Sharehistory from "../popup/Sharehistory.jsx";
 import AddDividendPopup from "../popup/AddDividendPopup.jsx";
 import AddDividendHistoryPopup from "../popup/AddDividendHistoryPopup.jsx";
 import axios from "axios";
+import { Bar, Line } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  LineElement,
+  PointElement,
+  Tooltip,
+  Legend
+} from "chart.js";
 
-export default function MemberDetails({ member, onBack }) {
+ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, Tooltip, Legend);
+
+export default function MemberDetails({ member, onBack, openAction }) {
   const [isPaidPopupOpen, setIsPaidPopupOpen] = useState(false);
   const [isBillOpen, setIsBillOpen] = useState(false);
   const [isBillHistoryOpen, setIsBillHistoryOpen] = useState(false);
@@ -18,6 +32,7 @@ export default function MemberDetails({ member, onBack }) {
   const [isLoanAppOpen, setIsLoanAppOpen] = useState(false);
   const [isShareHistoryOpen, setIsShareHistoryOpen] = useState(false);
   const [isPurchaseHistoryOpen, setIsPurchaseHistoryOpen] = useState(false);
+  const [isLoanHistoryOpen, setIsLoanHistoryOpen] = useState(false);
 
   const [loanHistory, setLoanHistory] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -41,6 +56,141 @@ export default function MemberDetails({ member, onBack }) {
   const [isDividendHistoryOpen, setIsDividendHistoryOpen] = useState(false);
   const [dividends, setDividends] = useState([]);
   const [loadingDividends, setLoadingDividends] = useState(true);
+
+  const [overviewTotals, setOverviewTotals] = useState({
+  shares: 0,
+  loans: 0,
+  purchases: 0,
+  bills: 0,
+  dividends: 0,
+});
+
+
+
+// Chart filter state
+const [grouping, setGrouping] = useState("Year");
+const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
+const [availableYears, setAvailableYears] = useState([]);
+// add near other buttons inside the Actions block
+const [loadingReport, setLoadingReport] = useState(false);
+
+const downloadMemberReport = async () => {
+  setLoadingReport(true);
+  try {
+    const token = localStorage.getItem("token");
+    const body = { reportType: "member_ledger", period: "all", memberId: member.id };
+    const res = await axios.post("/api/reports/generate", body, {
+      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      responseType: "blob",
+    });
+    const url = window.URL.createObjectURL(new Blob([res.data]));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `member-ledger-${member.id}-${Date.now()}.pdf`;
+    link.click();
+  } catch (err) {
+    notify.success("Failed to generate member report");
+    console.error(err);
+  } finally {
+    setLoadingReport(false);
+  }
+};
+// normalize date helper
+const getDateFrom = (item) => {
+  const d = item?.date ?? item?.createdAt ?? item?.created_at ?? item?.paidAt ?? item?.paid_at ?? item?.created;
+  const dt = d ? new Date(d) : null;
+  return isNaN(dt) ? null : dt;
+};
+
+const collectYears = () => {
+  const years = new Set();
+  [loanHistory, purchases, bills, dividends, shareRows].forEach((arr) =>
+    (arr || []).forEach((r) => { const dt = getDateFrom(r); if (dt) years.add(dt.getFullYear()); })
+  );
+  const arr = Array.from(years).sort((a,b)=>b-a);
+  if (arr.length === 0) arr.push(new Date().getFullYear());
+  setAvailableYears(arr);
+  if (!arr.includes(selectedYear)) setSelectedYear(arr[0]);
+};
+useEffect(() => collectYears(), [loanHistory, purchases, bills, dividends, shareRows]);
+
+const monthsLabels = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+const aggregateCounts = (rows, opts = { type: "count", amountField: null }) => {
+  const { type, amountField } = opts;
+  if (!rows || rows.length === 0) {
+    // return empty labels for current selection
+    if (grouping === "Year") return { labels: monthsLabels, data: monthsLabels.map(()=>0) };
+    // Month -> days in month
+    const days = new Date(selectedYear, selectedMonth, 0).getDate();
+    return { labels: Array.from({length: days}, (_,i)=>String(i+1)), data: new Array(days).fill(0) };
+  }
+
+  if (grouping === "Year") {
+    // monthly breakdown for selectedYear
+    const byMonth = new Array(12).fill(0);
+    rows.forEach((r) => {
+      const dt = getDateFrom(r);
+      if (!dt) return;
+      if (dt.getFullYear() !== Number(selectedYear)) return;
+      const m = dt.getMonth(); // 0-11
+      byMonth[m] += type === "sum" ? (Number(r[amountField] ?? r.amount ?? r.total ?? 0) || 0) : 1;
+    });
+    return { labels: monthsLabels, data: byMonth };
+  }
+
+  // grouping === "Month"
+  const days = new Date(selectedYear, selectedMonth, 0).getDate(); // selectedMonth is 1-12
+  const byDay = new Array(days).fill(0);
+  rows.forEach((r) => {
+    const dt = getDateFrom(r);
+    if (!dt) return;
+    if (dt.getFullYear() !== Number(selectedYear)) return;
+    if (dt.getMonth() !== (Number(selectedMonth) - 1)) return;
+    const idx = dt.getDate() - 1; // 0-based
+    byDay[idx] += type === "sum" ? (Number(r[amountField] ?? r.amount ?? r.total ?? 0) || 0) : 1;
+  });
+  return { labels: Array.from({length: days}, (_,i)=>String(i+1)), data: byDay };
+};
+useEffect(() => {
+  const computeOverview = () => {
+    const shares = Number(memberShares) || 0;
+
+    // sum loan outstanding balances
+    const loans = (loanHistory || []).reduce((s, l) => {
+      const v = Number(l.remainbalance ?? l.remaining ?? l.balance ?? 0);
+      return s + (Number.isNaN(v) ? 0 : v);
+    }, 0);
+
+    // sum purchases totals
+    const purchasesTotal = (purchases || []).reduce((s, p) => s + (Number(p.total ?? p.totalAmount ?? 0) || 0), 0);
+
+    // sum bills amounts
+    const billsTotal = (bills || []).reduce((s, b) => s + (Number(b.amount ?? b.total ?? 0) || 0), 0);
+
+    // sum dividends amounts
+    const dividendsTotal = (dividends || []).reduce((s, d) => s + (Number(d.amount ?? d.dividend ?? 0) || 0), 0);
+
+    setOverviewTotals({
+      shares,
+      loans,
+      purchases: purchasesTotal,
+      bills: billsTotal,
+      dividends: dividendsTotal,
+    });
+  };
+
+  computeOverview();
+}, [memberShares, loanHistory, purchases, bills, dividends]);
+
+  useEffect(() => {
+  if (!openAction) return;
+  if (openAction === "paidLoan") setIsPaidPopupOpen(true);
+  if (openAction === "purchase") setIsPurchaseOpen(true);
+  if (openAction === "addShares") setIsSharePopupOpen(true);
+  if (openAction === "payBills") setIsBillOpen(true);
+}, [openAction]);
 
   const loan = loanHistory[0];
   const name =
@@ -298,7 +448,7 @@ export default function MemberDetails({ member, onBack }) {
   const handleAddSharesConfirm = async (shareamount, paymentMethod = "Cash") => {
     const amt = Number(shareamount);
     if (!amt || amt <= 0) {
-      alert("Amount must be greater than zero.");
+      notify.success("Amount must be greater than zero.");
       return;
     }
     try {
@@ -307,17 +457,17 @@ export default function MemberDetails({ member, onBack }) {
       const res = await axios.post("/api/shares/add", payload, {
         headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       });
-      alert(res.data.message || "Shares added!");
+      notify.success(res.data.message || "Shares added!");
       await fetchMemberSharesTotal();
       setIsSharePopupOpen(false);
     } catch (err) {
       console.error("Add shares error:", err?.response?.data || err);
-      alert("Failed to add shares: " + JSON.stringify(err.response?.data || err.message));
+      notify.success("Failed to add shares: " + JSON.stringify(err.response?.data || err.message));
     }
   };
 
   const handlePurchaseSaved = async (purchase) => {
-    alert("Purchase recorded.");
+    notify.success("Purchase recorded.");
     setIsPurchaseOpen(false);
     await fetchMemberPurchases();
   };
@@ -328,12 +478,12 @@ export default function MemberDetails({ member, onBack }) {
     try {
       const token = localStorage.getItem("token");
       const res = await axios.post(`/api/purchases/${purchaseId}/pay`, {}, { headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
-      alert(res.data?.message || "Purchase marked as paid");
+      notify.success(res.data?.message || "Purchase marked as paid");
       await fetchMemberPurchases();
       setSelectedPurchase1(null);
     } catch (err) {
       console.error("Failed to pay purchase:", err?.response?.data || err);
-      alert(err.response?.data?.message || "Failed to mark as paid");
+      notify.success(err.response?.data?.message || "Failed to mark as paid");
     } finally {
       setProcessingPayId(null);
     }
@@ -358,80 +508,171 @@ export default function MemberDetails({ member, onBack }) {
           ← Back to Dashboard
         </button>
       </div>
+      {/* Overview Chart */}
+<div className="mb-6">
+ {/* Charts Controls */}
+<div className="mb-4 flex items-center gap-3">
+  <label className="text-sm font-medium">View by:</label>
+<select value={grouping} onChange={(e)=>setGrouping(e.target.value)} className="border px-2 py-1 rounded">
+  <option value="Year">Year</option>
+  <option value="Month">Month</option>
+</select>
 
-      <div className="bg-white p-6 rounded-2xl shadow border border-gray-200">
-        <h2 className="text-2xl font-bold mb-4 text-[#7e9e6c]">Details</h2>
-        <p className="text-lg"><strong>Member since</strong> {membership}</p>
+<label className="text-sm font-medium ml-3">Year:</label>
+<select value={selectedYear} onChange={(e)=>setSelectedYear(Number(e.target.value))} className="border px-2 py-1 rounded">
+  {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
+</select>
 
-        <p className="text-lg flex items-center gap-3">
-          <strong>Total Shares:</strong> <span>{loadingShares ? "Loading..." : formatPeso(memberShares)}</span>
-          <button onClick={() => setIsShareHistoryOpen(true)} title="View share history" className="ml-2 px-3 text-sm text-[#7e9e6c] border border-2 font-bold bg-[white] rounded hover:bg-[#d6ead8]">View</button>
-        </p>
+{grouping === "Month" && (
+  <>
+    <label className="text-sm font-medium ml-3">Month:</label>
+    <select value={selectedMonth} onChange={(e)=>setSelectedMonth(Number(e.target.value))} className="border px-2 py-1 rounded">
+      {monthsLabels.map((m,i)=> <option key={i} value={i+1}>{m}</option>)}
+    </select>
+  </>
+)}
+</div>
 
-        <p className="text-lg flex items-center gap-3">
-          <strong>Total Loans:</strong> <span>{totalLoans}</span>
-          <button onClick={() => setIsLoanAppOpen(true)} title="View loans" className="ml-2 px-3 text-sm text-[#7e9e6c] border border-2 font-bold bg-[white] rounded hover:bg-[#d6ead8]">View</button>
-        </p>
+{/* Charts grid */}
+<div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+  {/* Total Shares (Bar) */}
+  <div className="bg-white p-4 rounded-lg border shadow-sm">
+    <h4 className="font-semibold mb-2 text-[#7e9e6c]">Total Shares</h4>
+    {(() => {
+      const { labels, data } = aggregateCounts(shareRows, { type: "sum", amountField: "shareamount" });
+      return data.reduce((a,b)=>a+b,0) === 0 ? <div className="text-gray-500">No share data</div> : (
+        <div className="h-44">
+        <Bar data={{ labels, datasets:[{ label:"PHP", data, backgroundColor:"#7e9e6c" }] }}
+             options={{
+      maintainAspectRatio: false, // keep this, but size is controlled by wrapper
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true } }
+    }}   />
+    </div>
+      );
+    })()}
+  </div>
 
-        <p className="text-lg flex items-center gap-3">
-          <strong>All Purchases:</strong> <span>{purchases.length}</span>
-          <button onClick={() => setIsPurchaseHistoryOpen(true)} title="View purchases" className="ml-2 px-3 text-sm text-[#7e9e6c] border border-2 font-bold bg-[white] rounded hover:bg-[#d6ead8]">View</button>
-        </p>
+  {/* Total Dividend (Bar) */}
+  <div className="bg-white p-4 rounded-lg border shadow-sm">
+    <h4 className="font-semibold mb-2 text-[#9a7ee6]">Total Dividend</h4>
+    {(() => {
+      const { labels, data } = aggregateCounts(dividends, { type: "sum", amountField: "amount" });
+      return data.reduce((a,b)=>a+b,0) === 0 ? <div className="text-gray-500">No dividend data</div> : (
+        <div className="h-44">
+        <Bar data={{ labels, datasets:[{ label:"PHP", data, backgroundColor:"#9a7ee6" }] }}
+             options={{
+      maintainAspectRatio: false, // keep this, but size is controlled by wrapper
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true } }
+    }} />
+    </div>
+      );
+    })()}
+  </div>
 
-        <p className="text-lg flex items-center gap-3">
-          <strong>Bill Payment:</strong> <span>{loadingBills ? "Loading..." : bills.length}</span>
-          <button onClick={() => setIsBillHistoryOpen(true)} title="View Bill History" className="ml-2 px-3 text-sm text-[#7e9e6c] border border-2 font-bold bg-[white] rounded hover:bg-[#d6ead8]">View</button>
-        </p>
+  {/* Loan Count (Line) */}
+  <div className="bg-white p-4 rounded-lg border shadow-sm">
+    <h4 className="font-semibold mb-2 text-[#e07a7a]">Loan Count</h4>
+    {(() => {
+      const { labels, data } = aggregateCounts(loanHistory, { type: "count" });
+      return data.reduce((a,b)=>a+b,0) === 0 ? <div className="text-gray-500">No loan data</div> : (
+        <div className="h-44">
+        <Line data={{ labels, datasets:[{ label: "Loans", data, borderColor:"#e07a7a", backgroundColor:"rgba(224,122,122,0.2)", tension:0.3 }] }}
+              options={{
+      maintainAspectRatio: false, // keep this, but size is controlled by wrapper
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true } }
+    }} />
+      </div>
+            );
+    })()}
+  </div>
 
-        <p className="text-lg flex items-center gap-3">
-          <strong>Total Dividend:</strong>
-          <span>
-  {loadingDividends
-    ? "Loading..."
-    : Number.isFinite(dividends.reduce((s, d) => s + (Number(d.amount) || 0), 0))
-      ? (dividends.length === 0 ? "₱0" : (dividends.reduce((s, d) => s + (Number(d.amount) || 0), 0)).toLocaleString("en-PH", { style: "currency", currency: "PHP", minimumFractionDigits: 0, maximumFractionDigits: 0 }))
-      : "₱0"}
-</span>
-          <button onClick={() => setIsDividendHistoryOpen(true)} title="View dividends" className="ml-2 px-3 text-sm text-[#7e9e6c] border border-2 font-bold bg-[white] rounded hover:bg-[#d6ead8]">View</button>
-        </p>
+  {/* Purchase Count (Line) */}
+  <div className="bg-white p-4 rounded-lg border shadow-sm">
+    <h4 className="font-semibold mb-2 text-[#6b8fd7]">Purchase Count</h4>
+    {(() => {
+      const { labels, data } = aggregateCounts(purchases, { type: "count" });
+      return data.reduce((a,b)=>a+b,0) === 0 ? <div className="text-gray-500">No purchase data</div> : (
+      <div className="h-44">  
+        <Line data={{ labels, datasets:[{ label: "Purchases", data, borderColor:"#6b8fd7", backgroundColor:"rgba(107,143,215,0.2)", tension:0.3 }] }}
+              options={{
+      maintainAspectRatio: false, // keep this, but size is controlled by wrapper
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true } }
+    }} />
+    </div>
+      );
+    })()}
+  </div>
+
+  {/* Bill Payment Count (Line) */}
+  <div className="bg-white p-4 rounded-lg border shadow-sm md:col-span-2">
+    <h4 className="font-semibold mb-2 text-[#f6b26b]">Bill Payments Count</h4>
+    {(() => {
+      const { labels, data } = aggregateCounts(bills, { type: "count" });
+      return data.reduce((a,b)=>a+b,0) === 0 ? <div className="text-gray-500">No bill payment data</div> : (
+        <div className="h-44">
+        <Line data={{ labels, datasets:[{ label: "Bill Payments", data, borderColor:"#f6b26b", backgroundColor:"rgba(246,178,107,0.2)", tension:0.3 }] }}
+              options={{
+      maintainAspectRatio: false, // keep this, but size is controlled by wrapper
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true } }
+    }} />
+    </div>
+      );
+    })()}
+  </div>
+</div>
+
+{/* View history buttons */}
+<div className="flex flex-wrap gap-3 justify-end mb-4">
+  <button onClick={() => setIsLoanHistoryOpen(true)} className="px-3 py-2 border rounded text-sm">View Loan History</button>
+  <button onClick={() => setIsPurchaseHistoryOpen(true)} className="px-3 py-2 border rounded text-sm">View Purchase History</button>
+  <button onClick={() => setIsBillHistoryOpen(true)} className="px-3 py-2 border rounded text-sm">View Bill History</button>
+  <button onClick={() => setIsShareHistoryOpen(true)} className="px-3 py-2 border rounded text-sm">View Shares History</button>
+  <button onClick={() => setIsDividendHistoryOpen(true)} className="px-3 py-2 border rounded text-sm">View Dividend History</button>
+</div>
 
         <h2 className="text-2xl font-bold mt-6 mb-3 text-[#7e9e6c]">Loan History</h2>
-        {loading ? (
-          <p className="text-gray-600 text-lg mb-6">Loading loan history...</p>
-        ) : loanHistory.length > 0 ? (
-          parseFloat(loanHistory[0]?.remainbalance || 0) <= 0 ? (
-            <p className="text-gray-600 text-lg mb-6">No active loan.</p>
-          ) : (
-            <div className="overflow-auto border-gray-400 border rounded-lg">
-              <table className="w-full text-lg text-left">
-                <thead className="bg-[#dead8]">
-                  <tr>
-                    <th className="px-3 py-4">Purpose</th>
-                    <th className="px-3 py-4">Amount</th>
-                    <th className="px-3 py-4">months</th>
-                    <th className="px-3 py-4">Paid(count)</th>
-                    <th className="px-3 py-4">Status</th>
-                    <th className="px-3 py-4">Balance</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {loanHistory.filter((l) => l).map((l) => (
-                    <tr key={l.id || Math.random()} className="border-t border-gray-400">
-                      <td className="px-3 py-4">{l.purpose || "N/A"}</td>
-                      <td className="px-3 py-4">{l.loanAmount ? parseFloat(l.loanAmount).toFixed(2) : "0.00"}</td>
-                      <td className="px-3 py-4">{l.duration ? l.duration : "0"}</td>
-                      <td className="px-3 py-4">{l.paymentsMade ? l.paymentsMade : "0"}</td>
-                      <td className="px-3 py-4">{l.status || "N/A"}</td>
-                      <td className="px-3 py-4">{newbal}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )
-        ) : (
-          <p className="text-gray-600 text-lg mb-6">No loan history available.</p>
-        )}
+{loading ? (
+  <p className="text-gray-600 text-lg mb-6">Loading loan history...</p>
+) : loanHistory.length > 0 ? (
+  <div className="overflow-auto border-gray-400 border rounded-lg">
+    <table className="w-full text-lg text-left">
+      <thead className="bg-[#d6ead8]">
+        <tr>
+          <th className="px-3 py-4">Purpose</th>
+          <th className="px-3 py-4">Amount</th>
+          <th className="px-3 py-4">Months</th>
+          <th className="px-3 py-4">Paid (count)</th>
+          <th className="px-3 py-4">Status</th>
+          <th className="px-3 py-4">Balance</th>
+        </tr>
+      </thead>
+      <tbody>
+        {loanHistory.map((l) => (
+          <tr key={l.id || Math.random()} className="border-t border-gray-400">
+            <td className="px-3 py-4">{l.purpose || "N/A"}</td>
+            <td className="px-3 py-4">{fmtMoney(l.loanAmount)}</td>
+            <td className="px-3 py-4">{l.duration ?? "0"}</td>
+            <td className="px-3 py-4">{l.paymentsMade ?? "0"}</td>
+            <td className="px-3 py-4">{l.status ?? "N/A"}</td>
+            <td className="px-3 py-4">{fmtMoney(l.remainbalance ?? l.balance ?? 0)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+) : (
+  <p className="text-gray-600 text-lg mb-6">No loan history available.</p>
+)}
 
         {/* Pending purchases UI (same as previous) */}
         {loadingPurchases ? (
@@ -486,9 +727,9 @@ export default function MemberDetails({ member, onBack }) {
         {/* Actions */}
         <div className="flex flex-wrap justify-center gap-6 mt-6">
           <button onClick={() => {
-            if (!loan) { alert("No active loan found."); return; }
+            if (!loan) { notify.success("No active loan found."); return; }
             const remainBalance = parseFloat(loan.remainbalance) || 0;
-            if (remainBalance <= 0) { alert("No active loan — this member has fully paid the loan."); return; }
+            if (remainBalance <= 0) { notify.success("No active loan — this member has fully paid the loan."); return; }
             setIsPaidPopupOpen(true);
           }} className="bg-[#7e9e6c] shadow-md text-white text-xl px-12 py-5 rounded-2xl font-semibold hover:bg-[#6a865a] transition">Paid Loan</button>
 
@@ -499,6 +740,14 @@ export default function MemberDetails({ member, onBack }) {
           <button onClick={() => setIsBillOpen(true)} className="bg-[#7e9e6c] shadow-md text-white text-xl px-12 py-5 rounded-2xl font-semibold hover:bg-[#6a865a] transition">Pay Bills</button>
 
           <button onClick={() => setIsDividendOpen(true)} className="bg-[#7e9e6c] shadow-md text-white text-xl px-12 py-5 rounded-2xl font-semibold hover:bg-[#6a865a] transition">Add Dividend</button>
+        
+          <button
+            onClick={downloadMemberReport}
+            disabled={loadingReport}
+            className="bg-[#7e9e6c] shadow-md text-white text-xl px-12 py-5 rounded-2xl font-semibold hover:bg-[#6a865a] transition disabled:opacity-50"
+          >
+            {loadingReport ? "Generating..." : "Member Report"}
+          </button>
         </div>
 
         {/* Purchase detail modals */}
@@ -644,8 +893,25 @@ export default function MemberDetails({ member, onBack }) {
         isOpen={isBillOpen}
         onClose={() => setIsBillOpen(false)}
         memberId={member.id}
-        onSaved={async () => { alert("Bill payment recorded!"); setIsBillOpen(false); await fetchMemberBills(); }}
+        onSaved={async () => { notify.success("Bill payment recorded!"); setIsBillOpen(false); await fetchMemberBills(); }}
       />
+
+      {isLoanHistoryOpen && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center pt-12 px-4">
+    <div className="absolute inset-0 bg-black/50" onClick={() => setIsLoanHistoryOpen(false)} />
+    <div className="relative w-full max-w-4xl z-60">
+      <LoanApplication
+        onBack={() => setIsLoanHistoryOpen(false)}
+        memberId={member.id}
+        memberName={name}
+        onLoanUpdated={(updatedLoan) => {
+          // keep the displayed loanHistory in sync when a loan is updated from LoanApplication
+          setLoanHistory((prev) => (prev || []).map((l) => (l.id === updatedLoan.id ? { ...l, ...updatedLoan } : l)));
+        }}
+      />
+    </div>
+  </div>
+)}
 
       {isPaidPopupOpen && (
         <PaidLoanPopup

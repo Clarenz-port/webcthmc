@@ -1,13 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
+import { notify } from "../../utils/toast";
 
-/**
- * Props:
- *  - isOpen (bool)
- *  - onClose (fn)
- *  - onConfirm(amount, paymentMethod) (fn)  // receives numeric amount and string payment method
- *  - memberName (string) optional
- *  - date (string | Date) optional (if omitted shows today)
- */
 export default function AddSharesPopup({
   isOpen,
   onClose,
@@ -51,7 +44,7 @@ export default function AddSharesPopup({
 
   const handleConfirm = () => {
     const amt = Number(selectedAmount) || 0;
-    if (!amt || amt <= 0) return alert("Please enter or select an amount greater than zero.");
+    if (!amt || amt <= 0) return notify.success("Please enter or select an amount greater than zero.");
     // Call onConfirm with both amount and payment method
     onConfirm && onConfirm(amt, paymentMethod);
     onClose && onClose();

@@ -1,5 +1,6 @@
 // controllers/noticeController.js
 const Notice = require("../models/Notice");
+const { logActivity } = require("../utils/activityLogger");
 
 /**
  * ADMIN / SUPERADMIN
@@ -18,6 +19,14 @@ exports.createNotice = async (req, res) => {
     const notice = await Notice.create({
       title,
       message,
+    });
+
+     await logActivity({
+      userId: req.user?.id,
+      role: req.user?.role,
+      action: "Created Notice",
+      details: { noticeId: notice.id, title: notice.title },
+      ip: req.ip,
     });
 
     res.status(201).json(notice);
@@ -64,6 +73,15 @@ exports.deleteNotice = async (req, res) => {
     }
 
     await notice.destroy();
+
+    await logActivity({
+      userId: req.user?.id,
+      role: req.user?.role,
+      action: "Deleted Notice",
+      details: { noticeId: id, title: notice.title },
+      ip: req.ip,
+    });
+
     res.json({ message: "Notice deleted successfully" });
   } catch (error) {
     console.error("Delete notice error:", error);
@@ -93,6 +111,15 @@ exports.updateNotice = async (req, res) => {
     notice.message = message ?? notice.message;
 
     await notice.save();
+
+    await logActivity({
+      userId: req.user?.id,
+      role: req.user?.role,
+      action: "Updated Notice",
+      details: { noticeId: notice.id, title: notice.title },
+      ip: req.ip,
+    });
+
     res.json(notice);
   } catch (error) {
     console.error("Update notice error:", error);

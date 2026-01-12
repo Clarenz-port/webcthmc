@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { notify } from "../../utils/toast";
 import axios from "axios";
 
 export default function AdminCreateNotice() {
@@ -19,11 +20,11 @@ export default function AdminCreateNotice() {
 );
 
 
-      alert("Notice created!");
+      notify.success("Notice created!");
       setTitle("");
       setMessage("");
     } catch (err) {
-      alert("Failed to create notice");
+      notify.success("Failed to create notice");
     }
   };
 

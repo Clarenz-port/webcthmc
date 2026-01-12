@@ -1,5 +1,6 @@
 // controllers/dividendController.js
 const Dividend = require("../models/dividend");
+const { logActivity } = require("../utils/activityLogger");
 
 exports.createDividend = async (req, res) => {
   try {
@@ -19,6 +20,14 @@ exports.createDividend = async (req, res) => {
       amount: n,
       date: date || new Date(),
       note: note || ""
+    });
+
+    await logActivity({
+      userId: req.user?.id,
+      role: req.user?.role,
+      action: "Add Dividend",
+      details: { dividendId: newDividend.id, memberId: newDividend.memberId, amount: newDividend.amount },
+      ip: req.ip,
     });
 
     return res.status(201).json({ message: "Dividend added successfully.", dividend: newDividend });

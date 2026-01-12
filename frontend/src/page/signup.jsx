@@ -1,3 +1,4 @@
+import { notify } from "../utils/toast";
 import { useState } from "react";
 import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
@@ -61,7 +62,7 @@ export default function Signup() {
         confirmPassword: form.confirmPassword,
       });
 
-      alert("Registration successful!");
+      notify.success("Registration successful!");
       navigate("/login");
     } catch (err) {
       setError(err.response?.data?.message || "Registration failed.");

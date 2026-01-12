@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { notify } from "../../utils/toast";
 import axios from "axios";
 
 export default function RecordLoanPayment({ isOpen, onClose, member, loanId, onPaymentRecorded }) {
@@ -14,7 +15,7 @@ export default function RecordLoanPayment({ isOpen, onClose, member, loanId, onP
 
   const handleConfirm = async () => {
     if (!amountPaid || parseFloat(amountPaid) <= 0) {
-      alert("Please enter a valid amount");
+      notify.success("Please enter a valid amount");
       return;
     }
 
@@ -31,13 +32,13 @@ export default function RecordLoanPayment({ isOpen, onClose, member, loanId, onP
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      alert("Payment recorded successfully!");
+      notify.success("Payment recorded successfully!");
       setAmountPaid("");
       onPaymentRecorded(res.data); // update parent schedule
       onClose();
     } catch (err) {
       console.error("❌ Error recording payment:", err.response || err);
-      alert(err.response?.data?.message || "Failed to record payment");
+      notify.success(err.response?.data?.message || "Failed to record payment");
     }
   };
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { notify } from "../../../utils/toast";
 import axios from "axios";
 
 export default function PaidLoanPopup({ isOpen, onClose, member, onUpdateLoan }) {
@@ -54,9 +55,7 @@ export default function PaidLoanPopup({ isOpen, onClose, member, onUpdateLoan })
     const manilaIso = manilaNow.toISOString(); // ISO representing the Manila-local instant
     setPaymentDate(manilaIso);
 
-    // Determine next due date (use loan.dueDate if present)
-    // If your loan.dueDate is stored in UTC and showing 8 hours behind, compute next due based on created/ due logic:
-      const nextDue = loan.dueDate;
+    const nextDue = loan.dueDate;
     setDueDate(nextDue);
   }, [isOpen, member]);
 
@@ -64,7 +63,7 @@ export default function PaidLoanPopup({ isOpen, onClose, member, onUpdateLoan })
 
   const handleConfirm = async () => {
     if (!paidAmount || paidAmount <= 0) {
-      alert("Paid amount must be greater than zero.");
+      notify.success("Paid amount must be greater than zero.");
       return;
     }
 
@@ -94,14 +93,14 @@ export default function PaidLoanPopup({ isOpen, onClose, member, onUpdateLoan })
 
       onUpdateLoan && onUpdateLoan(res.data.loan);
       onClose();
-      alert(
+      notify.success(
         `Payment of ₱${paidAmount} recorded successfully! Next due: ${formatManilaForDisplay(
           formattedNextDue
         )}`
       );
     } catch (err) {
       console.error("❌ Error recording payment:", err);
-      alert(err.response?.data?.message || "Failed to record payment.");
+      notify.success(err.response?.data?.message || "Failed to record payment.");
     }
   };
 

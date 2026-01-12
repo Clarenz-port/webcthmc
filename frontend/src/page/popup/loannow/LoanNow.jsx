@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { notify } from "../../../utils/toast";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import MemberInfoSection from "./MemberInfoSection";
@@ -182,10 +183,10 @@ export default function Loannow({ isOpen, onClose }) {
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      alert(response.data.message);
+      notify.success(response.data.message);
       onClose();
     } catch (error) {
-      alert(error.response?.data?.message || "Error submitting loan");
+      notify.success(error.response?.data?.message || "Error submitting loan");
     }
   };
 

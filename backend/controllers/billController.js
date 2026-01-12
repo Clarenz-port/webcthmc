@@ -1,4 +1,5 @@
 const BillPayment = require("../models/BillPayment");
+const { logActivity } = require("../utils/activityLogger");
 
 exports.addBillPayment = async (req, res) => {
   try {
@@ -10,6 +11,14 @@ exports.addBillPayment = async (req, res) => {
       amount: parseFloat(amount),
       date,
       paymentMethod: paymentMethod || "cash",
+    });
+
+    await logActivity({
+      userId: req.user?.id,
+      role: req.user?.role,
+      action: "Recorded Bill Payment",
+      details: { billId: bill.id, memberId: bill.memberId, amount: bill.amount, billName: bill.billName },
+      ip: req.ip,
     });
 
     return res.json({

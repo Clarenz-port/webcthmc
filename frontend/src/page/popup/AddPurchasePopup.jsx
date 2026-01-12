@@ -1,9 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
+import { notify } from "../../utils/toast";
 import axios from "axios";
 
-/**
- * AddPurchasePopup — props: { isOpen, onClose, memberId, memberName, onSaved }
- */
 export default function AddPurchasePopup({ isOpen, onClose, memberId, memberName = null, onSaved }) {
   const [lines, setLines] = useState([{ name: "", qty: "", unitPrice: "" }]);
   const [paymentMethod, setPaymentMethod] = useState("cash");
@@ -66,21 +64,21 @@ export default function AddPurchasePopup({ isOpen, onClose, memberId, memberName
 
   const validateBeforeSubmit = () => {
     if (!memberId) {
-      alert("Member not specified.");
+      notify.success("Member not specified.");
       return false;
     }
     for (let i = 0; i < lines.length; i++) {
       const l = lines[i];
       if (!String(l.name || "").trim()) {
-        alert(`Please enter item name for row ${i + 1}.`);
+        notify.success(`Please enter item name for row ${i + 1}.`);
         return false;
       }
       if (l.qty && toQty(l.qty) < 1) {
-        alert(`Quantity must be >= 1 for row ${i + 1}.`);
+        notify.success(`Quantity must be >= 1 for row ${i + 1}.`);
         return false;
       }
       if (l.unitPrice && toPrice(l.unitPrice) < 0) {
-        alert(`Unit price must be >= 0 for row ${i + 1}.`);
+        notify.success(`Unit price must be >= 0 for row ${i + 1}.`);
         return false;
       }
     }
@@ -142,12 +140,12 @@ export default function AddPurchasePopup({ isOpen, onClose, memberId, memberName
         },
       });
 
-      alert("Purchase recorded");
+      notify.success("Purchase recorded");
       onSaved && onSaved(res.data.purchase ?? res.data);
       onClose && onClose();
     } catch (err) {
       console.error(err);
-      alert(err.response?.data?.message || "Failed to record purchase");
+      notify.success(err.response?.data?.message || "Failed to record purchase");
     } finally {
       setSaving(false);
     }

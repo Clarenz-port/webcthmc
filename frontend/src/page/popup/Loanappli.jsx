@@ -164,8 +164,39 @@ export default function LoanApplication({ onBack, memberId = null, memberName = 
   };
 
   // helper to read check number from different possible fields
+    // helper to read check number from different possible fields
   const readCheckNumber = (loan) =>
     loan?.checkNumber ?? loan?.check_number ?? loan?.checkNo ?? loan?.check_no ?? loan?.check ?? "—";
+
+  // generic numeric reader - returns 0 if not found / not numeric
+  const getNumber = (loan, ...keys) => {
+    if (!loan) return 0;
+    for (const key of keys) {
+      const val = loan[key];
+      if (val !== undefined && val !== null && val !== "") {
+        const n = parseFloat(val);
+        if (!isNaN(n)) return n;
+      }
+    }
+    return 0;
+  };
+
+  const readServiceCharge = (loan) =>
+    getNumber(loan, "serviceCharge", "service_charge", "serviceFee", "service_fee", "service_charge_amount");
+
+  const readFilingFee = (loan) =>
+    getNumber(loan, "filingFee", "fillingFee", "filing_fee", "filling_fee", "filingFeeAmount");
+
+  const readCapitalBuildup = (loan) =>
+    getNumber(loan, "capitalBuildup", "capital_buildup", "capital", "capital_build_up", "capitalBuildUp");
+
+  const readPenalties = (loan) =>
+    getNumber(loan, "penalties", "penalty", "penaltyAmount", "penalty_amount", "lateFee", "late_fee");
+
+  const computeTotalDue = (loan) => {
+    const principal = parseFloat(loan?.loanAmount) || 0;
+    return principal + readServiceCharge(loan) + readFilingFee(loan) + readCapitalBuildup(loan) + readPenalties(loan);
+  };
 
   return (
     <div>
@@ -249,12 +280,12 @@ export default function LoanApplication({ onBack, memberId = null, memberName = 
       {/* Loan Details Modal */}
       {selectedLoan && (
         <div className="fixed inset-0 bg-black/60 flex justify-center items-center z-50 px-4">
-          <div className="bg-white rounded-2xl w-[700px] max-h-[85vh] overflow-y-auto shadow-2xl relative p-8">
+          <div className="bg-white rounded-2xl w-[900px] max-h-[85vh] overflow-y-auto shadow-2xl relative p-8">
             <button onClick={() => setSelectedLoan(null)} className="absolute top-3 right-5 text-gray-500 hover:text-black text-3xl">
               &times;
             </button>
 
-            <h2 className="text-2xl font-bold text-center text-[#7e9e6c] mb-4">Loan Details</h2>
+            <h2 className="text-2xl font-bold text-center text-[#7e9e6c] mb-4">Loan Detailsa</h2>
 
             <div className="space-y-3 text-gray-700">
               <p><strong>Purpose:</strong> {selectedLoan.purpose || "N/A"}</p>
@@ -275,6 +306,10 @@ export default function LoanApplication({ onBack, memberId = null, memberName = 
                   <tr className="bg-[#f4f9f4] text-[#56794a] border-b">
                     <th className="py-2 px-2 text-left">Month</th>
                     <th className="py-2 px-2 text-right">Interest</th>
+                    <th className="py-2 px-2 text-right">Service Fee</th>
+                    <th className="py-2 px-2 text-right">Filing Fee</th>
+                    <th className="py-2 px-2 text-right">Build up</th>
+                    <th className="py-2 px-2 text-right">Penalties</th>
                     <th className="py-2 px-2 text-right">Balance</th>
                     <th className="py-2 px-2 text-right">Amortization</th>
                     <th className="py-2 px-2 text-center">Due Date</th>
@@ -286,6 +321,10 @@ export default function LoanApplication({ onBack, memberId = null, memberName = 
                     <tr key={row.month} className="border-b hover:bg-[#f9fcf9]">
                       <td className="py-1 px-2">{row.month}</td>
                       <td className="py-1 px-2 text-right">{formatCurrency(row.interestPayment)}</td>
+                      <td className="py-2 px-2 text-right font-medium">{formatCurrency(readServiceCharge(selectedLoan))}</td>
+                      <td className="py-2 px-2 text-right font-medium">{formatCurrency(readFilingFee(selectedLoan))}</td>
+                      <td className="py-2 px-2 text-right font-medium">{formatCurrency(readCapitalBuildup(selectedLoan))}</td>
+                      <td className="py-2 px-2 text-right font-medium">{formatCurrency(readPenalties(selectedLoan))}</td>
                       <td className="py-1 px-2 text-right">{formatCurrency(row.remainingBalance)}</td>
                       <td className="py-1 px-2 text-right">{formatCurrency(row.totalPayment)}</td>
                       <td className="py-1 px-2 text-center">{row.dueDate ? new Date(row.dueDate).toLocaleDateString("en-PH") : "N/A"}</td>
@@ -295,6 +334,7 @@ export default function LoanApplication({ onBack, memberId = null, memberName = 
                     </tr>
                   ))}
                 </tbody>
+                
               </table>
 
             </div>

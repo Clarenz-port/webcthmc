@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { notify } from "../../utils/toast";
 import { FaPlus, FaEdit, FaTrash, FaArrowLeft } from "react-icons/fa";
 import axios from "axios";
 
@@ -40,27 +41,27 @@ export default function AccountOnlyPopup({ onClose = () => {}, inline = false })
     const { firstName, middleName, lastName, username, phoneNumber, password, confirmPassword } = newAdmin;
 
     if (!firstName || !middleName || !lastName || !username || !phoneNumber || (!editingId && !password)) {
-      alert("⚠️ All fields are required (password required only when creating)");
+      notify.success("⚠️ All fields are required (password required only when creating)");
       return;
     }
 
     if (!editingId) {
       if (!password || !confirmPassword) {
-        alert("⚠️ Please provide password and confirm password.");
+        notify.success("⚠️ Please provide password and confirm password.");
         return;
       }
       if (password !== confirmPassword) {
-        alert("⚠️ Passwords do not match.");
+        notify.success("⚠️ Passwords do not match.");
         return;
       }
     } else {
       if (password) {
         if (!confirmPassword) {
-          alert("⚠️ Please confirm the new password.");
+          notify.success("⚠️ Please confirm the new password.");
           return;
         }
         if (password !== confirmPassword) {
-          alert("⚠️ Passwords do not match.");
+          notify.success("⚠️ Passwords do not match.");
           return;
         }
       }
@@ -83,7 +84,7 @@ export default function AccountOnlyPopup({ onClose = () => {}, inline = false })
               : a
           )
         );
-        alert(res.data?.message || "Admin updated");
+        notify.success(res.data?.message || "Admin updated");
       } else {
         const body = { ...newAdmin };
         delete body.confirmPassword;
@@ -91,7 +92,7 @@ export default function AccountOnlyPopup({ onClose = () => {}, inline = false })
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        alert(res.data?.message || "Admin added");
+        notify.success(res.data?.message || "Admin added");
         if (res.data?.admin) setAdmins((prev) => [...prev, res.data.admin]);
       }
 
@@ -109,7 +110,7 @@ export default function AccountOnlyPopup({ onClose = () => {}, inline = false })
       setShowPassword(false);
       setShowConfirmPassword(false);
     } catch (err) {
-      alert(err.response?.data?.message || "Error saving admin");
+      notify.success(err.response?.data?.message || "Error saving admin");
     }
   };
 
@@ -148,7 +149,7 @@ export default function AccountOnlyPopup({ onClose = () => {}, inline = false })
       setShowDeleteConfirm(false);
       setAdminToDelete(null);
     } catch (err) {
-      alert(err.response?.data?.message || "Error deleting admin");
+      notify.success(err.response?.data?.message || "Error deleting admin");
     }
   };
 
