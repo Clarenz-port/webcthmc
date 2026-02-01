@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
+import { FaLeaf, FaArrowRight } from "react-icons/fa";
 
 /* =========================
    ERROR POPUP COMPONENT
@@ -29,9 +30,24 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [siteLogo, setSiteLogo] = useState(null);
+  const [siteName, setSiteName] = useState('CTHMC');
   const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
+  useEffect(() => {
+    const load = () => {
+      const logo = localStorage.getItem('siteLogo');
+      const sname = localStorage.getItem('siteName') || 'CTHMC';
+      setSiteLogo(logo);
+      setSiteName(sname);
+    };
+
+    load();
+    window.addEventListener('siteConfigChanged', load);
+    return () => window.removeEventListener('siteConfigChanged', load);
+  }, []);
+
+  const handleSubmit = async (e) => { 
     e.preventDefault();
 
     try {
@@ -83,30 +99,51 @@ export default function Login() {
 
       <div className="max-w-3xl right-10 gap-20 mx-auto mt-10 grid grid-cols-2 relative">
         {/* LEFT */}
-        <div className="bg-emerald-800 z-10 shadow-lg rounded-3xl p-5 w-[450px]">
-          <h2 className="text-7xl font-extrabold text-center mt-20 mb-20 text-white">
-            LOGO
-          </h2>
-          <h2 className="text-5xl font-extrabold text-center text-white">
-            Welcome
-          </h2>
-          <h2 className="font-semibold mt-2 text-center text-white">
-            Sign up now in coop
-          </h2>
-          <div className="mt-8 mb-28 justify-self-center">
-            <Link
-              to="/signup"
-              className="text-center text-xl font-bold bg-white text-emerald-800 px-14 py-5 rounded-4xl hover:bg-[#f0f0f0] transition"
-            >
-              Signup
-            </Link>
-          </div>
-        </div>
+        <div className="bg-gradient-to-b from-emerald-800 to-emerald-900 z-10 shadow-2xl rounded-3xl p-8 w-[450px] flex flex-col items-center justify-center text-center relative overflow-hidden">
+  
+  {/* Optional: Subtle decorative circle in background */}
+  <div className="absolute top-[-50px] left-[-50px] w-32 h-32 bg-white/5 rounded-full blur-2xl pointer-events-none"></div>
+
+  {/* LOGO SECTION */}
+  <div className="mt-10 mb-12">
+    <div className="flex justify-center mb-4">
+      {siteLogo ? (
+        <img src={siteLogo} alt={siteName || 'logo'} className="w-25 h-25 object-cover rounded-full bg-white/40" />
+      ) : (
+        <FaLeaf className="text-6xl text-emerald-200/80" />
+      )}
+    </div>
+ 
+  </div>
+
+  {/* WELCOME TEXT */}
+  <div className="mb-14">
+    <h2 className="text-5xl font-extrabold text-white mb-3 drop-shadow-md">
+      Welcome
+    </h2>
+    <h2 className="font-medium text-lg text-emerald-100/80">
+      Sign up now
+    </h2>
+  </div>
+
+  {/* SIGNUP BUTTON */}
+  <div className="mb-16">
+    <Link
+      to="/signup"
+      className="group flex items-center justify-center gap-3 text-lg font-bold bg-white text-emerald-900 px-12 py-4 rounded-full shadow-lg hover:bg-emerald-50 hover:scale-105 transition-all duration-300 ease-in-out"
+    >
+      <span>Signup</span>
+      {/* Added a small arrow icon that moves on hover */}
+      <FaArrowRight className="group-hover:translate-x-1 transition-transform" />
+    </Link>
+  </div>
+
+</div>
 
         {/* RIGHT */}
-        <div className="bg-emerald-50 shadow-lg rounded-3xl p-8 w-[430px]">
+        <div className="rounded-3xl p-8 w-[430px] bg-emerald-50/90 backdrop-blur-sm shadow-2xl space-y-5 border border-white/50">
           <h2 className="text-5xl font-extrabold text-center mt-5 mb-8 text-emerald-800">
-            CTHMC
+            {siteName || 'CTHMC'}
           </h2>
           <h2 className="text-xl font-bold text-center mb-8 text-emerald-800">
             Login
@@ -175,7 +212,7 @@ export default function Login() {
               {/* SUBMIT */}
               <button
                 type="submit"
-                className="w-full mt-10 mb-12 bg-emerald-800 text-white py-2 rounded-4xl font-semibold hover:bg-[#8f9f7e] transition"
+                className="w-full mt-10 mb-12 bg-emerald-800 text-white py-4 rounded-full font-bold text-lg shadow-lg hover:bg-emerald-900 hover:shadow-xl transform active:scale-95 transition-all duration-200"
               >
                 Login
               </button>

@@ -56,6 +56,10 @@
       type: DataTypes.ENUM("member", "admin", "superadmin"),
       defaultValue: "member",
     },
+    status: {
+      type: DataTypes.ENUM("pending", "approved", "rejected"),
+      defaultValue: "approved", // for existing users
+    },
     avatarUrl: {
   type: DataTypes.STRING,
   allowNull: true,

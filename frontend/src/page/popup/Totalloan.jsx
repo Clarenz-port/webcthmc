@@ -1,6 +1,14 @@
 // src/page/popup/approvedloan.jsx
 import React, { useEffect, useState } from "react";
-import { FaArrowLeft } from "react-icons/fa";
+import { 
+  FiArrowLeft, 
+  FiClock, 
+  FiUser, 
+  FiCalendar, 
+  FiAlertCircle, 
+  FiEye,
+  FiActivity
+} from "react-icons/fi";
 import axios from "axios";
 import MemberDetails from "../popup/adminmember.jsx";
 
@@ -178,7 +186,7 @@ export default function Duedate({ onBack, onView }) {
           .filter(Boolean); // remove paid ones
 
         // 3) Enhance loans
-        const enhancedLoans = await Promise.all(
+        const enhancedLoans = (await Promise.all(
           approved.map(async (loan) => {
             let payments = [];
             try {
@@ -196,6 +204,12 @@ export default function Duedate({ onBack, onView }) {
             );
 
             const schedule = buildSchedule(loan, paymentsSum);
+            const totalDue = schedule.reduce((acc, s) => acc + s.totalPayment, 0);
+            const isFullyPaid = paymentsSum >= totalDue;
+
+            // Exclude fully paid loans
+            if (isFullyPaid) return null;
+
             const next = findNextDueFromSchedule(schedule);
             const nextDue = next ? next.dueDate : null;
 
@@ -208,7 +222,7 @@ export default function Duedate({ onBack, onView }) {
               _schedule: schedule,
             };
           })
-        );
+        )).filter(Boolean);
 
         const merged = [...enhancedLoans, ...normalizedPurchases];
 
@@ -330,98 +344,145 @@ export default function Duedate({ onBack, onView }) {
   };
 
   return (
-    <div className="flex-1 bg-white rounded-lg shadow-lg p-3 relative">
+    <div>
+  
+  {/* HEADER SECTION */}
+  <div >
+    <div className="flex items-center mb-2 gap-6">
       <button
         onClick={onBack}
-        className="absolute top-4 left-4 text-[#5a7350] hover:text-[#7e9b6c] transition text-2xl"
+        className="p-3 bg-white border border-gray-100 text-gray-500 hover:text-[#7e9e6c] hover:border-[#7e9e6c] rounded-xl transition-all shadow-sm active:scale-95 group"
+        title="Go Back"
       >
-        <FaArrowLeft />
+        <FiArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
       </button>
-
-      <div className="max-w-auto p-6">
-        <h2 className="text-4xl font-bold text-center text-[#5a7350] mb-4">Duedates</h2>
-
-        {loading ? (
-          <p className="text-center text-gray-600 mt-6">Loading Duedate loans...</p>
-        ) : error ? (
-          <p className="text-center text-red-600 mt-6">{error}</p>
-        ) : loanRecords.length === 0 ? (
-          <p className="text-center border-t border-gray-300 pt-4 text-gray-600 mt-6">No Duedate loans found.</p>
-        ) : (
-          <div className="border-t border-gray-300 pt-4">
-            <table className="w-full shadow-lg border border-gray-300 rounded-lg overflow-hidden text-sm">
-              <thead className="bg-[#7e9e6c] text-white">
-                <tr>
-                  <th className="py-3 px-4 text-left">Member</th>
-                  <th className="py-3 px-4 text-left">Type</th>
-                  <th className="py-3 px-4 text-left">Pay Amount</th>
-                  <th className="py-3 px-4 text-left">Next Due</th>
-                  <th className="py-3 px-4 text-center">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loanRecords.map((record, index) => (
-                  <tr
-                    key={record.id || index}
-                    className={`${index % 2 === 0 ? "bg-gray-50" : "bg-white"}  hover:bg-[#e4f2e7] transition`}
-                  >
-                    <td className="py-3 px-4 border-t  border-gray-200">
-                      {record.memberName}
-                    </td>
-
-                    <td className="py-3 px-4 border-t border-gray-200 font-semibold">
-                      {record.type}
-                      <div className="text-xs text-gray-600 mt-1">
-                        {record.type === "Purchase"
-                          ? `Total: ${formatCurrency(record.total)}`
-                          : `Loan: ${formatCurrency(record.loanAmount)}`}
-                      </div>
-                    </td>
-
-                    <td className="py-3 px-4 border-t border-gray-200">
-                      {formatCurrency(record.payAmount)}
-                    </td>
-
-                    <td className="py-3 px-4 border-t border-gray-200">
-                      {loadingNextDue ? (
-                        <span className="text-gray-500">calculating…</span>
-                      ) : record.nextDueDate ? (
-                        <>
-                          <div>{new Date(record.nextDueDate).toLocaleDateString("en-PH")}</div>
-                          <div className="text-xs text-gray-500">
-                            {record.daysRemaining < 0
-                              ? `${Math.abs(record.daysRemaining)} day(s) overdue`
-                              : `${record.daysRemaining} day(s)`}
-                          </div>
-                        </>
-                      ) : (
-                        <span className="text-gray-500">—</span>
-                      )}
-                    </td>
-
-                    <td className="py-3 px-4 border-t border-gray-200 text-center">
-                      <button
-                        onClick={async () => {
-                          // prefer parent onView if it exists (parent may do its own navigation)
-                          if (typeof onView === "function") {
-                            onView(record);
-                            return;
-                          }
-                          // otherwise resolve a specific member and open MemberDetails
-                          await openMemberDetailsForRecord(record);
-                        }}
-                        className="bg-[#7e9e6c] text-white px-3 py-1 rounded hover:bg-[#6a8b5a]"
-                      >
-                        View
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+      <div>
+        <h2 className="text-3xl font-black text-gray-800 tracking-tight">Due Dates</h2>
       </div>
+    </div>
+  </div>
+
+  {/* CONTENT AREA */}
+  <div >
+    {loading ? (
+      <div className="flex flex-col items-center justify-center py-20 gap-4">
+        <div className="w-10 h-10 border-4 border-gray-100 border-t-[#7e9e6c] rounded-full animate-spin" />
+        <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Fetching payment records...</p>
+      </div>
+    ) : error ? (
+      <div className="flex flex-col items-center justify-center py-20 text-red-500 bg-red-50 rounded-[2rem] border border-red-100">
+        <FiAlertCircle size={48} className="mb-4" />
+        <p className="font-bold">{error}</p>
+      </div>
+    ) : loanRecords.length === 0 ? (
+      <div className="flex flex-col items-center bg-white rounded-t-[2rem] justify-center py-20 text-gray-300">
+        <FiCalendar size={64} className="mb-4 opacity-20" />
+        <p className="font-bold uppercase tracking-widest text-xs italic text-gray-400">No upcoming due dates found</p>
+      </div>
+    ) : (
+      <div className="bg-gray-50 rounded-t-[2rem] overflow-x-auto">
+        <table className="w-full">
+          <thead>
+            <tr className="text-gray-400">
+              <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-left"><div className="flex items-center gap-2"><FiUser /> Member</div></th>
+              <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-left"><div className="flex items-center gap-2"><FiActivity /> Type</div></th>
+              <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-left">Payable Amount</th>
+              <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-left">Due Status</th>
+              <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-center">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loanRecords.map((record, index) => {
+              const isOverdue = record.daysRemaining < 0;
+
+              return (
+                <tr 
+                  key={record.id || index}
+                  
+                >
+                  {/* Member Column */}
+                  <td className={`px-6 py-4 bg-white`}>
+                    <p className="text-sm font-black text-gray-800 uppercase tracking-tight">{record.memberName}</p>
+                  </td>
+
+                  {/* Type Column */}
+                  <td className={`px-6 py-4 bg-white`}>
+                    <span className={`text-[10px] font-black px-2 py-1 rounded-md uppercase tracking-tighter ${record.type === 'Purchase' ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'}`}>
+                      {record.type}
+                    </span>
+                    <div className="text-[10px] font-bold text-gray-400 mt-1 italic">
+                      {record.type === "Purchase"
+                        ? `Bal: ${formatCurrency(record.total)}`
+                        : `Princ: ${formatCurrency(record.loanAmount)}`}
+                    </div>
+                  </td>
+
+                  {/* Pay Amount Column */}
+                  <td className={`px-6 py-4 bg-white`}>
+                    <span className="text-sm font-black text-gray-700 font-mono">
+                      {formatCurrency(record.payAmount)}
+                    </span>
+                  </td>
+
+                  {/* Next Due Column */}
+                  <td className={`px-6 py-4 bg-white`}>
+                    {loadingNextDue ? (
+                      <span className="text-[10px] font-bold text-gray-300 animate-pulse">Calculating...</span>
+                    ) : record.nextDueDate ? (
+                      <div className="flex flex-col">
+                        <span className="text-xs font-bold text-gray-600">
+                          {new Date(record.nextDueDate).toLocaleDateString("en-PH", { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </span>
+                        <span className={`text-[10px] font-black uppercase mt-1 ${isOverdue ? 'text-red-500' : 'text-[#7e9e6c]'}`}>
+                          {isOverdue 
+                            ? `${Math.abs(record.daysRemaining)} day(s) overdue` 
+                            : `${record.daysRemaining} days remaining`}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-gray-300">—</span>
+                    )}
+                  </td>
+
+                  {/* Action Column */}
+                  <td className={`px-6 py-4 bg-white  text-center`}>
+                    <button
+                      onClick={async () => {
+                        if (typeof onView === "function") {
+                          onView(record);
+                          return;
+                        }
+                        await openMemberDetailsForRecord(record);
+                      }}
+                      className="p-3 bg-white border  border-gray-100 text-[#7e9e6c] rounded-xl hover:bg-[#7e9e6c] hover:text-white hover:border-[#7e9e6c] transition-all shadow-sm active:scale-90"
+                      title="View Member Details"
+                    >
+                      <FiEye size={18} />
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    )}
+  </div>
+
+  {/* FOOTER LEGEND */}
+  <div className="p-5 bg-gray-50 rounded-b-[2rem] border-t border-gray-50 flex justify-between items-center">
+    <div className="flex gap-4">
+      <div className="flex items-center gap-2">
+        <span className="w-2 h-2 rounded-full bg-red-500"></span>
+        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Overdue</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="w-2 h-2 rounded-full bg-[#7e9e6c]"></span>
+        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Active</span>
+      </div>
+    </div>
+  </div>
+
 
       {/* MemberDetails modal shown when View clicked (only if parent didn't handle onView) */}
       {showMemberDetails && memberForDetails && (

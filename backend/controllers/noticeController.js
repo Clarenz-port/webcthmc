@@ -1,11 +1,9 @@
 // controllers/noticeController.js
 const Notice = require("../models/Notice");
 const { logActivity } = require("../utils/activityLogger");
+const User = require("../models/users"); // Add this
+const { sendSMS } = require("../utils/sms"); // Add this
 
-/**
- * ADMIN / SUPERADMIN
- * Create a notice
- */
 exports.createNotice = async (req, res) => {
   try {
     const { title, message } = req.body;
@@ -21,13 +19,32 @@ exports.createNotice = async (req, res) => {
       message,
     });
 
-     await logActivity({
+    await logActivity({
       userId: req.user?.id,
       role: req.user?.role,
       action: "Created Notice",
       details: { noticeId: notice.id, title: notice.title },
       ip: req.ip,
     });
+
+    // Send SMS to all members with phone numbers
+    try {
+      const users = await User.findAll({
+        where: { 
+          phoneNumber: { [require('sequelize').Op.ne]: null },
+          role: 'member' // Only fetch members
+        },
+        attributes: ['phoneNumber'] // Only fetch phone numbers
+      });
+      const numbers = users.map(u => u.phoneNumber).filter(n => n && n.trim());
+      if (numbers.length > 0) {
+        const smsMessage = `CTHMC Notice: ${title}\n\n${message}`;
+        await sendSMS(numbers, smsMessage);
+      }
+    } catch (smsErr) {
+      console.error('SMS sending failed:', smsErr);
+      // Don't fail the request if SMS fails
+    }
 
     res.status(201).json(notice);
   } catch (error) {
@@ -38,10 +55,6 @@ exports.createNotice = async (req, res) => {
   }
 };
 
-/**
- * MEMBERS
- * Get all notices (latest first)
- */
 exports.getAllNotices = async (req, res) => {
   try {
     const notices = await Notice.findAll({

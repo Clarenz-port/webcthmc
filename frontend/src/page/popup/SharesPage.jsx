@@ -1,6 +1,15 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { FaArrowLeft } from "react-icons/fa";
+import { 
+  FiArrowLeft, 
+  FiTrendingUp, 
+  FiCalendar, 
+  FiUser, 
+  FiCreditCard, 
+  FiDollarSign, 
+  FiLayers,
+  FiInbox
+} from "react-icons/fi";
 
 export default function SharesPage({ onBack, members = [] }) {
   const [shares, setShares] = useState([]);
@@ -113,102 +122,115 @@ export default function SharesPage({ onBack, members = [] }) {
   }, 0);
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-200">
-
-      {/* HEADER */}
-      <div className="relative flex flex-col md:flex-row items-center p-2 md:items-start justify-center md:justify-between mb-6 gap-3">
-        {/* Back Button (top-left) */}
+    <div>
+  
+  {/* HEADER & SUMMARY HERO */}
+  <div>
+    <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+      
+      {/* Back & Title */}
+      <div className="flex items-center gap-5 self-start">
         <button
           onClick={onBack}
-          className="absolute left-0 top-0 md:static text-[#5a7350] hover:text-[#7e9e6c] transition text-2xl p-1"
-          aria-label="Back"
+          className="p-3 bg-white border border-gray-100 text-gray-500 hover:text-[#7e9e6c] hover:border-[#7e9e6c] rounded-xl transition-all shadow-sm active:scale-95 group"
+          title="Go Back"
         >
-          <FaArrowLeft />
+          <FiArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
         </button>
+        <div>
+          <h2 className="text-3xl font-black text-gray-800 tracking-tight">Shares</h2>
+          
+        </div>
+      </div>
 
-        {/* Title centered on all sizes */}
-        
-        <h2 className="text-2xl md:text-4xl ml-23 font-bold text-[#5a7350] text-center">
-          Shares
-        </h2>
-
-        {/* Total Shares placed on right for md+, below title for small */}
-        <div className="absolute right-0 top-0 md:static md:ml-4">
-          <div className="bg-[#eaf6ea] text-[#2f6e3f] font-semibold px-4 py-2 rounded-md shadow-sm text-sm md:text-base">
-            {loading ? "Loading..." : `Total Shares: ${fmtMoney(totalSharesAmount)}`}
+      {/* Total Shares Balance Card */}
+      <div className="w-full md:w-auto">
+        <div className=" rounded-[1.5rem]">
+          <div className="bg-[#f5f9ef] px-6 py-2 rounded-[1.3rem] flex items-center gap-4">
+            <div className="p-2 bg-[#d6ead8] text-[#7e9e6c] rounded-xl">
+              <FiTrendingUp size={24} />
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-tighter">Total Shares</p>
+              <h3 className="text-xl font-black text-gray-800 font-mono">
+                {loading ? "---" : fmtMoney(totalSharesAmount)}
+              </h3>
+            </div>
           </div>
         </div>
       </div>
-      {/* Content */}
-      {error ? (
-        <p className="text-red-600">{error}</p>
-      ) : loading ? (
-        <p className="text-gray-600">Loading shares...</p>
-      ) : shares.length === 0 ? (
-        <p className="text-gray-600 border-t border-gray-300 pt-4">No shares found.</p>
-      ) : (
-        <div className="border-t border-gray-300 pt-4 p-4">
-          <table className="w-full shadow-lg border border-gray-300 rounded-lg overflow-hidden text-left text-sm">
-            <thead className="bg-[#7e9e6c] text-white">
-              <tr>
-                <th className="py-4 px-4 text-left">Date</th>
-                <th className="py-4 px-4 text-left">Member</th>
-                <th className="py-4 px-4 text-left">Amount</th>
-                <th className="py-4 px-4 text-left">Payment Method</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {shares.map((r, idx) => {
-                const rawDate =
-                  r.date ??
-                  r.createdAt ??
-                  r.created_at ??
-                  r.transaction_date;
-
-                const paymentMethod =
-                  r.paymentMethod ??
-                  r.method ??
-                  r.mode ??
-                  r.channel ??
-                  "—";
-
-                const amt =
-                  r.shareamount ??
-                  r.shareAmount ??
-                  r.amount ??
-                  r.value ??
-                  0;
-
-                const memberName = findMemberName(r);
-
-                return (
-                  <tr
-                    key={r.id ?? idx}
-                    className={`${
-                      idx % 2 === 0 ? "bg-white" : "bg-gray-50"
-                    } `}
-                  >
-                    <td className="py-4 px-4 border-t border-gray-200">
-                      {fmtDate(rawDate)}
-                    </td>
-                    <td className="py-4 px-4 border-t border-gray-200">
-                      {memberName}
-                    </td>
-                    <td className="py-4 px-4 border-t border-gray-200">
-                      {fmtMoney(amt)}
-                    </td>
-                    <td className="py-4 px-4 border-t border-gray-200">
-                      {String(paymentMethod)}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-            
-          </table>
-        </div>
-      )}
     </div>
+  </div>
+
+  {/* CONTENT AREA */}
+  <div>
+    {error ? (
+      <div className="flex items-center gap-3 p-4 bg-red-50 text-red-600 rounded-2xl border border-red-100 font-bold">
+        <FiInbox /> {error}
+      </div>
+    ) : loading ? (
+      <div className="flex flex-col items-center justify-center py-20 gap-4">
+        <div className="w-12 h-12 border-4 border-[#d6ead8] border-t-[#7e9e6c] rounded-full animate-spin" />
+        <p className="text-sm text-gray-400 font-black animate-pulse uppercase tracking-widest">Synchronizing Ledger...</p>
+      </div>
+    ) : shares.length === 0 ? (
+      <div className="flex flex-col items-center justify-center py-20 text-gray-300">
+        <FiLayers size={64} className="mb-4 opacity-20" />
+        <p className="font-bold uppercase tracking-widest text-xs">No share transactions found</p>
+      </div>
+    ) : (
+      <div className="bg-gray-50 rounded-t-[2rem] mt-3 overflow-x-auto">
+        <table className="w-full text-left">
+          <thead>
+            <tr className="text-[#7e9e6c]">
+              <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em]"><div className="flex items-center gap-2"><FiCalendar /> Date</div></th>
+              <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em]"><div className="flex items-center gap-2"><FiUser /> Member</div></th>
+              <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em]"><div className="flex items-center gap-2"><FiDollarSign /> Amount</div></th>
+              <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] border-r-0 rounded-r-2xl"><div className="flex items-center gap-2"><FiCreditCard /> Method</div></th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {shares.map((r, idx) => {
+              // Keeping your existing property fallbacks
+              const rawDate = r.date ?? r.createdAt ?? r.created_at ?? r.transaction_date;
+              const paymentMethod = r.paymentMethod ?? r.method ?? r.mode ?? r.channel ?? "—";
+              const amt = r.shareamount ?? r.shareAmount ?? r.amount ?? r.value ?? 0;
+              const memberName = findMemberName(r);
+
+              return (
+                <tr 
+                  key={r.id ?? idx} 
+                >
+                  <td className="px-10 py-4 bg-white">
+                    <span className="text-xs font-bold text-gray-500">{fmtDate(rawDate)}</span>
+                  </td>
+                  <td className="px-10 py-4 bg-white group-hover:bg-[#f5f9ef] border-y border-transparent group-hover:border-[#7e9e6c]/20">
+                    <span className="text-sm font-black text-gray-700 uppercase tracking-tight">{memberName}</span>
+                  </td>
+                  <td className="px-10 py-4 bg-white">
+                    <span className="text-sm font-black text-[#7e9e6c] font-mono">{fmtMoney(amt)}</span>
+                  </td>
+                  <td className="px-10 py-4 bg-white">
+                    <span className="text-[10px] font-black bg-white px-3 py-1 rounded-lg border border-gray-100 text-gray-400 uppercase tracking-tighter shadow-sm">
+                      {String(paymentMethod)}
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    )}
+  </div>
+
+  {/* FOOTER METADATA */}
+  <div className="bg-gray-50 rounded-b-[2rem] px-8 py-4 flex justify-between items-center border-t border-gray-50">
+     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+       Transaction Count: {shares.length}
+     </p>
+  </div>
+</div>
   );
 }

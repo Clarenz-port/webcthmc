@@ -1,7 +1,17 @@
 // src/page/popup/PendingLoanApplications.jsx
 import React, { useEffect, useState } from "react";
 import { notify } from "../../utils/toast";
-import { FaArrowLeft } from "react-icons/fa";
+import { 
+  FiArrowLeft, 
+  FiClock, 
+  FiUser, 
+  FiDollarSign, 
+  FiCalendar, 
+  FiFileText, 
+  FiEye, 
+  FiInbox,
+  FiLoader 
+} from "react-icons/fi";
 import axios from "axios";
 
 export default function PendingLoanApplications({ onBack }) {
@@ -145,72 +155,140 @@ export default function PendingLoanApplications({ onBack }) {
   };
 
   return (
-    <div className="flex-1 bg-white rounded-lg shadow-lg p-3 relative">
+    <div>
       {/* Back Button */}
-      <button
-        onClick={onBack}
-        className="absolute top-4 left-4 text-[#5a7350] hover:text-[#7e9e6c] transition text-2xl"
-        title="Back"
-      >
-        <FaArrowLeft />
-      </button>
-
-      <div className="max-w-auto p-6">
-        <h2 className="text-4xl font-bold text-center text-[#5a7350] mb-4">
-          Pending Loan Applications
-        </h2>
-
-        {loading ? (
-          <p className="text-center text-gray-600 mt-6">Loading pending loans...</p>
-        ) : error ? (
-          <p className="text-center text-red-600 mt-6">{error}</p>
-        ) : pendingLoans.length === 0 ? (
-          <p className="text-center text-gray-600 mt-6 border-t border-gray-300 pt-4">No pending loan applications.</p>
-        ) : (
-          <div className="border-t border-gray-300 pt-4">
-            <table className="w-full shadow-lg rounded-lg border border-gray-300 overflow-hidden">
-              <thead className="bg-[#7e9e6c] text-white">
-                <tr>
-                  <th className="py-3 px-4 text-left">Member Name</th>
-                  <th className="py-3 px-4 text-left">Purpose</th>
-                  <th className="py-3 px-4 text-left">Amount</th>
-                  <th className="py-3 px-4 text-left">Duration</th>
-                  <th className="py-3 px-4 text-left">Date Applied</th>
-                  <th className="py-3 px-4 text-center">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pendingLoans.map((loan, index) => (
-                  <tr
-                    key={loan.id || index}
-                    className={`${index % 2 === 0 ? "bg-gray-50" : "bg-white"} `}
-                  >
-                    <td className="py-3 px-4 border-t border-gray-200">{loan.memberName || "N/A"}</td>
-                    <td className="py-3 px-4 border-t border-gray-200">{loan.purpose || "N/A"}</td>
-                    <td className="py-3 px-4 border-t border-gray-200">{formatCurrency(loan.loanAmount)}</td>
-                    <td className="py-3 px-4 border-t border-gray-200">{loan.duration} months</td>
-                    <td className="py-3 px-4 border-t border-gray-200">
-                      {loan.createdAt ? new Date(loan.createdAt).toLocaleDateString() : "N/A"}
-                    </td>
-                    <td className="py-3 px-4 border-t border-gray-200 text-center">
-                      <button
-                        onClick={() => {
-                          setSelectedLoan(loan);
-                          setCheckNumber(""); // reset input when opening
-                          computeSchedule(loan);
-                        }}
-                        className="bg-[#7e9e6c] text-white px-3 py-1 rounded hover:bg-[#6a8b5a]"
-                      >
-                        View
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      <div >
+  
+  {/* HEADER SECTION */}
+  <div >
+    <div className="flex flex-col mb-2 md:flex-row md:items-center justify-between gap-6">
+      <div className="flex items-center gap-5">
+        <button
+          onClick={onBack}
+          className="p-3 bg-white border border-gray-100 text-gray-500 hover:text-[#7e9e6c] hover:border-[#7e9e6c] rounded-xl transition-all shadow-sm active:scale-95 group"
+          title="Back"
+        >
+          <FiArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
+        </button>
+        <div>
+          <h2 className="text-3xl font-black text-gray-800 tracking-tight">Pending Applications</h2>
+          <div className="flex items-center gap-2 mt-1">
           </div>
-        )}
+        </div>
       </div>
+
+      {/* SUMMARY BADGE */}
+      {!loading && !error && pendingLoans.length > 0 && (
+        <div className="px-5 py-2 bg-amber-50 border border-amber-100 rounded-2xl">
+          <span className="text-xs font-black text-amber-600 uppercase tracking-tighter">
+            {pendingLoans.length} Applications
+          </span>
+        </div>
+      )}
+    </div>
+  </div>
+
+  {/* CONTENT AREA */}
+  <div >
+    {loading ? (
+      <div className="flex flex-col items-center justify-center py-24 gap-4">
+        <FiLoader className="w-10 h-10 text-[#7e9e6c] animate-spin" />
+        <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Loading queue...</p>
+      </div>
+    ) : error ? (
+      <div className="flex flex-col items-center justify-center py-24 text-red-500 bg-red-50 rounded-[2.5rem] border border-red-100 italic">
+        <p className="font-bold">{error}</p>
+      </div>
+    ) : pendingLoans.length === 0 ? (
+      <div className="flex flex-col items-center bg-white rounded-t-[2rem] justify-center py-24 text-gray-300">
+        <FiInbox size={64} className="mb-4 opacity-10" />
+        <p className="font-bold uppercase tracking-widest text-xs italic text-gray-400">No pending applications found</p>
+      </div>
+    ) : (
+      <div className="bg-gray-50 rounded-t-[2rem] overflow-x-auto">
+        <table className="w-full">
+          <thead>
+            <tr className="text-gray-400">
+              <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-left"><div className="flex items-center gap-2"><FiUser /> Member</div></th>
+              <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-left"><div className="flex items-center gap-2"><FiFileText /> Purpose</div></th>
+              <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-left"><div className="flex items-center gap-2"><FiDollarSign /> Loan Amount</div></th>
+              <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-left"><div className="flex items-center gap-2"><FiClock /> Term</div></th>
+              <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-left"><div className="flex items-center gap-2"><FiCalendar /> Applied Date</div></th>
+              <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-center">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {pendingLoans.map((loan, index) => (
+              <tr 
+                key={loan.id || index}
+                className="group transition-all duration-300"
+              >
+                {/* Member Identity */}
+                <td className="px-6 py-5 bg-white ">
+                  <p className="text-sm font-black text-gray-800 uppercase tracking-tight">
+                    {loan.memberName || "N/A"}
+                  </p>
+                </td>
+
+                {/* Purpose Tag */}
+                <td className="px-6 py-5 bg-white">
+                  <span className="text-[10px] font-black px-3 py-1 bg-white border border-gray-100 rounded-lg text-gray-400 uppercase tracking-tighter">
+                    {loan.purpose || "General"}
+                  </span>
+                </td>
+
+                {/* Amount */}
+                <td className="px-6 py-5 bg-white">
+                  <span className="text-sm font-black text-gray-700 font-mono">
+                    {formatCurrency(loan.loanAmount)}
+                  </span>
+                </td>
+
+                {/* Duration */}
+                <td className="px-6 py-5 bg-white">
+                  <span className="text-xs font-bold text-gray-500">
+                    {loan.duration} <span className="text-[10px] uppercase">months</span>
+                  </span>
+                </td>
+
+                {/* Date Applied */}
+                <td className="px-6 py-5 bg-white">
+                  <p className="text-xs font-bold text-gray-600">
+                    {loan.createdAt ? new Date(loan.createdAt).toLocaleDateString("en-PH", { month: 'short', day: 'numeric', year: 'numeric' }) : "N/A"}
+                  </p>
+                </td>
+
+                {/* Action Column */}
+                <td className="px-6 py-5 bg-white text-center">
+                  <button
+                    onClick={() => {
+                      setSelectedLoan(loan);
+                      setCheckNumber("");
+                      computeSchedule(loan);
+                    }}
+                    className="p-3 bg-white border border-gray-100 text-[#7e9e6c] rounded-xl hover:bg-[#7e9e6c] hover:text-white hover:border-[#7e9e6c] transition-all shadow-sm active:scale-90"
+                    title="Review Application"
+                  >
+                    <FiEye size={18} />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )}
+  </div>
+
+  {/* FOOTER METADATA */}
+  <div className="p-5 bg-gray-50 rounded-b-[2rem] border-t border-gray-50 flex justify-between items-center text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">
+    <span>Confidential Pending Queue</span>
+    <div className="flex items-center gap-2">
+      <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+      <span>Awaiting Administrative Action</span>
+    </div>
+  </div>
+</div>
 
       {/* Loan Details Modal */}
       {selectedLoan && (

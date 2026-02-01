@@ -1,19 +1,22 @@
 // src/page/Member.jsx
 import { notify } from "../utils/toast";
+import { FiPhone, FiMail, FiCalendar, FiMapPin, FiDollarSign, FiTrendingUp, FiTarget, FiLayers, FiZap,FiInfo } from "react-icons/fi";
 import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import {
   FaHistory,
   FaFileInvoiceDollar,
-  FaWallet,
+  FaMoneyCheckAlt,
   FaPlusCircle,
   FaMoneyBillWave,
   FaUserCircle,
   FaCreditCard,
   FaRegCalendarAlt,
   FaTimes,
+  FaArrowRight
 } from "react-icons/fa";
+
 
 import Wallet from "../design/wallet.png";
 import ShareHistoryPopup from "../page/popup/Sharehistory.jsx";
@@ -395,81 +398,164 @@ export default function Member() {
         {/* Top responsive layout */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-8 gap-6 items-stretch auto-rows-fr">
           {/* PROFILE CARD */}
-          <Card className="flex flex-col col-span-2 items-center text-center">
-            {!user ? (
-              <div className="animate-pulse space-y-4 w-full">
-                <div className="h-36 w-36 rounded-full bg-gray-200 mx-auto" />
-                <div className="h-5 bg-gray-200 rounded w-3/4 mx-auto" />
-                <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto mt-2" />
+          <Card className="overflow-hidden border-none rounded-2xl shadow-lg bg-white col-span-2">
+  {!user ? (
+    /* Skeleton Loading State */
+    <div className="animate-pulse w-full">
+      <div className="h-24 bg-gray-100 w-full" />
+      <div className="p-6 -mt-12 flex flex-col items-center">
+        <div className="h-32 w-32 rounded-full bg-gray-200 border-4 border-white" />
+        <div className="h-6 bg-gray-200 rounded w-1/2 mt-4" />
+        <div className="h-4 bg-gray-200 rounded w-1/3 mt-2" />
+        <div className="w-full mt-8 space-y-3">
+          <div className="h-4 bg-gray-100 rounded w-full" />
+          <div className="h-4 bg-gray-100 rounded w-full" />
+        </div>
+      </div>
+    </div>
+  ) : (
+    <>
+      {/* Top Decorative Banner */}
+      <div className="h-24 bg-green-700 w-full" />
+
+      <div className="px-2 pb-8 -mt-16 flex flex-col items-center">
+        {/* Profile Image */}
+        <div className="relative">
+          <img
+            src={getAvatarSrc(user)}
+            alt={`${user.firstName ?? ""} ${user.lastName ?? ""}`}
+            className="w-32 h-32 rounded-full border-4 border-white shadow-md object-cover"
+          />
+        </div>
+
+        {/* Name & Join Date */}
+        <div className="text-center mt-4">
+          <h2 className="text-2xl font-bold text-gray-800">
+            {user.firstName} {user.lastName}
+          </h2>
+          <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mt-1">
+            Member since{" "}
+            {user?.createdAt
+              ? new Date(user.createdAt).toLocaleDateString("en-US", {
+                  year: "numeric",
+                  month: "long",
+                })
+              : "—"}
+          </p>
+        </div>
+
+        {/* Info Sections */}
+        <div className="w-full mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+          
+          {/* Contact Section */}
+          <div className="space-y-4">
+            <h3 className="text-xs font-bold text-green-700 uppercase tracking-widest border-b pb-1">
+              Contact Details
+            </h3>
+            <div className="space-y-3">
+              <div className="flex items-center text-gray-600 gap-3">
+                <FiPhone className="text-green-700  shrink-0" />
+                <span className="text-sm">{user.phoneNumber || "No phone provided"}</span>
               </div>
-            ) : (
-              <>
-                <img
-                  src={getAvatarSrc(user)}
-                  alt={`${user.firstName ?? ""} ${user.lastName ?? ""}`}
-                  className="w-36 h-36 rounded-full border-4 border-[#7e9e6c] object-cover mb-4"
-                />
-                <h2 className="text-2xl font-bold">
-                  {user.firstName} {user.lastName}
-                </h2>
-                <p className="text-sm text-gray-600">
-                  Member since{" "}
-                  {user?.createdAt
-                    ? new Date(user.createdAt).toLocaleDateString("en-US", {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      })
-                    : "—"}
-                </p>
-
-                <div className="w-full mt-10 text-left space-y-2">
-                  <h3 className="text-sm font-semibold text-gray-700">Contact</h3>
-                  <p className="text-sm text-gray-600">📞 {user.phoneNumber || "—"}</p>
-                  <p className="text-sm text-gray-600">📧 {user.email || "—"}</p>
-                  <p className="text-sm text-gray-600">🎂 {user.birthdate || "—"}</p>
-
-                  <h3 className="text-sm font-semibold text-gray-700 mt-5">Address</h3>
-                  <p className="text-sm text-gray-600">
-                    {user.street ? `${user.street} ` : ""}
-                    {user.block ? `Block ${user.block} ` : ""}
-                    {user.lot ? `Lot ${user.lot}` : ""}
-                  </p>
-                </div>
-              </>
-            )}
-          </Card>
-
-          {/* SHARES CARD */}
-          <Card className="col-span-3">
-            <div className="flex flex-col pb-4 md:flex-row gap-6">
-              <div className="flex-1">
-                <h3 className="text-2xl font-semibold text-gray-700">Shares</h3>
-                <p className="text-md text-gray-500 mb-20">Overview & history</p>
-
-                <button
-                  onClick={handleOpenShareHistory}
-                  className="inline-flex items-center gap-2 px-24 py-6 rounded-md border border-green-600 text-green-700 font-semibold shadow-sm hover:bg-green-50"
-                >
-                  <FaHistory /> View History
-                </button>
-
-                <div className="mt-22 bg-[#d6ead8] p-4 rounded-md">
-                  <div className="text-xl font-medium text-gray-700">Your Shares</div>
-                  <div className="text-4xl font-extrabold text-green-800 mt-2">
-                    ₱{loadingShares ? "Loading..." : formatMoney(memberSharesTotal)}
-                  </div>
-                </div>
+              <div className="flex items-center text-gray-600 gap-3">
+                <FiMail className="text-green-700  shrink-0" />
+                <span className="text-sm truncate">{user.email || "No email provided"}</span>
               </div>
-
-              <div className="flex-1 flex flex-col items-center justify-center">
-                <img src={Wallet} alt="Wallet" className="w-90 h-90 object-contain" />
+              <div className="flex items-center text-gray-600 gap-3">
+                <FiCalendar className="text-green-700  shrink-0" />
+                <span className="text-sm">{user.birthdate || "Birthdate not set"}</span>
               </div>
             </div>
-          </Card>
+          </div>
 
+          {/* Address Section */}
+          <div className="space-y-4">
+            <h3 className="text-xs font-bold text-green-700  uppercase tracking-widest border-b pb-1">
+              Location
+            </h3>
+            <div className="flex items-start text-gray-600 gap-3 pt-1">
+              <FiMapPin className="text-green-700  mt-0.5 shrink-0" />
+              <p className="text-sm leading-relaxed">
+                {user.street || user.block || user.lot ? (
+                  <>
+                    {user.street && <span>{user.street}<br /></span>}
+                    {user.block && <span>Block {user.block} </span>}
+                    {user.lot && <span>Lot {user.lot}</span>}
+                  </>
+                ) : (
+                  "No address on file"
+                )}
+              </p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </>
+  )}
+</Card>
+
+          {/* SHARES CARD */}
+          <Card className="col-span-3 overflow-hidden rounded-2xl border-none shadow-lg bg-white">
+  <div className="flex flex-col md:flex-row items-stretch min-h-[350px]">
+    
+    {/* Left Content Section */}
+    <div className="flex-1 p-6 flex flex-col justify-between">
+      <div>
+        <div className="flex items-center gap-2 mb-1">
+          <h3 className="text-2xl font-bold text-gray-800">Shares</h3>
+        </div>
+        <p className="text-sm text-gray-500">Manage your investment overview and history</p>
+      </div>
+
+      {/* Balance Display */}
+      <div className="mt-8 mb-8 relative group">
+        <div className="absolute -inset-1 bg-gradient-to-r from-green-100 to-[#d6ead8] rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
+        <div className="relative bg-[#f0f9f1] border border-green-100 p-6 rounded-xl shadow-sm">
+          <span className="text-xs font-bold text-green-700 uppercase tracking-wider">Your Total Shares</span>
+          <div className="flex items-baseline gap-1 mt-1">
+            <span className="text-2xl font-bold text-green-800">₱</span>
+            <span className="text-4xl font-black text-green-900 tracking-tight">
+              {loadingShares ? "..." : formatMoney(memberSharesTotal)}
+            </span>
+          </div>
+          {loadingShares && (
+            <div className="h-1 w-24 bg-green-200 animate-pulse rounded-full mt-2" />
+          )}
+        </div>
+      </div>
+
+      {/* Action Button */}
+      <div>
+        <button
+          onClick={handleOpenShareHistory}
+          className="group inline-flex items-center gap-3 px-6 py-3 rounded-xl bg-white border-2 border-green-600 text-green-700 font-bold shadow-sm transition-all hover:bg-green-600 hover:text-white active:scale-95"
+        >
+          <FaHistory className="group-hover:rotate-[-45deg] transition-transform" />
+          View History
+          <FaArrowRight className="text-sm opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
+        </button>
+      </div>
+    </div>
+
+    {/* Right Illustration Section */}
+    <div className="flex-1  flex items-center justify-center p-8 relative">
+      {/* Decorative Circle Background */}
+      <div className="absolute w-64 h-64 bg-white/50 rounded-full blur-3xl" />
+      
+      <img 
+        src={Wallet} 
+        alt="Wallet" 
+        className="w-72 h-72 object-contain relative z-10 drop-shadow-2xl animate-float" 
+        style={{ 
+          filter: 'drop-shadow(0 20px 30px rgba(0,0,0,0.1))' 
+        }}
+      />
+    </div>
+  </div>
+</Card>
           {/* ACTIONS CARD */}
-          <Card className="flex col-span-3 flex-col justify-between">
+          <Card className="flex col-span-3 flex-col rounded-2xl shadow-lg justify-between">
             <div>
               <h3 className="text-2xl font-semibold text-gray-700">Quick Actions</h3>
               <p className="text-md text-gray-500 mb-7">Apply for loans or view payment history</p>
@@ -477,34 +563,37 @@ export default function Member() {
               <div className="space-y-3">
                 <button
                   onClick={() => { setIsPaymentPopupOpen(false); handleOpenDividendHistory(); }}
-                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-4 rounded-md border border-green-600 text-green-800 font-semibold hover:bg-green-50"
+                  className="w-full inline-flex items-center justify-center group gap-3 px-6 py-3 rounded-xl bg-white border-2 border-green-600 text-green-700 font-bold shadow-sm transition-all hover:bg-green-600 hover:text-white active:scale-95"
                 >
-                  <FaFileInvoiceDollar /> Dividend History
+                  <FaFileInvoiceDollar className="group-hover:rotate-[-360deg] transition-transform"/> Dividend History
+                  <FaArrowRight className="text-sm opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
                 </button>
 
                 <button
                   onClick={() => setIsPaymentPopupOpen(true)}
-                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-4 rounded-md border border-green-700 text-green-800 font-semibold hover:bg-green-50"
+                  className="w-full inline-flex items-center justify-center group gap-3 px-6 py-3 rounded-xl bg-white border-2 border-green-600 text-green-700 font-bold shadow-sm transition-all hover:bg-green-600 hover:text-white active:scale-95"
                 >
-                  <FaMoneyBillWave /> Payment History
+                  <FaMoneyBillWave className="group-hover:rotate-[-180deg] transition-transform"/> Payment History
+                  <FaArrowRight className="text-sm opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
                 </button>
 
                 <button
                   onClick={handleLoanNowClick}
                   disabled={hasActiveLoan}
-                  className={`w-full inline-flex items-center justify-center gap-2 px-4 py-4 rounded-md font-semibold ${
+                  className={`w-full inline-flex items-center justify-center group gap-3 px-6 py-3 rounded-xl border-2 font-bold shadow-sm ${
                     hasActiveLoan
                       ? "bg-gray-300 text-white border-gray-300 cursor-not-allowed"
-                      : "bg-green-700 text-white hover:bg-green-800"
+                      : "bg-green-700 text-white hover:bg-green-600 transition-all active:scale-95"
                   }`}
                 >
-                  <FaCreditCard />
+                  {hasActiveLoan ? <FaCreditCard/> :  <FaCreditCard className="group-hover:rotate-[-360deg] transition-transform"/>} 
                   {hasActiveLoan ? "Active Loan Exists" : "Loan Now"}
+                 {hasActiveLoan ? "" : <FaArrowRight className="text-sm opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />} 
                 </button>
               </div>
             </div>
 
-            <div className="mt-6 w-full bg-gray-50 p-6 rounded-md border">
+            <div className="mt-6 w-full bg-gray-50 p-6 rounded-md border border-green-700">
               <div className="flex items-center gap-3">
                 <span className="inline-flex items-center justify-center p-3 rounded-full bg-green-100 text-green-800">
                   <FaRegCalendarAlt />
@@ -531,79 +620,147 @@ export default function Member() {
 
         {/* SECOND ROW: Loans detail + breakdown */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch auto-rows-fr">
-          <Card>
-            <h3 className="text-xl font-semibold text-gray-700 mb-4">Loan Summary</h3>
-            <div className="space-y-3">
-              {activeLoan ? (
-                <>
-                  <div>
-                    <div className="text-md text-gray-600">Loan Amount</div>
-                    <div className="text-xl font-bold mt-1">
-                      ₱{formatMoney(activeLoan.loanAmount ?? activeLoan.loan_amount ?? activeLoan.amount ?? 0)}
-                    </div>
-                  </div>
+         <Card className="flex flex-col bg-white border border-gray-100 shadow-lg rounded-2xl overflow-hidden">
+  <div>
+    <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+      Loan Summary
+    </h3>
+  </div>
 
-                  <div>
-                    <div className="text-md text-gray-600">To Pay (this installment)</div>
-                    <div className="text-lg font-bold mt-1">₱{paidAmount}</div>
-                  </div>
+  <div className="p-2">
+    {activeLoan ? (
+      <div className="space-y-4">
+        {/* Hero: Total Loan Amount */}
+        <div className="bg-gradient-to-br from-[#7e9e6c]/10 to-transparent p-4 rounded-xl border border-[#7e9e6c]/20">
+          <div className="text-[10px] font-bold text-[#7e9e6c] uppercase tracking-widest mb-1">
+            Total Loan Principal
+          </div>
+          <div className="text-3xl font-black text-gray-900 flex items-center">
+            <span className="text-xl mr-0.5">₱</span>
+            {formatMoney(activeLoan.loanAmount ?? activeLoan.loan_amount ?? activeLoan.amount ?? 0)}
+          </div>
+        </div>
 
-                  <div>
-                    <div className="text-md text-gray-600">Next Payment</div>
-                    <div className="text-sm mt-1">
-                      {activeLoan.dueDate ??
-                        activeLoan.nextPaymentDate ??
-                        activeLoan.next_payment_date ??
-                        "No Due Date"}
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="text-md text-gray-600">Status</div>
-                    <div className="mt-1">
-                      <span
-                        className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-semibold ${
-                          activeLoan.status === "Approved" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"
-                        }`}
-                      >
-                        <FaUserCircle /> {activeLoan.status}
-                      </span>
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <div className="text-gray-600 h-64">No existing loan. You can apply for a loan using "Loan Now".</div>
-              )}
+        {/* Breakdown Grid */}
+        <div className="grid grid-cols-1 gap-5">
+          {/* Current Installment */}
+          <div className="flex items-start gap-3">
+            <div className="p-2 bg-blue-50 rounded-lg text-blue-600 mt-1">
+              <FiDollarSign size={18} />
             </div>
-          </Card>
-
-          <Card className="col-span-3">
-            <h3 className="text-2xl font-semibold text-gray-700 mb-5">Loans Breakdown</h3>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-[#d6ead8] rounded-lg p-12 text-center shadow-sm">
-                <div className="text-4xl font-bold">₱5,000</div>
-                <div className="text-md text-gray-600 mt-1">Interest (2%)</div>
-              </div>
-              <div className="bg-[#d6ead8] rounded-lg p-12 text-center shadow-sm">
-                <div className="text-4xl font-bold">₱10,000</div>
-                <div className="text-md text-gray-600 mt-1">Interest (2%)</div>
-              </div>
-              <div className="bg-[#d6ead8] rounded-lg p-12 text-center shadow-sm md:col-span-1">
-                <div className="text-4xl font-bold">₱15,000</div>
-                <div className="text-md text-gray-600 mt-1">Interest (2%)</div>
-              </div>
+            <div>
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-tighter">To Pay (This Installment)</p>
+              <p className="text-lg font-bold text-gray-800">₱{paidAmount}</p>
             </div>
+          </div>
 
-            <div className="mt-6 flex gap-3">
-              <button
-                  onClick={() => setShowLoanApplication(true)}
-                  className="inline-flex items-center gap-2 px-10 py-4 rounded-md border border-gray-300 text-gray-800 font-semibold hover:bg-gray-50"
+          {/* Due Date */}
+          <div className="flex items-start gap-3">
+            <div className="p-2 bg-orange-50 rounded-lg text-orange-600 mt-1">
+              <FiCalendar size={18} />
+            </div>
+            <div>
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-tighter">Next Due Date</p>
+              <p className="text-sm font-semibold text-gray-700">
+                {activeLoan.dueDate ??
+                  activeLoan.nextPaymentDate ??
+                  activeLoan.next_payment_date ??
+                  "No Due Date"}
+              </p>
+            </div>
+          </div>
+
+          {/* Status */}
+          <div className="pt-2 border-t border-gray-100">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Loan Status</span>
+              <span
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ring-1 ring-inset ${
+                  activeLoan.status === "Approved" 
+                    ? "bg-green-50 text-green-700 ring-green-600/20" 
+                    : "bg-yellow-50 text-yellow-700 ring-yellow-600/20"
+                }`}
+              >
+                <FaUserCircle className="text-sm" /> 
+                {activeLoan.status}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    ) : (
+      /* Empty State */
+      <div className="flex flex-col items-center justify-center py-12 text-center">
+        <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+          <FiInfo className="text-gray-300 w-8 h-8" />
+        </div>
+        <h4 className="text-gray-800 font-semibold mb-1">No Active Loans</h4>
+        <p className="text-sm text-gray-500 max-w-[200px] leading-relaxed">
+          You currently have no existing loan records. Use <span className="text-green-700 font-bold"><button
+                  onClick={handleLoanNowClick}
+                  className="cursor-pointer"
                 >
-                  <FaHistory /> Loan History
-                </button>
-            </div>
-          </Card>
+                "loan now"</button></span> to apply.
+        </p>
+      </div>
+    )}
+  </div>
+</Card>
+
+          <Card className="col-span-3 p-6 bg-white shadow-lg border border-gray-100 rounded-2xl">
+  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+    <div>
+      <h3 className="text-xl font-bold text-gray-800">Loans Breakdown</h3>
+      <p className="text-sm text-gray-500">Available loan tiers and interest rates</p>
+    </div>
+    
+    <button
+      onClick={() => setShowLoanApplication(true)}
+      className=" inline-flex items-center justify-center group gap-3 px-5 py-2  rounded-xl bg-white border-2 border-green-600 text-green-700 font-bold shadow-sm transition-all hover:bg-green-600 hover:text-white active:scale-95"
+    >
+      <FaHistory  className="group-hover:rotate-[-45deg] transition-transform"/>
+      Loan History
+      <FaArrowRight className="text-sm opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
+    </button>
+  </div>
+
+  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+    {/* Tier 1 */}
+    <div className="group relative bg-green-50/50 border border-green-100 rounded-2xl p-8 transition-all hover:shadow-md hover:-translate-y-1">
+      <div className="absolute top-4 right-4 bg-green-600 text-white text-[10px] font-black px-2 py-1 rounded-full uppercase tracking-tighter">
+        2% Interest
+      </div>
+      <div className="p-3 bg-white rounded-xl w-fit shadow-sm text-green-600 mb-4 group-hover:scale-110 transition-transform">
+        <FiLayers size={24} />
+      </div>
+      <div className="text-3xl mt-6 font-black text-gray-900">₱5,000</div>
+      
+    </div>
+
+    {/* Tier 2 */}
+    <div className="group relative bg-[#7e9e6c]/10 border border-[#7e9e6c]/20 rounded-2xl p-8 transition-all hover:shadow-md hover:-translate-y-1">
+      <div className="absolute top-4 right-4 bg-green-600 text-white text-[10px] font-black px-2 py-1 rounded-full uppercase tracking-tighter">
+        2% Interest
+      </div>
+      <div className="p-3 bg-white rounded-xl w-fit shadow-sm text-green-700 mb-4 group-hover:scale-110 transition-transform">
+        <FiLayers size={24} />
+      </div>
+      <div className="text-3xl mt-6 font-black text-gray-900">₱10,000</div>
+    </div>
+
+    {/* Tier 3 */}
+    <div className="group relative bg-green-50/50 border border-green-100 rounded-2xl p-8 transition-all hover:shadow-md hover:-translate-y-1">
+      <div className="absolute top-4 right-4 bg-green-600 text-white text-[10px] font-black px-2 py-1 rounded-full uppercase tracking-tighter">
+        2% Interest
+      </div>
+      <div className="p-3 bg-white rounded-xl w-fit shadow-sm text-green-600 mb-4 group-hover:scale-110 transition-transform">
+        <FiLayers size={24} />
+      </div>
+      <div className="text-3xl mt-6 font-black text-gray-900">₱15,000</div>
+      
+    </div>
+  </div>
+</Card>
         </div>
       </div>
 
@@ -625,45 +782,87 @@ export default function Member() {
 
       {/* Payment History quick modal */}
       {isPaymentPopupOpen && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/45 z-50 px-4">
-          <div className="bg-white rounded-xl shadow-lg w-full max-w-md p-6 relative">
+      <div className="fixed inset-0 flex items-center justify-center bg-black/45 z-50 px-4 transition-all duration-300">
+  {/* Modal Container */}
+  <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all scale-100">
+    
+    {/* Header Section */}
+    <div className="bg-gray-50 p-6 border-b border-gray-100 flex justify-between items-center">
+      <div>
+        <h2 className="text-xl font-bold text-gray-800">Payment History</h2>
+        <p className="text-xs text-gray-500 mt-1">Select a category to view details</p>
+      </div>
+    </div>
 
-            <h2 className="text-2xl font-bold text-[#22543d] mb-4">Payment History</h2>
-            <div className="space-y-3">
-              {/* PURCHASE HISTORY */}
-              <button
-                onClick={() => {
-                  // fetch purchases for current member then open modal
-                  setIsPaymentPopupOpen(false);
-                  handleOpenPurchaseHistory();
-                }}
-                className="w-full py-3 text-lg font-semibold bg-green-600 border border-gray-300 shadow-md text-white rounded-md hover:bg-green-800"
-              >
-                🛒 Purchase History
-              </button>
-
-              {/* BILLS PAYMENT */}
-              <button
-                onClick={() => {
-                  setIsPaymentPopupOpen(false);
-                  handleOpenBillHistory();
-                }}
-                className="w-full py-3 text-lg font-semibold border border-gray-300 shadow-md bg-green-600 text-white rounded-md hover:bg-green-700"
-              >
-                🧾 Bills Payment
-              </button>
-            </div>
-
-            <div className="mt-4 text-right">
-              <button
-                onClick={() => setIsPaymentPopupOpen(false)}
-                className="px-4 py-2 border-gray-400 shadow-md rounded-md text-sm bg-gray-300 hover:bg-gray-400"
-              >
-                Close
-              </button>
-            </div>
+    {/* Body Section */}
+    <div className="p-6 space-y-4">
+      
+      {/* PURCHASE HISTORY BUTTON */}
+      <button
+        onClick={() => {
+          setIsPaymentPopupOpen(false);
+          handleOpenPurchaseHistory();
+        }}
+        className="group w-full flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md hover:border-green-500 hover:bg-green-50 transition-all duration-200"
+      >
+        <div className="flex items-center gap-4">
+          <div className="p-3 bg-green-100 text-green-700 rounded-full group-hover:bg-green-600 group-hover:text-white transition-colors">
+            {/* Shopping Cart Icon */}
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+          </div>
+          <div className="text-left">
+            <h3 className="font-bold text-gray-800 group-hover:text-green-800">Purchase History</h3>
+            <p className="text-xs text-gray-400 group-hover:text-green-600">View past items bought</p>
           </div>
         </div>
+        {/* Chevron Icon */}
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-300 group-hover:text-green-600 transform group-hover:translate-x-1 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
+
+      {/* BILLS PAYMENT BUTTON */}
+      <button
+        onClick={() => {
+          setIsPaymentPopupOpen(false);
+          handleOpenBillHistory();
+        }}
+        className="group w-full flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md hover:border-green-500 hover:bg-green-50 transition-all duration-200"
+      >
+        <div className="flex items-center gap-4">
+          <div className="p-3 bg-blue-100 text-blue-700 rounded-full group-hover:bg-blue-600 group-hover:text-white transition-colors">
+            {/* Receipt Icon */}
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </div>
+          <div className="text-left">
+            <h3 className="font-bold text-gray-800 group-hover:text-blue-800">Bills Payment</h3>
+            <p className="text-xs text-gray-400 group-hover:text-blue-600">View bill transactions</p>
+          </div>
+        </div>
+        {/* Chevron Icon */}
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-300 group-hover:text-blue-600 transform group-hover:translate-x-1 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
+
+    </div>
+
+    {/* Footer Section */}
+    <div className="p-4 bg-gray-50 border-t border-gray-100 flex justify-center">
+      <button
+        onClick={() => setIsPaymentPopupOpen(false)}
+        className="bg-[#b8d8ba] text-white px-6 py-2 rounded-lg hover:bg-[#8fa182] hover:shadow-lg transition-all active:scale-95"
+      >
+        Close
+      </button>
+    </div>
+
+  </div>
+</div>
       )}
 
       {/* Loan Application Modal */}

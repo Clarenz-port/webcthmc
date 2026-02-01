@@ -55,6 +55,7 @@ exports.register = async (req, res) => {
       birthdate,      // ⭐ ADDED
       password: hashedPassword,
       role: role || "member",
+      status: "pending",
     });
 
     res.status(201).json({
@@ -84,6 +85,8 @@ exports.login = async (req, res) => {
 
     const user = await User.findOne({ where: { username } });
     if (!user) return res.status(404).json({ message: "User not found" });
+
+    if (user.status !== 'approved') return res.status(403).json({ message: "Account not approved yet" });
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(401).json({ message: "Invalid credentials" });

@@ -1,5 +1,7 @@
 // src/page/popup/LoanApplication.jsx
 import React, { useEffect, useState } from "react";
+
+import { FiEye} from "react-icons/fi";
 import { FaArrowLeft } from "react-icons/fa";
 import axios from "axios";
 
@@ -199,147 +201,226 @@ export default function LoanApplication({ onBack, memberId = null, memberName = 
   };
 
   return (
+    <div >
+
+
+      <div className="max-w-6xl mx-auto rounded-xl bg-white shadow-sm border border-gray-100 p-8">
+  {/* Header Section */}
+  <div className="flex items-center justify-between mb-8">
     <div>
+      <h3 className="text-2xl font-extrabold text-gray-800 tracking-tight">Loan History</h3>
+    </div>
+    <div className="h-1 w-20 bg-[#7e9e6c] rounded-full"></div>
+  </div>
+<div>
+  {loading ? (
+    <div className="flex flex-col items-center justify-center py-12">
+      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#7e9e6c]"></div>
+      <p className="text-gray-500 mt-4 font-medium">Fetching your records...</p>
+    </div>
+  ) : error ? (
+    <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-center">
+      {error}
+    </div>
+  ) : loanRecords.length === 0 ? (
+    <div className="text-center py-16 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
+      <p className="text-gray-500 font-medium">No loan records found in your history.</p>
+    </div>
+  ) : (
+    <div className="overflow-hidden rounded-xl border border-gray-200 shadow-sm">
+      <table className="w-full text-left border-collapse">
+        <thead>
+          <tr className="bg-gray-50 border-b border-gray-200">
+            <th className="py-4 px-6 text-xs font-semibold text-gray-600 uppercase tracking-wider">Date Applied</th>
+            <th className="py-4 px-6 text-xs font-semibold text-gray-600 uppercase tracking-wider">Amount</th>
+            <th className="py-4 px-6 text-xs font-semibold text-gray-600 uppercase tracking-wider">Term</th>
+            <th className="py-4 px-6 text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+            <th className="py-4 px-6 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Action</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-100">
+          {loanRecords.map((record, index) => {
+            const status = (record.status || "").toLowerCase();
+            const statusStyles = {
+              paid: "bg-blue-50 text-blue-700 border-blue-100",
+              approved: "bg-green-50 text-green-700 border-green-100",
+              pending: "bg-yellow-50 text-yellow-700 border-yellow-100",
+              rejected: "bg-red-50 text-red-700 border-red-100",
+            };
 
-
-      <div className="max-w-auto rounded-lg bg-white p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-2xl font-bold text-[#7e9e6c]">Loan History</h3>
-        </div>
-
-        {loading ? (
-          <p className="text-center text-gray-600 mt-6">Loading loan records...</p>
-        ) : error ? (
-          <p className="text-center text-red-600 mt-6">{error}</p>
-        ) : loanRecords.length === 0 ? (
-          <p className="text-center text-gray-600 mt-6">No loan records found.</p>
-        ) : (
-          <div className="overflow-auto shadow-md border-gray-400 border rounded-lg">
-            
-            <table className="w-full text-sm">
-              <thead className="bg-[#d6ead8]">
-                <tr>
-                  <th className="py-3 px-4 text-left">Date</th>
-                  <th className="py-3 px-4 text-left">Loan Amount (₱)</th>
-                  <th className="py-3 px-4 text-left">Repayment</th>
-                  <th className="py-3 px-4 text-left">Status</th>
-                  <th className="py-3 px-4 text-center">View</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loanRecords.map((record, index) => (
-                  <tr
-                    key={record.id ?? index}
-                    className={`${index % 2 === 0 ? "bg-gray-50" : "bg-white"} `}
+            return (
+              <tr key={record.id ?? index} className="hover:bg-gray-50/50 transition-colors group">
+                <td className="py-4 px-6 text-sm text-gray-700 font-medium">
+                  {record.createdAt ? new Date(record.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : "N/A"}
+                </td>
+                <td className="py-4 px-6 text-sm text-[#7e9e6c] font-bold">
+                  {formatCurrency(record.loanAmount)}
+                </td>
+                <td className="py-4 px-6 text-sm text-gray-600">
+                  {record.duration ? `${record.duration} Months` : "N/A"}
+                </td>
+                <td className="py-4 px-6">
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border ${statusStyles[status] || "bg-gray-50 text-gray-600"}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${
+                      status === 'approved' ? 'bg-green-500' : status === 'pending' ? 'bg-yellow-500' : status === 'paid' ? 'bg-blue-500' : 'bg-red-500'
+                    }`}></span>
+                    {(record.status || "N/A").toUpperCase()}
+                  </span>
+                </td>
+                <td className="py-4 px-6 text-center">
+             
+                  <button
+                    onClick={() => computeSchedule(record)}
+                    className="p-2 text-gray-400 hover:text-[#7e9e6c] hover:bg-white rounded-lg shadow-sm border border-transparent hover:border-gray-100 transition-all"
+                    title="View Details"
                   >
-                    <td className="py-3 px-4 border-t border-gray-400">
-                      {record.createdAt ? new Date(record.createdAt).toLocaleDateString() : "N/A"}
-                    </td>
-                    <td className="py-3 px-4 border-t border-gray-400">{formatCurrency(record.loanAmount)}</td>
-                    <td className="py-3 px-4 border-t border-gray-400">{record.duration ? `${record.duration} months` : "N/A"}</td>
-                    <td
-                      className={`py-3 px-4 border-t border-gray-400 font-semibold ${
-                        (record.status || "").toLowerCase() === "paid"
-                          ? "text-blue-600"
-                          : (record.status || "").toLowerCase() === "approved"
-                          ? "text-green-600"
-                          : (record.status || "").toLowerCase() === "pending"
-                          ? "text-yellow-600"
-                          : "text-red-600"
-                      }`}
-                    >
-                      {record.status || "N/A"}
-                    </td>
-                    <td className="py-3 px-4 border-t border-gray-400 text-center">
-                      <button
-                        onClick={() => computeSchedule(record)}
-                        className="px-3 py-1 shadow-lg border border-gray-400 rounded"
-                      >
-                        View
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            
-          </div>
-          
-        )} 
-        {/* Close */}
-        <div className="mt-6 flex justify-end">
-          <button
-            onClick={onBack}
-            className="bg-[#b8d8ba] text-white px-6 py-2 rounded-lg hover:bg-[#8fa182]"
-          >
-            Close
-          </button>
-        </div>
-      </div>
+                    <FiEye size={18} />
+                  </button>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  )}
+</div>
+  {/* Footer / Close Action */}
+  <div className="mt-8 flex justify-end ">
+    <button
+      onClick={onBack}
+      className="bg-[#b8d8ba] text-white px-6 py-2 rounded-lg hover:bg-[#8fa182] hover:shadow-lg transition-all active:scale-95"
+      >
+      Close
+    </button>
+  </div>
+</div>
 
       {/* Loan Details Modal */}
       {selectedLoan && (
-        <div className="fixed inset-0 bg-black/60 flex justify-center items-center z-50 px-4">
-          <div className="bg-white rounded-2xl w-[900px] max-h-[85vh] overflow-y-auto shadow-2xl relative p-8">
-            <button onClick={() => setSelectedLoan(null)} className="absolute top-3 right-5 text-gray-500 hover:text-black text-3xl">
-              &times;
-            </button>
+        <div className="fixed inset-0 flex justify-center items-center z-50 px-4 transition-opacity duration-300">
+  {/* Modal Container */}
+  <div className="bg-white rounded-2xl w-full max-w-5xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden relative animate-in fade-in zoom-in-95 duration-200">
+    
+    {/* Header Section (Sticky) */}
+    <div className="flex justify-between items-center px-8 py-5 border-b border-gray-100 bg-gray-50/80 sticky top-0 z-10">
+      <div>
+        <h2 className="text-2xl font-bold text-gray-800">Loan Details</h2>
+        <p className="text-sm text-gray-500 mt-1">Review loan terms and amortization schedule</p>
+      </div>
+      <button 
+        onClick={() => setSelectedLoan(null)} 
+        className="p-2 bg-white border border-gray-200 rounded-full text-gray-400 hover:text-red-500 hover:border-red-200 hover:bg-red-50 transition-all duration-200"
+      >
+        {/* Modern Close Icon */}
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
 
-            <h2 className="text-2xl font-bold text-center text-[#7e9e6c] mb-4">Loan Detailsa</h2>
-
-            <div className="space-y-3 text-gray-700">
-              <p><strong>Purpose:</strong> {selectedLoan.purpose || "N/A"}</p>
-              <p><strong>Loan Amount:</strong> {formatCurrency(selectedLoan.loanAmount)}</p>
-              <p><strong>Duration:</strong> {selectedLoan.duration} months</p>
-              <p><strong>Start Month:</strong> {selectedLoan.startMonth || "N/A"}</p>
-              <p><strong>End Month:</strong> {selectedLoan.endMonth || "N/A"}</p>
-
-              {/* <-- NEW: show check number if present */}
-              <p><strong>Check Number:</strong> {readCheckNumber(selectedLoan)}</p>
-
-              <hr className="my-3" />
-
-              <h3 className="text-xl font-bold text-[#56794a] mb-2">Amortization Schedule</h3>
-
-              <table className="w-full border-collapse text-sm">
-                <thead>
-                  <tr className="bg-[#f4f9f4] text-[#56794a] border-b">
-                    <th className="py-2 px-2 text-left">Month</th>
-                    <th className="py-2 px-2 text-right">Interest</th>
-                    <th className="py-2 px-2 text-right">Service Fee</th>
-                    <th className="py-2 px-2 text-right">Filing Fee</th>
-                    <th className="py-2 px-2 text-right">Build up</th>
-                    <th className="py-2 px-2 text-right">Penalties</th>
-                    <th className="py-2 px-2 text-right">Balance</th>
-                    <th className="py-2 px-2 text-right">Amortization</th>
-                    <th className="py-2 px-2 text-center">Due Date</th>
-                    <th className="py-2 px-2 text-center">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {schedule.map((row) => (
-                    <tr key={row.month} className="border-b hover:bg-[#f9fcf9]">
-                      <td className="py-1 px-2">{row.month}</td>
-                      <td className="py-1 px-2 text-right">{formatCurrency(row.interestPayment)}</td>
-                      <td className="py-2 px-2 text-right font-medium">{formatCurrency(readServiceCharge(selectedLoan))}</td>
-                      <td className="py-2 px-2 text-right font-medium">{formatCurrency(readFilingFee(selectedLoan))}</td>
-                      <td className="py-2 px-2 text-right font-medium">{formatCurrency(readCapitalBuildup(selectedLoan))}</td>
-                      <td className="py-2 px-2 text-right font-medium">{formatCurrency(readPenalties(selectedLoan))}</td>
-                      <td className="py-1 px-2 text-right">{formatCurrency(row.remainingBalance)}</td>
-                      <td className="py-1 px-2 text-right">{formatCurrency(row.totalPayment)}</td>
-                      <td className="py-1 px-2 text-center">{row.dueDate ? new Date(row.dueDate).toLocaleDateString("en-PH") : "N/A"}</td>
-                      <td className="py-1 px-2 text-center">
-                        {row.status === "Paid" ? <span className="text-blue-600 font-semibold">{row.status}</span> : <span className="text-red-600">{row.status}</span>}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-                
-              </table>
-
-            </div>
-          </div>
+    {/* Scrollable Content */}
+    <div className="overflow-y-auto p-8 custom-scrollbar">
+      
+      {/* 1. KEY DETAILS GRID */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        
+        {/* Main Stat Card */}
+        <div className="bg-green-50 rounded-xl p-5 border border-green-100 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wider text-green-600 mb-1">Total Loan Amount</p>
+          <p className="text-3xl font-bold text-green-800">{formatCurrency(selectedLoan.loanAmount)}</p>
         </div>
+
+        {/* Info Group 1 */}
+        <div className="col-span-1 md:col-span-3 bg-white rounded-xl border border-gray-200 p-5 shadow-sm flex flex-wrap gap-y-4 gap-x-8 items-center">
+            <div>
+              <p className="text-xs text-gray-500 uppercase">Purpose</p>
+              <p className="font-medium text-gray-800">{selectedLoan.purpose || "N/A"}</p>
+            </div>
+            <div className="h-8 w-px bg-gray-200 hidden sm:block"></div>
+            <div>
+              <p className="text-xs text-gray-500 uppercase">Check Number</p>
+              <p className="font-medium text-gray-800">{readCheckNumber(selectedLoan) || "—"}</p>
+            </div>
+            <div className="h-8 w-px bg-gray-200 hidden sm:block"></div>
+            <div>
+              <p className="text-xs text-gray-500 uppercase">Service Fee</p>
+              <p className="font-medium text-gray-800">₱{selectedLoan.serviceCharge}</p>
+            </div>
+            <div className="h-8 w-px bg-gray-200 hidden sm:block"></div>
+            <div>
+              <p className="text-xs text-gray-500 uppercase">Filing Fee</p>
+              <p className="font-medium text-gray-800">₱{selectedLoan.filingFee}</p>
+            </div>
+            <div className="h-8 w-px bg-gray-200 hidden sm:block"></div>
+            <div>
+              <p className="text-xs text-gray-500 uppercase">Build up</p>
+              <p className="font-medium text-gray-800">₱{selectedLoan.capitalBuildUp}</p>
+            </div>
+            <div className="h-8 w-px bg-gray-200 hidden sm:block"></div>
+            <div>
+              <p className="text-xs text-gray-500 uppercase">Timeline</p>
+              <p className="font-medium text-gray-800 text-sm">
+                {selectedLoan.startMonth || "N/A"} <span className="text-gray-400">→</span> {selectedLoan.endMonth || "N/A"}
+              </p>
+            </div>
+        </div>
+      </div>
+
+      {/* 2. AMORTIZATION TABLE */}
+      <div>
+        <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+          </svg>
+          Amortization Schedule
+        </h3>
+
+        <div className="overflow-x-auto border border-gray-200 rounded-xl shadow-sm">
+          <table className="w-full border-collapse text-sm">
+            <thead>
+              <tr className="bg-gray-50 text-gray-600 border-b border-gray-200 text-xs uppercase tracking-wide">
+                <th className="py-3 px-4 text-left font-semibold">Month</th>
+                <th className="py-3 px-4 text-right font-semibold text-gray-500">Interest</th>
+                <th className="py-3 px-4 text-right font-semibold text-red-400">Penalties</th>
+                <th className="py-3 px-4 text-right font-semibold text-gray-800">Balance</th>
+                <th className="py-3 px-4 text-right font-bold text-green-700 bg-green-50/50">Amortization</th>
+                <th className="py-3 px-4 text-center font-semibold">Due Date</th>
+                <th className="py-3 px-4 text-center font-semibold">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 bg-white">
+              {schedule.map((row) => (
+                <tr key={row.month} className="hover:bg-green-50/30 transition-colors">
+                  <td className="py-3 px-4 font-medium text-gray-900">{row.month}</td>
+                  <td className="py-3 px-4 text-right text-gray-600">{formatCurrency(row.interestPayment)}</td>
+                  <td className="py-3 px-4 text-right text-red-500">{formatCurrency(readPenalties(selectedLoan))}</td>
+                  <td className="py-3 px-4 text-right text-gray-700 font-medium">{formatCurrency(row.remainingBalance)}</td>
+                  <td className="py-3 px-4 text-right font-bold text-green-700 bg-green-50/30">{formatCurrency(row.totalPayment)}</td>
+                  <td className="py-3 px-4 text-center text-gray-500 text-xs">
+                    {row.dueDate ? new Date(row.dueDate).toLocaleDateString("en-PH") : "N/A"}
+                  </td>
+                  <td className="py-3 px-4 text-center">
+                    {row.status === "Paid" ? (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
+                         Paid
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200">
+                        {row.status}
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      
+    </div>
+  </div>
+</div>
       )}
     </div>
   );

@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { notify } from "../../utils/toast";
 import axios from "axios";
+import { FaPlus, FaTrash, FaShoppingCart, FaWallet, FaReceipt, FaCalendarCheck, FaTimes } from 'react-icons/fa';
 
 export default function AddPurchasePopup({ isOpen, onClose, memberId, memberName = null, onSaved }) {
   const [lines, setLines] = useState([{ name: "", qty: "", unitPrice: "" }]);
@@ -166,174 +167,206 @@ export default function AddPurchasePopup({ isOpen, onClose, memberId, memberName
   const previewDueDateISO = paymentMethod === "1month to pay" ? computeDueDateISO(new Date()) : null;
 
   return (
-    <div className="fixed inset-0 bg-black/45 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-3xl max-h-[90vh] overflow-auto p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-2xl text-[#2f5134] font-bold">Record Purchase</h3>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
+  <div 
+    className="absolute inset-0" 
+    onClick={() => !saving && onClose()} 
+  />
+  
+  <div className="relative bg-white rounded-[2rem] shadow-2xl w-full max-w-3xl max-h-[95vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200 z-60">
+    
+    {/* HEADER */}
+    <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-[#f8faf7]">
+      <div className="flex items-center gap-4">
+        <div className="w-12 h-12 bg-[#7e9e6c] text-white rounded-2xl flex items-center justify-center shadow-lg shadow-[#7e9e6c]/20">
+          <FaShoppingCart size={22} />
         </div>
-
-        <div className="grid border-t border-[#dce9dd] pt-4 grid-cols-12 gap-8 items-center mb-2 text-sm">
-          <div className="col-span-5 font-semibold">Item</div>
-          <div className="col-span-2 text-right font-semibold">Qty</div>
-          <div className="col-span-2 text-right font-semibold">Unit Price</div>
-          <div className="col-span-1 text-right font-semibold">Total</div>
-        </div>
-
-        <div className="space-y-3">
-          {lines.map((line, idx) => (
-            <div key={idx} className="grid grid-cols-12 gap-2 items-center">
-              <div className="col-span-5">
-                <input
-                  id={`item-name-${idx}`}
-                  ref={idx === 0 ? firstInputRef : undefined}
-                  value={line.name}
-                  onChange={(e) => updateLine(idx, "name", e.target.value)}
-                  placeholder="e.g. Rice (10kg)"
-                  className="w-full border shadow-sm border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#7e9e6c]"
-                />
-              </div>
-
-              <div className="col-span-2">
-                <input
-                  type="text"
-                  value={line.qty}
-                  onChange={(e) => updateLine(idx, "qty", e.target.value)}
-                  placeholder="1"
-                  className="w-full border shadow-sm border-gray-300 rounded-md p-2 text-right focus:outline-none focus:ring-2 focus:ring-[#7e9e6c]"
-                  inputMode="numeric"
-                  aria-label={`Quantity for item ${idx + 1}`}
-                />
-              </div>
-
-              <div className="col-span-2">
-                <input
-                  type="text"
-                  value={line.unitPrice}
-                  onChange={(e) => updateLine(idx, "unitPrice", e.target.value)}
-                  onKeyDown={(e) => onPriceKeyDown(e, idx)}
-                  placeholder="0.00"
-                  className="w-full border shadow-sm border-gray-300 rounded-md p-2 text-right focus:outline-none focus:ring-2 focus:ring-[#7e9e6c]"
-                  inputMode="decimal"
-                  aria-label={`Unit price for item ${idx + 1}`}
-                />
-              </div>
-
-              <div className="col-span-1 text-right">
-                <div className="text-sm font-medium">{fmtMoney(lineTotal(line))}</div>
-              </div>
-
-              <div className="col-span-2 flex justify-end mt-1">
-                <button
-                  type="button"
-                  onClick={() => removeLine(idx)}
-                  className="text-red-500 text-sm px-2 py-1 rounded hover:bg-red-50"
-                  aria-label={`Remove item ${idx + 1}`}
-                >
-                  Remove
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-3 flex items-center gap-2">
-          <button onClick={addLine} className="px-3 py-2 bg-gray-100 rounded-lg shadow-md hover:bg-gray-200 text-sm">
-            + Add item
-          </button>
-        </div>
-
-        <div className="mt-6 border-t border-b border-[#dce9dd] pt-4 grid grid-cols-4 gap-4 items-center">
-          <div>
-            <label className="block text-sm font-medium mb-1">Payment method</label>
-            <select
-              value={paymentMethod}
-              onChange={(e) => setPaymentMethod(e.target.value)}
-              className="border mb-4 shadow-md border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#7e9e6c]"
-            >
-              <option value="cash">Cash</option>
-              <option value="1month to pay">1 month to pay</option>
-            </select>
-          </div>
-          <div className="col-span-2"></div>
-
-          <div className="flex bg-[#d6ead8] border border-gray-400 rounded-lg mb-4 p-3 flex-col items-end">
-            <div className="text-sm text-gray-600">Total</div>
-            <div className="text-2xl font-bold">{fmtMoney(total)}</div>
-          </div>
-        </div>
-
-        {paymentMethod === "1month to pay" && (
-          <div className="mt-4 border border-gray-200 rounded-lg p-4 bg-white shadow-sm">
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="font-semibold text-lg">Purchase summary (1 month to pay)</h4>
-              <div className="text-sm text-gray-600">
-                Due date: <span className="font-medium">{formatFriendlyDate(previewDueDateISO)}</span>
-              </div>
-            </div>
-
-            <div className="overflow-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="text-left px-3 py-2">Item</th>
-                    <th className="text-right px-3 py-2">Qty</th>
-                    <th className="text-right px-3 py-2">Unit Price</th>
-                    <th className="text-right px-3 py-2">Line Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {lines.map((l, i) => (
-                    <tr key={i} className="border-t">
-                      <td className="px-3 py-2">{l.name || "-"}</td>
-                      <td className="px-3 py-2 text-right">{toQty(l.qty) || 1}</td>
-                      <td className="px-3 py-2 text-right">{fmtMoney(toPrice(l.unitPrice))}</td>
-                      <td className="px-3 py-2 text-right">{fmtMoney(lineTotal(l))}</td>
-                    </tr>
-                  ))}
-
-                  <tr className="border-t">
-                    <td colSpan={3} className="px-3 py-2 text-right font-semibold">
-                      Subtotal
-                    </td>
-                    <td className="px-3 py-2 text-right font-medium">{fmtMoney(subtotal)}</td>
-                  </tr>
-
-                  <tr>
-                    <td colSpan={3} className="px-3 py-2 text-right">
-                      <div className="text-sm text-gray-600">Surcharge (1%)</div>
-                    </td>
-                    <td className="px-3 py-2 text-right">{fmtMoney(surcharge)}</td>
-                  </tr>
-
-                  <tr className="border-t bg-gray-50">
-                    <td colSpan={3} className="px-3 py-2 text-right font-semibold">
-                      Total (incl. surcharge)
-                    </td>
-                    <td className="px-3 py-2 text-right font-bold">{fmtMoney(total)}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        <div className="mt-6 flex justify-end gap-3">
-          <button
-            onClick={onClose}
-            className=" bg-white shadow-md border border-[#e6b6a6] font-semibold hover:bg-[#f8f2f1] text-[#c55f4f] px-4 py-2 rounded border bg-white hover:bg-gray-50"
-            disabled={saving}
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={saving}
-            className="px-4 py-2 shadow-md rounded bg-[#7e9e6c] text-white hover:bg-[#6a8b5a]"
-          >
-            {saving ? "Saving..." : "Save Purchase"}
-          </button>
+        <div>
+          <h3 className="text-2xl font-black text-gray-800 tracking-tight">Record Purchase</h3>
+          <p className="text-xs text-[#7e9e6c] font-bold uppercase tracking-[0.2em]">Inventory Transaction</p>
         </div>
       </div>
     </div>
+
+    {/* CONTENT AREA */}
+    <div className="p-8 overflow-y-auto flex-1">
+      {/* COLUMN HEADERS */}
+      <div className="grid grid-cols-12 gap-4 px-2 mb-4">
+        <div className="col-span-5 text-[11px] font-black text-gray-400 uppercase tracking-wider">Item Description</div>
+        <div className="col-span-2 text-right text-[11px] font-black text-gray-400 uppercase tracking-wider">Qty</div>
+        <div className="col-span-2 text-right text-[11px] font-black text-gray-400 uppercase tracking-wider">Unit Price</div>
+        <div className="col-span-2 text-right text-[11px] font-black text-gray-400 uppercase tracking-wider">Total</div>
+        <div className="col-span-1"></div>
+      </div>
+
+      {/* INPUT LINES */}
+      <div className="space-y-3">
+        {lines.map((line, idx) => (
+          <div key={idx} className="grid grid-cols-12 gap-3 items-center group animate-in slide-in-from-left-2 duration-200">
+            <div className="col-span-5">
+              <input
+                id={`item-name-${idx}`}
+                ref={idx === 0 ? firstInputRef : undefined}
+                value={line.name}
+                onChange={(e) => updateLine(idx, "name", e.target.value)}
+                placeholder="Item name..."
+                className="w-full bg-gray-50 border-2 border-transparent rounded-xl p-3 text-sm font-semibold outline-none focus:bg-white focus:border-[#7e9e6c] focus:shadow-sm transition-all"
+              />
+            </div>
+
+            <div className="col-span-2">
+              <input
+                type="text"
+                value={line.qty}
+                onChange={(e) => updateLine(idx, "qty", e.target.value)}
+                placeholder="1"
+                className="w-full bg-gray-50 border-2 border-transparent rounded-xl p-3 text-right text-sm font-bold outline-none focus:bg-white focus:border-[#7e9e6c] transition-all"
+                inputMode="numeric"
+              />
+            </div>
+
+            <div className="col-span-2">
+              <input
+                type="text"
+                value={line.unitPrice}
+                onChange={(e) => updateLine(idx, "unitPrice", e.target.value)}
+                onKeyDown={(e) => onPriceKeyDown(e, idx)}
+                placeholder="0.00"
+                className="w-full bg-gray-50 border-2 border-transparent rounded-xl p-3 text-right text-sm font-bold outline-none focus:bg-white focus:border-[#7e9e6c] transition-all"
+                inputMode="decimal"
+              />
+            </div>
+
+            <div className="col-span-2 text-right px-2">
+              <div className="text-sm font-black text-gray-700">{fmtMoney(lineTotal(line))}</div>
+            </div>
+
+            <div className="col-span-1 flex justify-center">
+              <button
+                type="button"
+                onClick={() => removeLine(idx)}
+                className="w-8 h-8 flex items-center justify-center text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+              >
+                <FaTrash size={14} />
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* ADD LINE BUTTON */}
+      <button 
+        onClick={addLine} 
+        className="mt-6 flex items-center gap-2 px-6 py-3 bg-white border-2 border-dashed border-gray-200 text-gray-500 rounded-2xl font-bold text-sm hover:border-[#7e9e6c] hover:text-[#7e9e6c] hover:bg-[#f8faf7] transition-all"
+      >
+        <FaPlus size={12} /> Add New Line
+      </button>
+
+      {/* FOOTER SUMMARY SECTION */}
+      <div className="mt-8 pt-8 border-t border-gray-100 grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* SETTINGS */}
+        <div className="space-y-4">
+          <div>
+            <label className="flex items-center gap-2 text-[11px] font-black text-gray-400 uppercase tracking-widest mb-3">
+              <FaWallet className="text-[#7e9e6c]" /> Payment Method
+            </label>
+            <div className="relative">
+              <select
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+                className="w-full bg-gray-50 border-2 border-transparent rounded-2xl p-4 font-bold text-gray-700 outline-none focus:border-[#7e9e6c] focus:bg-white appearance-none cursor-pointer transition-all"
+              >
+                <option value="cash">Immediate Cash</option>
+                <option value="1month to pay">1 Month Term</option>
+              </select>
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 text-xs">▼</div>
+            </div>
+          </div>
+        </div>
+
+        {/* TOTAL BOX */}
+        <div className="bg-[#7e9e6c] rounded-3xl p-6 text-white shadow-xl shadow-[#7e9e6c]/20 flex flex-col justify-center items-end relative overflow-hidden">
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-80 mb-1">Grand Total</p>
+          <h2 className="text-4xl font-black">{fmtMoney(total)}</h2>
+        </div>
+      </div>
+
+      {/* CONDITIONAL CREDIT SUMMARY */}
+      {paymentMethod === "1month to pay" && (
+        <div className="mt-8 bg-gray-50 rounded-[2rem] p-6 border-2 border-[#7e9e6c]/10 animate-in slide-in-from-top-4 duration-300">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-2">
+              <FaCalendarCheck className="text-[#7e9e6c]" />
+              <h4 className="font-black text-gray-800 uppercase tracking-wider text-sm">Payment Schedule</h4>
+            </div>
+            <div className="px-4 py-1.5 bg-white border border-[#7e9e6c]/20 rounded-full text-xs font-bold text-[#7e9e6c]">
+              Due: {formatFriendlyDate(previewDueDateISO)}
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50/50 text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                  <th className="text-left px-6 py-4">Item</th>
+                  <th className="text-right px-6 py-4">Qty</th>
+                  <th className="text-right px-6 py-4">Total</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {lines.map((l, i) => (
+                  <tr key={i}>
+                    <td className="px-6 py-3 font-medium text-gray-600">{l.name || "Unnamed Item"}</td>
+                    <td className="px-6 py-3 text-right font-bold text-gray-400">{toQty(l.qty) || 1}</td>
+                    <td className="px-6 py-3 text-right font-bold text-gray-700">{fmtMoney(lineTotal(l))}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot className="bg-gray-50/80 border-t border-gray-100">
+                <tr>
+                  <td colSpan={2} className="px-6 py-3 text-right text-[11px] font-black text-gray-400 uppercase">Subtotal</td>
+                  <td className="px-6 py-3 text-right font-bold text-gray-700">{fmtMoney(subtotal)}</td>
+                </tr>
+                <tr>
+                  <td colSpan={2} className="px-6 py-3 text-right text-[11px] font-black text-[#7e9e6c] uppercase">Surcharge (1%)</td>
+                  <td className="px-6 py-3 text-right font-black text-[#7e9e6c]">{fmtMoney(surcharge)}</td>
+                </tr>
+                <tr className="bg-[#7e9e6c]/5">
+                  <td colSpan={2} className="px-6 py-4 text-right text-xs font-black text-gray-800 uppercase tracking-wider">Final Amount Due</td>
+                  <td className="px-6 py-4 text-right font-black text-xl text-[#2f5134]">{fmtMoney(total)}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
+
+    {/* ACTIONS */}
+    <div className="px-8 py-6 bg-gray-50 flex justify-end gap-3 border-t border-gray-100">
+      <button
+        onClick={onClose}
+        disabled={saving}
+        className="px-8 py-3 bg-white text-gray-500 font-bold rounded-2xl hover:text-red-500 transition-all disabled:opacity-50"
+      >
+        Discard
+      </button>
+      <button
+        onClick={handleSubmit}
+        disabled={saving}
+        className="px-10 py-3 bg-[#7e9e6c] text-white font-bold rounded-2xl shadow-lg shadow-[#7e9e6c]/20 hover:bg-[#6a8b5a] hover:-translate-y-0.5 active:scale-95 transition-all disabled:opacity-60"
+      >
+        {saving ? (
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            <span>Saving...</span>
+          </div>
+        ) : (
+          "Save Purchase"
+        )}
+      </button>
+    </div>
+  </div>
+</div>
   );
 }

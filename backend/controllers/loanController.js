@@ -213,20 +213,15 @@ exports.getLoanByMemberId = async (req, res) => {
   try {
     const memberId = parseInt(req.params.id, 10);
 
-    // Use Op.gt from imported sequelize
-    const loan = await Loan.findOne({
-      where: { userId: memberId, status: "Approved", balance: { [Op.gt]: 0 } },
+    const loans = await Loan.findAll({
+      where: { userId: memberId, status: { [Op.in]: ["Approved", "Paid"] } },
       order: [["createdAt", "DESC"]],
     });
 
-    if (!loan) {
-      return res.status(404).json({ message: "No active loan found for this member" });
-    }
-
-    res.json({ loan });
+    res.json({ loans });
   } catch (err) {
-    console.error("❌ Error fetching member loan:", err);
-    res.status(500).json({ message: "Error fetching member loan" });
+    console.error("❌ Error fetching member loans:", err);
+    res.status(500).json({ message: "Error fetching member loans" });
   }
 };
 exports.recordPayment = async (req, res) => {
@@ -383,7 +378,7 @@ exports.getLoanCounts = async (req, res) => {
     // count approved OR paid (adjust strings if your DB uses other labels)
     const approvedOrPaid = await Loan.count({
       where: {
-        status: { [Op.in]: ["Approved", "Paid"] },
+        status: { [Op.in]: ["Approved"] },
       },
     });
 

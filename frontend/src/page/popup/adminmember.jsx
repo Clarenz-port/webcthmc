@@ -1,5 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { notify } from "../../utils/toast";
+import { 
+  FiArrowLeft, FiFilter, FiTrendingUp, FiPieChart, 
+  FiCreditCard, FiShoppingBag, FiActivity, FiExternalLink, FiCalendar 
+} from "react-icons/fi";
+import { 
+  FiShoppingCart, FiFileText, 
+  FiPrinter, FiClock, FiAlertCircle, 
+  FiX, FiCheckCircle, FiPackage, FiEye 
+} from "react-icons/fi";
+import { FiTag,  } from "react-icons/fi";
 import PaidLoanPopup from "./adminmem/paidloan.jsx";
 import AddSharesPopup from "../popup/AddSharesPopup.jsx";
 import AddPurchasePopup from "../popup/AddPurchasePopup.jsx";
@@ -98,22 +108,28 @@ const downloadMemberReport = async () => {
 };
 // normalize date helper
 const getDateFrom = (item) => {
-  const d = item?.date ?? item?.createdAt ?? item?.created_at ?? item?.paidAt ?? item?.paid_at ?? item?.created;
+  const d = item?.date ?? item?.createdAt ?? item?.created_at ?? item?.paidAt ?? item?.paid_at ?? item?.created ?? item?.approvalDate;
   const dt = d ? new Date(d) : null;
   return isNaN(dt) ? null : dt;
 };
 
 const collectYears = () => {
   const years = new Set();
+  const months = new Set();
   [loanHistory, purchases, bills, dividends, shareRows].forEach((arr) =>
-    (arr || []).forEach((r) => { const dt = getDateFrom(r); if (dt) years.add(dt.getFullYear()); })
+    (arr || []).forEach((r) => { const dt = getDateFrom(r); if (dt) { years.add(dt.getFullYear()); if (dt.getFullYear() === selectedYear) months.add(dt.getMonth() + 1); } })
   );
   const arr = Array.from(years).sort((a,b)=>b-a);
   if (arr.length === 0) arr.push(new Date().getFullYear());
   setAvailableYears(arr);
   if (!arr.includes(selectedYear)) setSelectedYear(arr[0]);
+  // set selectedMonth to latest month in selectedYear if grouping Month
+  if (grouping === "Month") {
+    const monthArr = Array.from(months).sort((a,b)=>b-a);
+    if (monthArr.length > 0) setSelectedMonth(monthArr[0]);
+  }
 };
-useEffect(() => collectYears(), [loanHistory, purchases, bills, dividends, shareRows]);
+useEffect(() => collectYears(), [loanHistory, purchases, bills, dividends, shareRows, grouping, selectedYear]);
 
 const monthsLabels = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
@@ -502,143 +518,198 @@ useEffect(() => {
   // ---------- UI ----------
   return (
     <div>
-      <div className="flex justify-between items-center mb-3">
-        <h1 className="text-4xl font-extrabold">{name}</h1>
-        <button onClick={onBack} className="text-lg bg-[#7e9e6c] text-white px-4 py-2 rounded hover:bg-[#6a865a]">
-          ← Back to Dashboard
+      <div className=" mx-auto space-y-3">
+  {/* HEADER SECTION */}
+  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="flex items-center gap-4">
+      <button 
+        onClick={onBack} 
+        className="p-3 bg-white border border-gray-100 text-gray-500 hover:text-[#7e9e6c] hover:border-[#7e9e6c] rounded-xl transition-all shadow-sm active:scale-95 group"
+      >
+        <FiArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
+      </button>
+      <div>
+        <h1 className="text-3xl md:text-4xl font-black text-gray-800 tracking-tight">{name}</h1>
+  
+      </div>
+    </div>
+  </div>
+
+  {/* CHARTS CONTROLS BAR */}
+  <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-wrap items-center gap-6">
+    <div className="flex items-center gap-2 text-[#7e9e6c]">
+      <FiFilter size={18} />
+      <span className="text-xs font-black uppercase tracking-tighter">Analysis Filters</span>
+    </div>
+    
+    <div className="flex flex-wrap items-center gap-4">
+      <div className="flex items-center gap-2">
+        <label className="text-[10px] font-black text-gray-400 uppercase tracking-tighter">View By</label>
+        <select 
+          value={grouping} 
+          onChange={(e)=>setGrouping(e.target.value)} 
+          className="bg-gray-50 border-none text-sm font-bold text-gray-700 px-3 py-1.5 rounded-lg focus:ring-2 focus:ring-[#7e9e6c] cursor-pointer"
+        >
+          <option value="Year">Yearly</option>
+          <option value="Month">Monthly</option>
+        </select>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <label className="text-[10px] font-black text-gray-400 uppercase tracking-tighter">Year</label>
+        <select 
+          value={selectedYear} 
+          onChange={(e)=>setSelectedYear(Number(e.target.value))} 
+          className="bg-gray-50 border-none text-sm font-bold text-gray-700 px-3 py-1.5 rounded-lg focus:ring-2 focus:ring-[#7e9e6c] cursor-pointer"
+        >
+          {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
+        </select>
+      </div>
+
+      {grouping === "Month" && (
+        <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2">
+          <label className="text-[10px] font-black text-gray-400 uppercase tracking-tighter">Month</label>
+          <select 
+            value={selectedMonth} 
+            onChange={(e)=>setSelectedMonth(Number(e.target.value))} 
+            className="bg-gray-50 border-none text-sm font-bold text-gray-700 px-3 py-1.5 rounded-lg focus:ring-2 focus:ring-[#7e9e6c] cursor-pointer"
+          >
+            {monthsLabels.map((m,i)=> <option key={i} value={i+1}>{m}</option>)}
+          </select>
+        </div>
+      )}
+    </div>
+  </div>
+
+  {/* CHARTS GRID */}
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    
+    {/* Total Shares */}
+    <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-xl shadow-gray-200/40">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-[#d6ead8] text-[#7e9e6c] rounded-lg"><FiPieChart /></div>
+          <h4 className="font-bold text-gray-800">Total Shares</h4>
+        </div>
+      </div>
+      {(() => {
+        const { labels, data } = aggregateCounts(shareRows, { type: "sum", amountField: "shareamount" });
+        return data.reduce((a,b)=>a+b,0) === 0 ? 
+          <div className="h-44 flex items-center justify-center text-xs text-gray-400 font-medium italic bg-gray-50 rounded-xl">No share data recorded</div> : (
+          <div className="h-44">
+            <Bar data={{ labels, datasets:[{ label:"PHP", data, backgroundColor:"#7e9e6c", borderRadius: 6 }] }}
+                 options={{ maintainAspectRatio: false, responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { display: false } } } }} />
+          </div>
+        );
+      })()}
+    </div>
+
+    {/* Total Dividend */}
+    <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-xl shadow-gray-200/40">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-[#e9e4f9] text-[#9a7ee6] rounded-lg"><FiTrendingUp /></div>
+          <h4 className="font-bold text-gray-800">Total Dividend</h4>
+        </div>
+      </div>
+      {(() => {
+        const { labels, data } = aggregateCounts(dividends, { type: "sum", amountField: "amount" });
+        return data.reduce((a,b)=>a+b,0) === 0 ? 
+          <div className="h-44 flex items-center justify-center text-xs text-gray-400 font-medium italic bg-gray-50 rounded-xl">No dividend data recorded</div> : (
+          <div className="h-44">
+            <Bar data={{ labels, datasets:[{ label:"PHP", data, backgroundColor:"#9a7ee6", borderRadius: 6 }] }}
+                 options={{ maintainAspectRatio: false, responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { display: false } } } }} />
+          </div>
+        );
+      })()}
+    </div>
+
+    {/* Loan Count */}
+    <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-xl shadow-gray-200/40">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-[#fdeaea] text-[#e07a7a] rounded-lg"><FiActivity /></div>
+          <h4 className="font-bold text-gray-800">Loan Count</h4>
+        </div>
+      </div>
+      {(() => {
+        const { labels, data } = aggregateCounts(loanHistory, { type: "count" });
+        console.log('loan data', { labels, data }, data.reduce((a,b)=>a+b,0), loanHistory);
+        return data.reduce((a,b)=>a+b,0) === 0 ? 
+          <div className="h-44 flex items-center justify-center text-xs text-gray-400 font-medium italic bg-gray-50 rounded-xl">No loan data found</div> : (
+          <div className="h-44">
+            <Line data={{ labels, datasets:[{ label: "Loans", data, borderColor:"#e07a7a", backgroundColor:"rgba(224,122,122,0.1)", fill: true, tension:0.4 }] }}
+                  options={{ maintainAspectRatio: false, responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { display: false } } } }} />
+          </div>
+        );
+      })()}
+    </div>
+
+    {/* Purchase Count */}
+    <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-xl shadow-gray-200/40">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-[#ebf1fb] text-[#6b8fd7] rounded-lg"><FiShoppingBag /></div>
+          <h4 className="font-bold text-gray-800">Purchase Count</h4>
+        </div>
+      </div>
+      {(() => {
+        const { labels, data } = aggregateCounts(purchases, { type: "count" });
+        return data.reduce((a,b)=>a+b,0) === 0 ? 
+          <div className="h-44 flex items-center justify-center text-xs text-gray-400 font-medium italic bg-gray-50 rounded-xl">No purchase records</div> : (
+          <div className="h-44">
+            <Line data={{ labels, datasets:[{ label: "Purchases", data, borderColor:"#6b8fd7", backgroundColor:"rgba(107,143,215,0.1)", fill: true, tension:0.4 }] }}
+                  options={{ maintainAspectRatio: false, responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { display: false } } } }} />
+          </div>
+        );
+      })()}
+    </div>
+
+    {/* Bill Payment Count (Full Width) */}
+    <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-xl shadow-gray-200/40 md:col-span-2">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-[#fff4e8] text-[#f6b26b] rounded-lg"><FiCreditCard /></div>
+          <h4 className="font-bold text-gray-800">Bill Payments Frequency</h4>
+        </div>
+      </div>
+      {(() => {
+        const { labels, data } = aggregateCounts(bills, { type: "count" });
+        return data.reduce((a,b)=>a+b,0) === 0 ? 
+          <div className="h-44 flex items-center justify-center text-xs text-gray-400 font-medium italic bg-gray-50 rounded-xl">No bill payments found</div> : (
+          <div className="h-44">
+            <Line data={{ labels, datasets:[{ label: "Bill Payments", data, borderColor:"#f6b26b", backgroundColor:"rgba(246,178,107,0.1)", fill: true, tension:0.4 }] }}
+                  options={{ maintainAspectRatio: false, responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }} />
+          </div>
+        );
+      })()}
+    </div>
+  </div>
+
+  {/* VIEW HISTORY QUICK ACTIONS */}
+  <div className="pt-4 border-t border-gray-100">
+    <div className="flex items-center gap-2 mb-4">
+      <FiExternalLink className="text-[#7e9e6c]" />
+      <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Detailed Audit History</span>
+    </div>
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+      {[
+        { label: "Loan History", onClick: () => setIsLoanHistoryOpen(true) },
+        { label: "Purchase History", onClick: () => setIsPurchaseHistoryOpen(true) },
+        { label: "Bill History", onClick: () => setIsBillHistoryOpen(true) },
+        { label: "Shares History", onClick: () => setIsShareHistoryOpen(true) },
+        { label: "Dividend History", onClick: () => setIsDividendHistoryOpen(true) },
+      ].map((btn, idx) => (
+        <button 
+          key={idx}
+          onClick={btn.onClick}
+          className="px-4 py-3 bg-white border border-gray-100 rounded-xl text-xs font-bold text-gray-600 hover:border-[#7e9e6c] hover:text-[#7e9e6c] hover:shadow-lg hover:shadow-green-100 transition-all text-center"
+        >
+          {btn.label}
         </button>
-      </div>
-      {/* Overview Chart */}
-<div className="mb-6">
- {/* Charts Controls */}
-<div className="mb-4 flex items-center gap-3">
-  <label className="text-sm font-medium">View by:</label>
-<select value={grouping} onChange={(e)=>setGrouping(e.target.value)} className="border px-2 py-1 rounded">
-  <option value="Year">Year</option>
-  <option value="Month">Month</option>
-</select>
-
-<label className="text-sm font-medium ml-3">Year:</label>
-<select value={selectedYear} onChange={(e)=>setSelectedYear(Number(e.target.value))} className="border px-2 py-1 rounded">
-  {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
-</select>
-
-{grouping === "Month" && (
-  <>
-    <label className="text-sm font-medium ml-3">Month:</label>
-    <select value={selectedMonth} onChange={(e)=>setSelectedMonth(Number(e.target.value))} className="border px-2 py-1 rounded">
-      {monthsLabels.map((m,i)=> <option key={i} value={i+1}>{m}</option>)}
-    </select>
-  </>
-)}
-</div>
-
-{/* Charts grid */}
-<div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-  {/* Total Shares (Bar) */}
-  <div className="bg-white p-4 rounded-lg border shadow-sm">
-    <h4 className="font-semibold mb-2 text-[#7e9e6c]">Total Shares</h4>
-    {(() => {
-      const { labels, data } = aggregateCounts(shareRows, { type: "sum", amountField: "shareamount" });
-      return data.reduce((a,b)=>a+b,0) === 0 ? <div className="text-gray-500">No share data</div> : (
-        <div className="h-44">
-        <Bar data={{ labels, datasets:[{ label:"PHP", data, backgroundColor:"#7e9e6c" }] }}
-             options={{
-      maintainAspectRatio: false, // keep this, but size is controlled by wrapper
-      responsive: true,
-      plugins: { legend: { display: false } },
-      scales: { y: { beginAtZero: true } }
-    }}   />
+      ))}
     </div>
-      );
-    })()}
   </div>
-
-  {/* Total Dividend (Bar) */}
-  <div className="bg-white p-4 rounded-lg border shadow-sm">
-    <h4 className="font-semibold mb-2 text-[#9a7ee6]">Total Dividend</h4>
-    {(() => {
-      const { labels, data } = aggregateCounts(dividends, { type: "sum", amountField: "amount" });
-      return data.reduce((a,b)=>a+b,0) === 0 ? <div className="text-gray-500">No dividend data</div> : (
-        <div className="h-44">
-        <Bar data={{ labels, datasets:[{ label:"PHP", data, backgroundColor:"#9a7ee6" }] }}
-             options={{
-      maintainAspectRatio: false, // keep this, but size is controlled by wrapper
-      responsive: true,
-      plugins: { legend: { display: false } },
-      scales: { y: { beginAtZero: true } }
-    }} />
-    </div>
-      );
-    })()}
-  </div>
-
-  {/* Loan Count (Line) */}
-  <div className="bg-white p-4 rounded-lg border shadow-sm">
-    <h4 className="font-semibold mb-2 text-[#e07a7a]">Loan Count</h4>
-    {(() => {
-      const { labels, data } = aggregateCounts(loanHistory, { type: "count" });
-      return data.reduce((a,b)=>a+b,0) === 0 ? <div className="text-gray-500">No loan data</div> : (
-        <div className="h-44">
-        <Line data={{ labels, datasets:[{ label: "Loans", data, borderColor:"#e07a7a", backgroundColor:"rgba(224,122,122,0.2)", tension:0.3 }] }}
-              options={{
-      maintainAspectRatio: false, // keep this, but size is controlled by wrapper
-      responsive: true,
-      plugins: { legend: { display: false } },
-      scales: { y: { beginAtZero: true } }
-    }} />
-      </div>
-            );
-    })()}
-  </div>
-
-  {/* Purchase Count (Line) */}
-  <div className="bg-white p-4 rounded-lg border shadow-sm">
-    <h4 className="font-semibold mb-2 text-[#6b8fd7]">Purchase Count</h4>
-    {(() => {
-      const { labels, data } = aggregateCounts(purchases, { type: "count" });
-      return data.reduce((a,b)=>a+b,0) === 0 ? <div className="text-gray-500">No purchase data</div> : (
-      <div className="h-44">  
-        <Line data={{ labels, datasets:[{ label: "Purchases", data, borderColor:"#6b8fd7", backgroundColor:"rgba(107,143,215,0.2)", tension:0.3 }] }}
-              options={{
-      maintainAspectRatio: false, // keep this, but size is controlled by wrapper
-      responsive: true,
-      plugins: { legend: { display: false } },
-      scales: { y: { beginAtZero: true } }
-    }} />
-    </div>
-      );
-    })()}
-  </div>
-
-  {/* Bill Payment Count (Line) */}
-  <div className="bg-white p-4 rounded-lg border shadow-sm md:col-span-2">
-    <h4 className="font-semibold mb-2 text-[#f6b26b]">Bill Payments Count</h4>
-    {(() => {
-      const { labels, data } = aggregateCounts(bills, { type: "count" });
-      return data.reduce((a,b)=>a+b,0) === 0 ? <div className="text-gray-500">No bill payment data</div> : (
-        <div className="h-44">
-        <Line data={{ labels, datasets:[{ label: "Bill Payments", data, borderColor:"#f6b26b", backgroundColor:"rgba(246,178,107,0.2)", tension:0.3 }] }}
-              options={{
-      maintainAspectRatio: false, // keep this, but size is controlled by wrapper
-      responsive: true,
-      plugins: { legend: { display: false } },
-      scales: { y: { beginAtZero: true } }
-    }} />
-    </div>
-      );
-    })()}
-  </div>
-</div>
-
-{/* View history buttons */}
-<div className="flex flex-wrap gap-3 justify-end mb-4">
-  <button onClick={() => setIsLoanHistoryOpen(true)} className="px-3 py-2 border rounded text-sm">View Loan History</button>
-  <button onClick={() => setIsPurchaseHistoryOpen(true)} className="px-3 py-2 border rounded text-sm">View Purchase History</button>
-  <button onClick={() => setIsBillHistoryOpen(true)} className="px-3 py-2 border rounded text-sm">View Bill History</button>
-  <button onClick={() => setIsShareHistoryOpen(true)} className="px-3 py-2 border rounded text-sm">View Shares History</button>
-  <button onClick={() => setIsDividendHistoryOpen(true)} className="px-3 py-2 border rounded text-sm">View Dividend History</button>
-</div>
 
         <h2 className="text-2xl font-bold mt-6 mb-3 text-[#7e9e6c]">Loan History</h2>
 {loading ? (
@@ -675,201 +746,395 @@ useEffect(() => {
 )}
 
         {/* Pending purchases UI (same as previous) */}
-        {loadingPurchases ? (
-          <div className="mt-8 text-sm text-gray-600">Loading purchases...</div>
-        ) : (() => {
-          const unpaid = purchases.filter((p) => String(p.status).toLowerCase() === "not paid");
-          if (unpaid.length === 0) return null;
-          return (
-            <div className="mt-8">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-2xl font-bold text-[#7e9e6c]">Pending Purchases (1 month to pay)</h3>
-                <div className="text-sm text-gray-600">{`${unpaid.length} Purchase to pay`}</div>
-              </div>
-
-              <div className="overflow-auto border-gray-400 border rounded-lg">
-                <table className="w-full text-lg">
-                  <thead className="bg-[#d6ead8]">
-                    <tr>
-                      <th className="text-left px-3 py-4">Items</th>
-                      <th className="text-right px-3 py-4">Total</th>
-                      <th className="text-right px-3 py-4">Due Date</th>
-                      <th className="text-center px-3 py-4">Actions</th>
-                    </tr>
-                  </thead>
-
-                  <tbody>
-                    {unpaid.map((p) => {
-                      const pid = p.id ?? p._id ?? p.purchaseId;
-                      return (
-                        <tr key={pid} className="border-t border-gray-400">
-                          <td className="px-3 py-4">{itemsSummary(p.items)}</td>
-                          <td className="px-3 py-4 right-10px text-right">{fmtMoney(p.total)}</td>
-                          <td className="px-3 py-4 text-right">{p.dueDate ? new Date(p.dueDate).toLocaleDateString() : "-"}</td>
-                          <td className="px-3 py-4 place-items-center">
-                            <div className="flex gap-2">
-                              <button onClick={() => setSelectedPurchase(p)} className="px-2 py-1 border rounded text-sm">View</button>
-                              <button onClick={() => payPurchase(pid)} disabled={processingPayId === pid} className="px-3 py-1 bg-[#7e9e6c] text-white rounded text-sm disabled:opacity-50">
-                                {processingPayId === pid ? "Processing..." : "Pay"}
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          );
-        })()}
-
-        {/* Actions */}
-        <div className="flex flex-wrap justify-center gap-6 mt-6">
-          <button onClick={() => {
-            if (!loan) { notify.success("No active loan found."); return; }
-            const remainBalance = parseFloat(loan.remainbalance) || 0;
-            if (remainBalance <= 0) { notify.success("No active loan — this member has fully paid the loan."); return; }
-            setIsPaidPopupOpen(true);
-          }} className="bg-[#7e9e6c] shadow-md text-white text-xl px-12 py-5 rounded-2xl font-semibold hover:bg-[#6a865a] transition">Paid Loan</button>
-
-          <button onClick={() => setIsPurchaseOpen(true)} className="bg-[#7e9e6c] shadow-md text-white text-xl px-12 py-5 rounded-2xl font-semibold hover:bg-[#6a865a] transition">Purchase</button>
-
-          <button onClick={() => setIsSharePopupOpen(true)} className="bg-[#7e9e6c] shadow-md text-white text-xl px-12 py-5 rounded-2xl font-semibold hover:bg-[#6a865a] transition">Add Shares</button>
-
-          <button onClick={() => setIsBillOpen(true)} className="bg-[#7e9e6c] shadow-md text-white text-xl px-12 py-5 rounded-2xl font-semibold hover:bg-[#6a865a] transition">Pay Bills</button>
-
-          <button onClick={() => setIsDividendOpen(true)} className="bg-[#7e9e6c] shadow-md text-white text-xl px-12 py-5 rounded-2xl font-semibold hover:bg-[#6a865a] transition">Add Dividend</button>
-        
-          <button
-            onClick={downloadMemberReport}
-            disabled={loadingReport}
-            className="bg-[#7e9e6c] shadow-md text-white text-xl px-12 py-5 rounded-2xl font-semibold hover:bg-[#6a865a] transition disabled:opacity-50"
-          >
-            {loadingReport ? "Generating..." : "Member Report"}
-          </button>
+       {loadingPurchases ? (
+        <div className="mt-8 flex items-center justify-center p-8 bg-gray-50 rounded-xl border border-dashed border-gray-300">
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#7e9e6c] mr-3"></div>
+          <span className="text-sm text-gray-500 font-medium">Syncing purchase data...</span>
         </div>
-
-        {/* Purchase detail modals */}
-        {selectedPurchase && (
-          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[900] p-4">
-            <div className="bg-white rounded-lg shadow-lg w-full max-w-2xl max-h-[80vh] overflow-auto p-6">
-              <div className="flex items-start justify-between mb-4"><h4 className="text-lg font-semibold">Purchase Details</h4></div>
-              <div className="overflow-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50">
-                    <tr><th className="text-left px-3 py-2">Item</th><th className="text-right px-3 py-2">Qty</th><th className="text-right px-3 py-2">Unit Price</th><th className="text-right px-3 py-2">Line Total</th></tr>
-                  </thead>
-                  <tbody>
-                    {(selectedPurchase.items || []).map((it, i) => (
-                      <tr key={i} className="border-t">
-                        <td className="px-3 py-2">{it.name}</td>
-                        <td className="px-3 py-2 text-right">{it.qty ?? 1}</td>
-                        <td className="px-3 py-2 text-right">{fmtMoney(it.unitPrice)}</td>
-                        <td className="px-3 py-2 text-right">{fmtMoney((it.qty ?? 1) * (it.unitPrice ?? 0))}</td>
-                      </tr>
-                    ))}
-                    <tr className="border-t"><td colSpan={3} className="px-3 py-2 text-right font-semibold">Total</td><td className="px-3 py-2 text-right font-bold">{fmtMoney(selectedPurchase.total)}</td></tr>
-                  </tbody>
-                </table>
-              </div>
-              <div className="text-right mt-4 text-sm text-gray-600">
-                Due date: <span className="font-medium">{selectedPurchase.dueDate ? new Date(selectedPurchase.dueDate).toLocaleDateString() : "-"}</span>
-                <div className="flex gap-2">
-                  <button onClick={() => setSelectedPurchase(null)} className="px-4 py-2 border rounded">Close</button>
-                  <button onClick={() => payPurchase(selectedPurchase.id ?? selectedPurchase._id ?? selectedPurchase.purchaseId)} className="px-6 py-1 bg-[#7e9e6c] text-white rounded">Pay</button>
+      ) : (() => {
+        const unpaid = purchases.filter((p) => String(p.status).toLowerCase() === "not paid");
+        if (unpaid.length === 0) return null;
+        
+        return (
+          <div className="mt-8 bg-white border border-red-100 rounded-2xl shadow-sm overflow-hidden">
+            <div className="bg-red-50/50 px-6 py-4 border-b border-red-100 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-red-100 text-red-600 rounded-lg">
+                  <FiAlertCircle size={20} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-800">Pending Payments</h3>
+                  <p className="text-xs text-red-500 font-medium">Action Required</p>
                 </div>
               </div>
+              <span className="bg-white border border-red-100 text-red-600 px-3 py-1 rounded-full text-xs font-bold shadow-sm">
+                {unpaid.length} Unpaid
+              </span>
             </div>
-          </div>
-        )}
 
-        {selectedPurchase1 && (
-          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[900] p-4">
-            <div className="bg-white rounded-lg shadow-lg w-full max-w-2xl max-h-[80vh] overflow-auto p-6">
-              <div className="flex items-start justify-between mb-4"><h4 className="text-lg font-semibold">Purchase Details</h4></div>
-              <div className="overflow-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50">
-                    <tr><th className="text-left px-3 py-2">Item</th><th className="text-right px-3 py-2">Qty</th><th className="text-right px-3 py-2">Unit Price</th><th className="text-right px-3 py-2">Line Total</th></tr>
-                  </thead>
-                  <tbody>
-                    {(selectedPurchase1.items || []).map((it, i) => (
-                      <tr key={i} className="border-t">
-                        <td className="px-3 py-2">{it.name}</td>
-                        <td className="px-3 py-2 text-right">{it.qty ?? 1}</td>
-                        <td className="px-3 py-2 text-right">{fmtMoney(it.unitPrice)}</td>
-                        <td className="px-3 py-2 text-right">{fmtMoney((it.qty ?? 1) * (it.unitPrice ?? 0))}</td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 text-gray-500 border-b border-gray-100">
+                  <tr>
+                    <th className="text-left px-6 py-3 font-semibold uppercase tracking-wider text-xs">Items</th>
+                    <th className="text-right px-6 py-3 font-semibold uppercase tracking-wider text-xs">Total</th>
+                    <th className="text-right px-6 py-3 font-semibold uppercase tracking-wider text-xs">Due Date</th>
+                    <th className="text-center px-6 py-3 font-semibold uppercase tracking-wider text-xs">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {unpaid.map((p) => {
+                    const pid = p.id ?? p._id ?? p.purchaseId;
+                    return (
+                      <tr key={pid} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-6 py-4">
+                          <div className="font-medium text-gray-700">{itemsSummary(p.items)}</div>
+                        </td>
+                        <td className="px-6 py-4 text-right font-bold text-[#7e9e6c]">
+                          {fmtMoney(p.total)}
+                        </td>
+                        <td className="px-6 py-4 text-right text-gray-500">
+                          {p.dueDate ? (
+                            <div className="flex items-center justify-end gap-1 text-orange-600 bg-orange-50 px-2 py-1 rounded-md inline-flex">
+                              <FiClock size={12} />
+                              <span className="text-xs font-bold">{new Date(p.dueDate).toLocaleDateString()}</span>
+                            </div>
+                          ) : "-"}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center justify-center gap-2">
+                            <button 
+                              onClick={() => setSelectedPurchase(p)} 
+                              className="p-2 text-gray-400 hover:text-[#7e9e6c] hover:bg-white border border-transparent hover:border-gray-200 rounded-lg transition-all"
+                              title="View Details"
+                            >
+                              <FiEye size={18} />
+                            </button>
+                            <button 
+                              onClick={() => payPurchase(pid)} 
+                              disabled={processingPayId === pid} 
+                              className="px-4 py-1.5 bg-[#7e9e6c] hover:bg-[#6a865a] text-white rounded-lg text-xs font-bold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+                            >
+                              {processingPayId === pid ? "Processing..." : (
+                                <>
+                                  <FiCreditCard /> Pay Now
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        </td>
                       </tr>
-                    ))}
-                    <tr className="border-t"><td colSpan={3} className="px-3 py-2 text-right font-semibold">Total</td><td className="px-3 py-2 text-right font-bold">{fmtMoney(selectedPurchase1.total)}</td></tr>
-                  </tbody>
-                </table>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* --- ACTION BUTTONS GRID --- */}
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mt-8">
+        {[
+          { label: "Paid Loan", icon: <FiCreditCard size={24} />, action: () => {
+              if (!loan) { notify.success("No active loan found."); return; }
+              const remainBalance = parseFloat(loan.remainbalance) || 0;
+              if (remainBalance <= 0) { notify.success("No active loan — this member has fully paid the loan."); return; }
+              setIsPaidPopupOpen(true);
+            } 
+          },
+          { label: "Purchase", icon: <FiShoppingCart size={24} />, action: () => setIsPurchaseOpen(true) },
+          { label: "Add Shares", icon: <FiPieChart size={24} />, action: () => setIsSharePopupOpen(true) },
+          { label: "Pay Bills", icon: <FiFileText size={24} />, action: () => setIsBillOpen(true) },
+          { label: "Add Dividend", icon: <FiTrendingUp size={24} />, action: () => setIsDividendOpen(true) },
+          { label: "Member Report", icon: <FiPrinter size={24} />, action: downloadMemberReport, disabled: loadingReport, loadingText: "Generating..." }
+        ].map((btn, idx) => (
+          <button
+            key={idx}
+            onClick={btn.action}
+            disabled={btn.disabled}
+            className="group flex flex-col items-center justify-center gap-3 bg-white border border-gray-100 p-6 rounded-2xl shadow-sm hover:shadow-md hover:border-[#7e9e6c]/30 hover:-translate-y-1 transition-all duration-300"
+          >
+            <div className="p-4 bg-[#f0f7ef] text-[#7e9e6c] rounded-full group-hover:bg-[#7e9e6c] group-hover:text-white transition-colors duration-300">
+              {btn.icon}
+            </div>
+            <span className="font-bold text-gray-700 text-sm group-hover:text-[#7e9e6c]">
+              {btn.disabled ? btn.loadingText : btn.label}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {/* --- PURCHASE DETAILS MODAL (selectedPurchase1) --- */}
+      {selectedPurchase1 && (
+        <div className="fixed inset-0 bg-black/45 flex items-center justify-center z-[900] p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col max-h-[85vh] overflow-hidden">
+            
+            {/* Header */}
+            <div className="px-6 py-5 bg-[#7e9e6c] text-white flex justify-between items-start">
+               <div>
+                 <h4 className="text-xl font-bold">Purchase Details</h4>
+                 <p className="text-[#dbece0] text-xs mt-1">Transaction ID: {selectedPurchase1.id ?? selectedPurchase1._id ?? "N/A"}</p>
+               </div>
+               <button 
+                 onClick={() => setSelectedPurchase1(null)} 
+                 className="p-1 bg-white/20 hover:bg-white/40 rounded-full transition-colors"
+               >
+                 <FiX size={20} />
+               </button>
+            </div>
+
+            {/* Body */}
+            <div className="flex-1 overflow-auto p-0">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 text-gray-500">
+                  <tr>
+                    <th className="text-left px-6 py-3 font-semibold text-xs uppercase">Item</th>
+                    <th className="text-right px-6 py-3 font-semibold text-xs uppercase">Qty</th>
+                    <th className="text-right px-6 py-3 font-semibold text-xs uppercase">Price</th>
+                    <th className="text-right px-6 py-3 font-semibold text-xs uppercase">Total</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {(selectedPurchase1.items || []).map((it, i) => (
+                    <tr key={i}>
+                      <td className="px-6 py-3 text-gray-700 font-medium">{it.name}</td>
+                      <td className="px-6 py-3 text-right text-gray-500">{it.qty ?? 1}</td>
+                      <td className="px-6 py-3 text-right text-gray-500">{fmtMoney(it.unitPrice)}</td>
+                      <td className="px-6 py-3 text-right font-semibold text-gray-800">{fmtMoney((it.qty ?? 1) * (it.unitPrice ?? 0))}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Footer */}
+            <div className="p-6 bg-gray-50 border-t border-gray-100">
+              <div className="flex justify-between items-center mb-4">
+                 <span className="text-gray-500 font-medium text-sm">Total Amount</span>
+                 <span className="text-2xl font-bold text-[#7e9e6c]">{fmtMoney(selectedPurchase1.total)}</span>
               </div>
-              <div className="text-right mt-4 text-sm text-gray-600">
-                Due date: <span className="font-medium">{selectedPurchase1.dueDate ? new Date(selectedPurchase1.dueDate).toLocaleDateString() : "-"}</span>
-                <div className="flex gap-2"><button onClick={() => setSelectedPurchase1(null)} className="px-4 py-2 border rounded">Close</button></div>
+              
+              <div className="flex items-center justify-between text-xs text-gray-500 bg-white p-3 rounded-lg border border-gray-100">
+                 <div className="flex items-center gap-2">
+                   <FiCalendar className="text-[#7e9e6c]" />
+                   <span>Due: {selectedPurchase1.dueDate ? new Date(selectedPurchase1.dueDate).toLocaleDateString() : "-"}</span>
+                 </div>
+                 <div className="flex items-center gap-2">
+                    <span className={`w-2 h-2 rounded-full ${String(selectedPurchase1.status).toLowerCase() === 'paid' ? 'bg-green-500' : 'bg-orange-500'}`}></span>
+                    <span className="capitalize">{selectedPurchase1.status}</span>
+                 </div>
               </div>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Purchase history modal */}
-        {isPurchaseHistoryOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center pt-12 px-4">
-            <div className="absolute inset-0 bg-black/50" onClick={() => setIsPurchaseHistoryOpen(false)} />
-            <div className="relative w-full max-w-4xl bg-white rounded-xl shadow-2xl overflow-auto p-6 z-60">
-              <div className="flex items-center justify-between mb-4"><h3 className="text-2xl font-bold text-[#7e9e6c]">Purchase History</h3></div>
-              <div className="overflow-auto shadow-md border-gray-400 border rounded-lg">
-                <table className="w-full text-sm">
-                  <thead className="bg-[#d6ead8]">
-                    <tr><th className="text-left px-3 py-3">Date</th><th className="text-left px-3 py-3">Items</th><th className="text-right px-3 py-3">Total</th><th className="text-right px-3 py-3">Due Date</th><th className="text-center px-3 py-3">Status</th><th className="text-center px-3 py-3">Actions</th></tr>
-                  </thead>
-                  <tbody>
-                    {purchases.length === 0 ? (
-                      <tr><td colSpan={6} className="px-3 py-4 text-center text-gray-600">No purchases found for this member.</td></tr>
-                    ) : (
-                      purchases.map((p) => {
+      {/* --- PURCHASE HISTORY MODAL (isPurchaseHistoryOpen) --- */}
+      {isPurchaseHistoryOpen && (
+        <div className="fixed inset-0 flex justify-center items-center z-50 p-4 bg-black/45 animate-in fade-in duration-200">
+          <div className="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden border border-gray-100">
+            
+            {/* HEADER */}
+            <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between bg-white">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-[#d6ead8] text-[#7e9e6c] rounded-xl">
+                  <FiPackage size={22} />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-800">Purchase History</h2> 
+                </div>
+              </div><div className="h-1 w-20 bg-[#7e9e6c] rounded-full"></div>
+            </div>
+
+            {/* LIST CONTENT */}
+            <div className="flex-1 overflow-auto p-6 bg-white">
+              {purchases.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                  <div className="w-16 h-16 bg-gray-50 text-gray-200 rounded-full flex items-center justify-center mb-4">
+                    <FiPackage size={32} />
+                  </div>
+                  <h4 className="text-gray-800 font-semibold">No records found</h4>
+                  <p className="text-sm text-gray-400 mt-1">No purchase history available for this member.</p>
+                </div>
+              ) : (
+                <div className="border border-gray-100 rounded-xl overflow-hidden shadow-sm">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50">
+                      <tr className="border-b border-gray-100">
+                        <th className="text-left px-4 py-4 font-bold text-gray-500 uppercase tracking-wider text-xs">Date</th>
+                        <th className="text-left px-4 py-4 font-bold text-gray-500 uppercase tracking-wider text-xs">Items</th>
+                        <th className="text-right px-4 py-4 font-bold text-gray-500 uppercase tracking-wider text-xs">Total</th>
+                        <th className="text-right px-4 py-4 font-bold text-gray-500 uppercase tracking-wider text-xs">Due Date</th>
+                        <th className="text-center px-4 py-4 font-bold text-gray-500 uppercase tracking-wider text-xs">Status</th>
+                        <th className="text-center px-4 py-4 font-bold text-gray-500 uppercase tracking-wider text-xs">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {purchases.map((p) => {
                         const pid = p.id ?? p._id ?? p.purchaseId;
+                        const statusStr = String(p.status).toLowerCase();
+                        
                         return (
-                          <tr key={pid} className="border-t border-gray-400">
-                            <td className="px-3 py-3">{p.createdAt ? new Date(p.createdAt).toLocaleDateString() : "-"}</td>
-                            <td className="px-3 py-3">{itemsSummary(p.items)}</td>
-                            <td className="px-3 py-3 text-right">{fmtMoney(p.total)}</td>
-                            <td className="px-3 py-3 text-right">{p.dueDate ? new Date(p.dueDate).toLocaleDateString() : "-"}</td>
-                            <td className="px-3 py-3 text-center">{String(p.status).charAt(0).toUpperCase() + String(p.status).slice(1)}</td>
-                            <td className="px-3 py-3 text-center"><div className="flex items-center justify-center gap-2"><button onClick={() => setSelectedPurchase1(p)} className="px-2 py-1 border-gray-400 shadow-lg border rounded text-sm">View</button></div></td>
+                          <tr key={pid} className="group hover:bg-[#d6ead8]/10 transition-colors">
+                            <td className="px-4 py-4 text-gray-600 font-medium whitespace-nowrap">
+                              {p.createdAt ? new Date(p.createdAt).toLocaleDateString() : "-"}
+                            </td>
+                            <td className="px-4 py-4">
+                              <p className="text-gray-800 font-semibold line-clamp-1 max-w-[200px]">
+                                {itemsSummary(p.items)}
+                              </p>
+                            </td>
+                            <td className="px-4 py-4 text-right font-bold text-[#7e9e6c]">
+                              {fmtMoney(p.total)}
+                            </td>
+                            <td className="px-4 py-4 text-right text-gray-500 italic">
+                              {p.dueDate ? new Date(p.dueDate).toLocaleDateString() : "-"}
+                            </td>
+                            <td className="px-4 py-4 text-center">
+                              <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                                statusStr === 'paid' ? 'bg-green-100 text-green-700' :
+                                statusStr.includes('not') ? 'bg-red-100 text-red-700' :
+                                'bg-yellow-100 text-yellow-700'
+                              }`}>
+                                {statusStr}
+                              </span>
+                            </td>
+                            <td className="px-4 py-4 text-center">
+                              <button
+                                onClick={() => setSelectedPurchase1(p)}
+                                className="p-2 text-gray-400 hover:text-[#7e9e6c] hover:bg-white rounded-lg shadow-sm border border-transparent hover:border-gray-100 transition-all"
+                                title="View Details"
+                              >
+                                <FiEye size={18} />
+                              </button>
+                            </td>
                           </tr>
                         );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-              <div className="mt-4 flex justify-end gap-2"><button className="bg-[#b8d8ba] text-white px-6 py-2 rounded-lg hover:bg-[#8fa182]" onClick={() => setIsPurchaseHistoryOpen(false)}>Close</button></div>
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+            
+            {/* FOOTER */}
+            <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end">
+              <button
+                onClick={onBack}
+                className="bg-[#b8d8ba] text-white px-6 py-2 rounded-lg hover:bg-[#8fa182] hover:shadow-lg transition-all active:scale-95"
+              >
+                Close
+              </button>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
         {/* Bill history modal */}
         {isBillHistoryOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center pt-12 px-4">
-            <div className="absolute inset-0 bg-black/50" onClick={() => setIsBillHistoryOpen(false)} />
-            <div className="relative w-full max-w-3xl bg-white rounded-xl shadow-2xl overflow-auto p-6 z-60">
-              <div className="flex items-center justify-between mb-4"><h3 className="text-2xl font-bold text-[#7e9e6c]">Bill History</h3></div>
-              <div className="overflow-auto shadow-md border-gray-400 border rounded-lg">
-                <table className="w-full text-sm">
-                  <thead className="bg-[#d6ead8]"><tr><th className="text-left px-3 py-3">Date</th><th className="text-left px-3 py-3">Bill</th><th className="text-right px-3 py-3">Amount</th><th className="text-center px-3 py-3">Method</th></tr></thead>
-                  <tbody>
-                    {bills.length === 0 ? <tr><td colSpan={4} className="px-3 py-4 text-center text-gray-600">No bill payments found.</td></tr> : bills.map((b) => (
-                      <tr key={b.id ?? b._id} className="border-t border-gray-400"><td className="px-3 py-3">{b.date ? new Date(b.date).toLocaleDateString() : "-"}</td><td className="px-3 py-3">{b.billName}</td><td className="px-3 py-3 text-right">{fmtMoney(b.amount)}</td><td className="px-3 py-3 text-center">{b.paymentMethod}</td></tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <div className="mt-4 flex justify-end gap-2"><button className="bg-[#b8d8ba] text-white px-6 py-2 rounded-lg hover:bg-[#8fa182]" onClick={() => setIsBillHistoryOpen(false)}>Close</button></div>
-            </div>
+          <div className="fixed inset-0 flex justify-center items-center z-50 p-4  bg-black/45">
+  {/* Backdrop Close Event */}
+  <div className="absolute inset-0 z-[-1]" onClick={() => setIsBillHistoryOpen(false)} />
+
+  <div className="relative w-full max-w-3xl bg-white rounded-2xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden border border-gray-100 animate-in fade-in zoom-in-95 duration-200">
+    
+    {/* MODAL HEADER */}
+    <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between bg-white shrink-0">
+      <div className="flex items-center gap-3">
+        <div className="p-2.5 bg-[#d6ead8] text-[#7e9e6c] rounded-xl shadow-sm">
+          {/* Ensure FiFileText is imported from 'react-icons/fi' */}
+          <FiFileText size={22} />
+        </div>
+        <div>
+          <h3 className="text-xl font-bold text-gray-800">Bills History</h3>
+        </div>
+      </div>
+      <div className="h-1 w-20 bg-[#7e9e6c] rounded-full hidden sm:block"></div>
+    </div>
+
+    {/* CONTENT AREA */}
+    <div className="flex-1 overflow-auto p-6 bg-white">
+      {bills.length === 0 ? (
+        // EMPTY STATE
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <div className="w-16 h-16 bg-gray-50 text-gray-200 rounded-full flex items-center justify-center mb-4 border border-gray-100">
+            <FiFileText size={32} />
           </div>
+          <h4 className="text-gray-800 font-semibold text-lg">No records found</h4>
+          <p className="text-sm text-gray-400 max-w-[260px] mt-1">
+            There are no bill payment records available for this member.
+          </p>
+        </div>
+      ) : (
+        // DATA TABLE
+        <div className="border border-gray-100 rounded-xl overflow-hidden shadow-sm">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-gray-50/80 border-b border-gray-100">
+                <th className="px-4 py-4 text-left font-bold text-gray-500 uppercase tracking-tighter">
+                  <div className="flex items-center gap-2"><FiCalendar size={14} /> Date</div>
+                </th>
+                <th className="px-4 py-4 text-left font-bold text-gray-500 uppercase tracking-tighter">
+                  <div className="flex items-center gap-2"><FiTag size={14} /> Bill Name</div>
+                </th>
+                <th className="px-4 py-4 text-center font-bold text-gray-500 uppercase tracking-tighter">
+                  <div className="flex items-center justify-center gap-2"><FiCreditCard size={14} /> Method</div>
+                </th>
+                <th className="px-4 py-4 text-right font-bold text-gray-500 uppercase tracking-tighter">
+                   <div className="flex items-center justify-end gap-2">Amount</div>
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {bills.map((b) => (
+                <tr 
+                  key={b.id ?? b._id} 
+                  className="group hover:bg-[#d6ead8]/15 transition-colors"
+                >
+                  {/* Date */}
+                  <td className="px-4 py-4 text-gray-600 font-medium whitespace-nowrap">
+                    {b.date ? new Date(b.date).toLocaleDateString() : "-"}
+                  </td>
+
+                  {/* Bill Name */}
+                  <td className="px-4 py-4">
+                    <span className="text-gray-800 font-bold">
+                      {b.billName}
+                    </span>
+                  </td>
+
+                  {/* Payment Method */}
+                  <td className="px-4 py-4 text-center">
+                    <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-gray-100 text-gray-600 text-[11px] font-extrabold uppercase tracking-tight group-hover:shadow-sm">
+                      {b.paymentMethod}
+                    </span>
+                  </td>
+
+                  {/* Amount */}
+                  <td className="px-4 py-4 text-[#7e9e6c] font-black text-right">
+                    {fmtMoney(b.amount)}                  
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+
+    {/* MODAL FOOTER */}
+    <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end items-center shrink-0">
+      <button
+        onClick={() => setIsBillHistoryOpen(false)}
+        className="bg-[#b8d8ba] text-white px-6 py-2.5 rounded-xl font-bold shadow-md hover:bg-[#8fa182] hover:shadow-lg transition-all active:scale-95 text-sm"
+      >
+        Close
+      </button>
+    </div>
+
+  </div>
+</div>
         )}
       </div>
 

@@ -8,6 +8,8 @@ import LoanAgreementSection from "./LoanAgreementSection";
 import AmortizationDetails from "./AmortizationDetails";
 import AmortizationSchedulePopup from "./AmortizationSchedulePopup";
 
+import { FiFileText, FiX, FiDollarSign } from "react-icons/fi";
+
 export default function Loannow({ isOpen, onClose }) {
   const [purpose, setPurpose] = useState("");
   const [loanAmount, setLoanAmount] = useState("");
@@ -197,24 +199,33 @@ export default function Loannow({ isOpen, onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black/45 flex justify-center items-center z-50">
-      <div
-        className="bg-white border-10 border-[#b8d8ba] rounded-3xl shadow-2xl w-[850px] relative border border-[#b8d8ba] max-h-[90vh] flex flex-col overflow-hidden"
-        role="dialog"
-        aria-modal="true"
-      >
-        <button
-          onClick={onClose}
-          className="absolute top-3 right-5 text-gray-500 hover:text-black font-semibold text-4xl"
-          aria-label="Close"
-        >
-          &times;
-        </button>
 
-        <h2 className="text-3xl font-bold py-6 text-center text-[#7e9e6c] border-b border-[#b8d8ba]">
-          Loan Application Form
-        </h2>
+      <div
+
+        className="bg-white  rounded-3xl shadow-2xl w-[700px] relative border border-[#b8d8ba] max-h-[90vh] flex flex-col overflow-hidden"
+
+        role="dialog"
+
+        aria-modal="true"
+
+      >
+
+         <div className="bg-[#fcfdfc] p-8 border-b border-gray-100">
+      <div className="flex items-center gap-4 mb-1">
+        <div className="p-3 bg-[#d6ead8] text-[#7e9e6c] rounded-2xl">
+          <FiFileText size={24} />
+        </div>
+        <div>
+          <h2 className="text-2xl font-black text-gray-800">Loan Application</h2>
+          <p className="text-sm text-gray-500 font-medium">Please review the terms and complete the details below.</p>
+        </div>
+      </div>
+    </div>
+
+
 
         <div className="p-8 overflow-y-auto flex-1 pb-8">
+
           <form className="space-y-3" onSubmit={handleSubmit}>
             <MemberInfoSection memberName={memberName} address={address} />
             <PurposeSection purpose={purpose} setPurpose={setPurpose} />
@@ -241,20 +252,31 @@ export default function Loannow({ isOpen, onClose }) {
           </form>
         </div>
 
-        <div className="sticky bottom-0 bg-white z-20 border-t border-[#b8d8ba] py-4 flex justify-center rounded-b-3xl">
-          <button
-            type="submit"
-            onClick={(e) => {
+        <div className="p-6 bg-white border-t border-gray-100 flex justify-center items-center gap-4">
+      <button
+        onClick={onClose}
+        className="px-8 py-3 rounded-2xl text-gray-400 font-bold hover:bg-gray-50 transition-all"
+      >
+        Cancel
+      </button>
+      <button
+        form="loanForm"
+        type="submit"
+        onClick={(e) => {
+
               // forward to form submit — find the form element and submit
+
               const form = e.currentTarget.closest(".rounded-3xl")?.querySelector("form");
+
               if (form) form.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
+
             }}
-            className="bg-[#7e9e6c] text-white px-8 py-2 rounded-full font-semibold hover:bg-[#6a8b5a] transition shadow-md"
-          >
-            Submit Application
-          </button>
-        </div>
-      </div>
+        className="bg-[#7e9e6c] text-white px-12 py-3.5 rounded-2xl font-black shadow-lg shadow-green-100 hover:bg-[#6a8b5a] hover:shadow-xl hover:-translate-y-0.5 active:scale-95 transition-all flex items-center gap-3"
+      >
+        Submit Loan Application
+      </button>
+    </div>
+  </div>
 
       {showSchedule && (
         <AmortizationSchedulePopup

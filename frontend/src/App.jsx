@@ -34,7 +34,7 @@ function AppWrapper() {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/member" element={<Member />} />
-          <Route path="/admin" element={<Admin />} />
+          <Route path="/admin" element={<Admin onBack={() => window.history.back()} />} />
         </Routes>
       </main>
     </>

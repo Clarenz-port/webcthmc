@@ -167,3 +167,69 @@ exports.deleteAdmin = async (req, res) => {
     res.status(500).json({ message: "Error deleting admin" });
   }
 };
+
+// ✅ Approve pending member
+exports.approveMember = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await User.findByPk(id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+    if (user.status !== 'pending') return res.status(400).json({ message: "User is not pending" });
+
+    user.status = 'approved';
+    await user.save();
+
+    await logActivity({
+      userId: req.user?.id,
+      role: req.user?.role,
+      action: "Approved Member",
+      details: { memberId: id, username: user.username },
+      ip: req.ip,
+    });
+
+    res.json({ message: "Member approved successfully" });
+  } catch (error) {
+    console.error("❌ Error approving member:", error);
+    res.status(500).json({ message: "Error approving member" });
+  }
+};
+
+// ✅ Reject pending member (delete from database)
+exports.rejectMember = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await User.findByPk(id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+    if (user.status !== 'pending') return res.status(400).json({ message: "User is not pending" });
+
+    const username = user.username;
+    await user.destroy();
+
+    await logActivity({
+      userId: req.user?.id,
+      role: req.user?.role,
+      action: "Rejected Member (Deleted)",
+      details: { memberId: id, username },
+      ip: req.ip,
+    });
+
+    res.json({ message: "Member rejected and removed successfully" });
+  } catch (error) {
+    console.error("❌ Error rejecting member:", error);
+    res.status(500).json({ message: "Error rejecting member" });
+  }
+};
+
+// ✅ Get pending members
+exports.getPendingMembers = async (req, res) => {
+  try {
+    const pendingMembers = await User.findAll({
+      where: { status: 'pending' },
+      attributes: ['id', 'firstName', 'middleName', 'lastName', 'username', 'email', 'phoneNumber', 'createdAt'],
+    });
+    res.json(pendingMembers);
+  } catch (error) {
+    console.error("❌ Error fetching pending members:", error);
+    res.status(500).json({ message: "Error fetching pending members" });
+  }
+};

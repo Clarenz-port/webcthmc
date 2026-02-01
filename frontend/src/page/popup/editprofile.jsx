@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { FaUser, FaPhone, FaEnvelope, FaBirthdayCake, FaEdit } from "react-icons/fa";
+import { FaUser, FaPhone, FaEnvelope, FaBirthdayCake, FaEdit, FaCamera, FaTimes, FaLock, FaCheckCircle } from 'react-icons/fa';
 import axios from "axios";
 
 /**
@@ -389,251 +389,294 @@ export default function EditProfilePopup({ isOpen, onClose, member, onSave }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/45 flex items-center justify-center z-50">
-      <div className="bg-white border-10 border-[#b8d8ba] rounded-2xl shadow-xl w-[600px] max-h-[85vh] overflow-hidden relative animate-fadeIn">
+  <div className="fixed inset-0 bg-black/45 flex items-center justify-center z-50 p-4">
+  <div className="bg-white rounded-3xl shadow-2xl w-full max-w-[550px] max-h-[90vh] overflow-hidden relative animate-in fade-in zoom-in duration-300">
+    
+    {/* HEADER */}
+    <div className="bg-[#f8faf8] border-b border-gray-100 px-8 py-6 flex justify-between items-center">
+      <h2 className="text-2xl font-bold text-gray-800">Edit Profile</h2>
+      <button
+        onClick={onClose}
+        className="p-2 rounded-full hover:bg-gray-200 text-gray-400 hover:text-gray-600 transition-colors"
+      >
+        <FaTimes size={20} />
+      </button>
+    </div>
 
-        {/* SCROLLABLE CONTENT */}
-        <div className="overflow-y-auto max-h-[85vh] p-8">
-
-          {/* CLOSE BUTTON */}
+    {/* SCROLLABLE CONTENT */}
+    <div className="overflow-y-auto max-h-[calc(90vh-80px)] p-8">
+      
+      {/* PROFILE PICTURE SECTION */}
+      <div className="flex flex-col items-center mb-8">
+        <div className="relative group cursor-pointer" onClick={openFileDialog}>
+          <img
+            src={imagePreviewUrl}
+            className="w-32 h-32 rounded-[100px] border-4 border-white shadow-lg object-cover transition-transform group-hover:scale-[1.02]"
+            alt="Profile"
+          />
+          <div className="absolute inset-0 bg-black/40 rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+            <FaCamera className="text-white text-2xl" />
+          </div>
+          <div className="absolute -bottom-2 -right-2 bg-[#7e9e6c] p-2 rounded-lg shadow-md text-white">
+            <FaEdit size={14} />
+          </div>
+        </div>
+        
+        <div className="mt-4 flex gap-4">
           <button
-            onClick={onClose}
-            className="absolute top-3 right-4 text-gray-600 hover:text-gray-900 text-xl"
+            type="button"
+            onClick={openFileDialog}
+            className="text-sm font-medium text-[#7e9e6c] hover:text-[#6a8e5a]"
           >
-            ✕
+            Update Photo
           </button>
 
-          <h2 className="text-3xl font-bold text-[#7e9e6c] mb-6 text-center">
-            Edit Profile
-          </h2>
+          {(profile.avatarUrl || imageFile) && (
+            <button
+              type="button"
+              onClick={handleRemovePicture}
+              disabled={saving}
+              className="text-sm font-medium text-red-500 hover:text-red-600 disabled:opacity-50"
+            >
+              {saving ? "Removing..." : "Remove"}
+            </button>
+          )}
+        </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleImageSelect}
+        />
+        <p className="text-[11px] text-gray-400 mt-2 uppercase tracking-wider font-semibold">Max 5MB • JPG or PNG</p>
+      </div>
 
-          {/* PROFILE PICTURE */}
-          <div className="flex flex-col items-center mb-6">
-            <img
-              src={imagePreviewUrl}
-              className="w-32 h-32 rounded-full border-4 border-[#7e9e6c] object-cover"
-              alt="Profile"
-            />
-            <div className="mt-3 flex gap-2">
-              <button
-                type="button"
-                onClick={openFileDialog}
-                className="text-[#7e9e6c] font-semibold hover:underline"
-              >
-                Change Picture
-              </button>
-
-              {/* show Remove button if there's a persisted avatar or a selected file */}
-              {(profile.avatarUrl || imageFile) && (
-                <button
-                  type="button"
-                  onClick={handleRemovePicture}
-                  disabled={saving}
-                  className="text-red-500 font-semibold hover:underline"
-                >
-                  {saving ? "Removing..." : "Remove Picture"}
-                </button>
+      {/* FORM FIELDS */}
+      <div className="space-y-5">
+        <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Personal Details</label>
+        
+        {/* NAME FIELD */}
+        <div className="group bg-gray-50 rounded-xl p-4 border border-transparent focus-within:border-[#b8d8ba] focus-within:bg-white transition-all">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4 flex-1">
+              <FaUser className="text-[#7e9e6c]" />
+              {isEditing.name ? (
+                <div className="flex gap-2 w-full">
+                  <input className="bg-white border border-gray-200 p-2 rounded-lg w-full text-sm focus:ring-2 focus:ring-[#b8d8ba] outline-none"
+                    placeholder="First"
+                    value={profile.firstName}
+                    onChange={(e) => handleChange(e, "firstName")}
+                  />
+                  <input className="bg-white border border-gray-200 p-2 rounded-lg w-full text-sm focus:ring-2 focus:ring-[#b8d8ba] outline-none"
+                    placeholder="Middle"
+                    value={profile.middleName}
+                    onChange={(e) => handleChange(e, "middleName")}
+                  />
+                  <input className="bg-white border border-gray-200 p-2 rounded-lg w-full text-sm focus:ring-2 focus:ring-[#b8d8ba] outline-none"
+                    placeholder="Last"
+                    value={profile.lastName}
+                    onChange={(e) => handleChange(e, "lastName")}
+                  />
+                </div>
+              ) : (
+                <div>
+                  <p className="text-xs text-gray-400 font-medium">Full Name</p>
+                  <p className="text-gray-700 font-semibold">{profile.firstName} {profile.middleName} {profile.lastName}</p>
+                </div>
               )}
             </div>
-
-            {/* hidden file input */}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleImageSelect}
-            />
-            <p className="text-xs text-gray-500 mt-2">Max 5MB. JPG/PNG recommended.</p>
+            <button onClick={() => handleEditToggle("name")} className="ml-4 p-2 text-gray-400 hover:text-[#7e9e6c] hover:bg-white rounded-lg transition-all shadow-sm border border-transparent hover:border-gray-100">
+              <FaEdit />
+            </button>
           </div>
+        </div>
 
-          {/* PERSONAL DETAILS */}
-          <div className="space-y-4">
-
-            {/* FULL NAME */}
-            <div className="flex items-center justify-between border border-[#b8d8ba] px-4 py-2 rounded-lg">
-              <div className="flex items-center gap-3 w-full">
-                <FaUser className="text-[#7e9e6c] text-xl" />
-                {isEditing.name ? (
-                  <div className="flex gap-2 w-full">
-                    <input className="border p-1 rounded w-1/3"
-                      value={profile.firstName}
-                      onChange={(e) => handleChange(e, "firstName")}
-                    />
-                    <input className="border p-1 rounded w-1/3"
-                      value={profile.middleName}
-                      onChange={(e) => handleChange(e, "middleName")}
-                    />
-                    <input className="border p-1 rounded w-1/3"
-                      value={profile.lastName}
-                      onChange={(e) => handleChange(e, "lastName")}
-                    />
-                  </div>
-                ) : (
-                  <p className="text-gray-700 font-medium">
-                    {profile.firstName} {profile.middleName} {profile.lastName}
-                  </p>
-                )}
-              </div>
-
-              <FaEdit
-                className="text-[#7e9e6c] cursor-pointer"
-                onClick={() => handleEditToggle("name")}
-              />
+        {/* PHONE FIELD */}
+        <div className="group bg-gray-50 rounded-xl p-4 border border-transparent focus-within:border-[#b8d8ba] focus-within:bg-white transition-all">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4 flex-1">
+              <FaPhone className="text-[#7e9e6c]" />
+              {isEditing.phone ? (
+                <input
+                  className="bg-white border border-gray-200 p-2 rounded-lg w-full text-sm focus:ring-2 focus:ring-[#b8d8ba] outline-none"
+                  value={profile.phoneNumber}
+                  onChange={(e) => handleChange(e, "phoneNumber")}
+                />
+              ) : (
+                <div>
+                  <p className="text-xs text-gray-400 font-medium">Phone Number</p>
+                  <p className="text-gray-700 font-semibold">{profile.phoneNumber || "Not provided"}</p>
+                </div>
+              )}
             </div>
-
-            {/* PHONE */}
-            <div className="flex items-center justify-between border border-[#b8d8ba] px-4 py-2 rounded-lg">
-              <div className="flex items-center gap-3">
-                <FaPhone className="text-[#7e9e6c] text-xl" />
-                {isEditing.phone ? (
-                  <input
-                    className="outline-none"
-                    value={profile.phoneNumber}
-                    onChange={(e) => handleChange(e, "phoneNumber")}
-                  />
-                ) : (
-                  <p className="text-gray-700 font-medium">{profile.phoneNumber}</p>
-                )}
-              </div>
-              <FaEdit onClick={() => handleEditToggle("phone")} className="text-[#7e9e6c] cursor-pointer" />
-            </div>
-
-            {/* EMAIL */}
-            <div className="flex items-center justify-between border border-[#b8d8ba] px-4 py-2 rounded-lg">
-              <div className="flex items-center gap-3">
-                <FaEnvelope className="text-[#7e9e6c] text-xl" />
-                {isEditing.email ? (
-                  <input
-                    type="email"
-                    value={profile.email}
-                    onChange={(e) => handleChange(e, "email")}
-                  />
-                ) : (
-                  <p className="text-gray-700 font-medium">{profile.email}</p>
-                )}
-              </div>
-              <FaEdit onClick={() => handleEditToggle("email")} className="text-[#7e9e6c] cursor-pointer" />
-            </div>
-
-            {/* BIRTHDATE */}
-            <div className="flex items-center justify-between border border-[#b8d8ba] px-4 py-2 rounded-lg">
-              <div className="flex items-center gap-3">
-                <FaBirthdayCake className="text-[#7e9e6c] text-xl" />
-                {isEditing.birthdate ? (
-                  <input
-                    type="date"
-                    value={profile.birthdate ? profile.birthdate.split("T")[0] : ""}
-                    onChange={(e) => handleChange(e, "birthdate")}
-                  />
-                ) : (
-                  <p className="text-gray-700 font-medium">
-                    {profile.birthdate ? new Date(profile.birthdate).toLocaleDateString() : ""}
-                  </p>
-                )}
-              </div>
-              <FaEdit
-                onClick={() => handleEditToggle("birthdate")}
-                className="text-[#7e9e6c] cursor-pointer"
-              />
-            </div>
+            <button onClick={() => handleEditToggle("phone")} className="ml-4 p-2 text-gray-400 hover:text-[#7e9e6c] hover:bg-white rounded-lg transition-all shadow-sm border border-transparent hover:border-gray-100">
+              <FaEdit />
+            </button>
           </div>
+        </div>
 
-          {/* ⭐⭐⭐ DO NOT REMOVE THIS LINE OR ACCOUNT TEXT ⭐⭐⭐ */}
-          <div className="mt-8 border-t border-[#b8d8ba] pt-5">
-            <h3 className="text-xl font-semibold text-[#7e9e6c] mb-4">Account</h3>
+        {/* EMAIL FIELD */}
+        <div className="group bg-gray-50 rounded-xl p-4 border border-transparent focus-within:border-[#b8d8ba] focus-within:bg-white transition-all">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4 flex-1">
+              <FaEnvelope className="text-[#7e9e6c]" />
+              {isEditing.email ? (
+                <input
+                  type="email"
+                  className="bg-white border border-gray-200 p-2 rounded-lg w-full text-sm focus:ring-2 focus:ring-[#b8d8ba] outline-none"
+                  value={profile.email}
+                  onChange={(e) => handleChange(e, "email")}
+                />
+              ) : (
+                <div>
+                  <p className="text-xs text-gray-400 font-medium">Email Address</p>
+                  <p className="text-gray-700 font-semibold">{profile.email}</p>
+                </div>
+              )}
+            </div>
+            <button onClick={() => handleEditToggle("email")} className="ml-4 p-2 text-gray-400 hover:text-[#7e9e6c] hover:bg-white rounded-lg transition-all shadow-sm border border-transparent hover:border-gray-100">
+              <FaEdit />
+            </button>
+          </div>
+        </div>
 
-            {/* USERNAME */}
-            <div className="flex items-center justify-between border border-[#b8d8ba] px-4 py-2 rounded-lg mb-4">
-              <div className="flex items-center gap-3">
-                <FaUser className="text-[#7e9e6c] text-xl" />
+        {/* BIRTHDATE FIELD */}
+        <div className="group bg-gray-50 rounded-xl p-4 border border-transparent focus-within:border-[#b8d8ba] focus-within:bg-white transition-all">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4 flex-1">
+              <FaBirthdayCake className="text-[#7e9e6c]" />
+              {isEditing.birthdate ? (
+                <input
+                  type="date"
+                  className="bg-white border border-gray-200 p-2 rounded-lg w-full text-sm focus:ring-2 focus:ring-[#b8d8ba] outline-none"
+                  value={profile.birthdate ? profile.birthdate.split("T")[0] : ""}
+                  onChange={(e) => handleChange(e, "birthdate")}
+                />
+              ) : (
+                <div>
+                  <p className="text-xs text-gray-400 font-medium">Birthdate</p>
+                  <p className="text-gray-700 font-semibold">
+                    {profile.birthdate ? new Date(profile.birthdate).toLocaleDateString() : "Set your birthday"}
+                  </p>
+                </div>
+              )}
+            </div>
+            <button onClick={() => handleEditToggle("birthdate")} className="ml-4 p-2 text-gray-400 hover:text-[#7e9e6c] hover:bg-white rounded-lg transition-all shadow-sm border border-transparent hover:border-gray-100">
+              <FaEdit />
+            </button>
+          </div>
+        </div>
+
+        {/* ⭐⭐⭐ ACCOUNT SECTION ⭐⭐⭐ */}
+        <div className="pt-6">
+          <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Account Settings</label>
+          <div className="mt-4 bg-gray-50 rounded-xl p-4 border border-transparent focus-within:border-[#b8d8ba] focus-within:bg-white transition-all">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4 flex-1">
+                <FaUser className="text-[#7e9e6c]" />
                 {isEditing.username ? (
                   <input
+                    className="bg-white border border-gray-200 p-2 rounded-lg w-full text-sm focus:ring-2 focus:ring-[#b8d8ba] outline-none"
                     value={profile.username}
                     onChange={(e) => handleChange(e, "username")}
                   />
                 ) : (
-                  <p className="text-gray-700 font-medium">{profile.username}</p>
+                  <div>
+                    <p className="text-xs text-gray-400 font-medium">Username</p>
+                    <p className="text-gray-700 font-semibold">@{profile.username}</p>
+                  </div>
                 )}
               </div>
-              <FaEdit
-                onClick={() => handleEditToggle("username")}
-                className="text-[#7e9e6c] cursor-pointer"
-              />
+              <button onClick={() => handleEditToggle("username")} className="ml-4 p-2 text-gray-400 hover:text-[#7e9e6c] hover:bg-white rounded-lg transition-all shadow-sm border border-transparent hover:border-gray-100">
+                <FaEdit />
+              </button>
             </div>
-
-            {/* CHANGE PASSWORD BUTTON */}
-            <button
-              className="w-full bg-[#7e9e6c] text-white py-2 rounded-lg font-semibold hover:bg-[#6a8e5a] transition"
-              onClick={() => {
-                setShowPasswordPanel((s) => !s);
-                setPwError("");
-                setPwSuccess("");
-              }}
-            >
-              Change Password
-            </button>
           </div>
 
-          {/* PASSWORD PANEL */}
-          {showPasswordPanel && (
-            <div className="mt-4 border p-4 rounded-lg bg-white">
-              <input
-                type={showPasswords ? "text" : "password"}
-                placeholder="Old Password"
-                className="border w-full p-2 rounded mb-2"
-                value={oldPassword}
-                onChange={(e) => setOldPassword(e.target.value)}
-              />
-
-              <input
-                type={showPasswords ? "text" : "password"}
-                placeholder="New Password"
-                className="border w-full p-2 rounded mb-2"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-              />
-
-              <input
-                type={showPasswords ? "text" : "password"}
-                placeholder="Confirm New Password"
-                className="border w-full p-2 rounded mb-2"
-                value={confirmNewPassword}
-                onChange={(e) => setConfirmNewPassword(e.target.value)}
-              />
-
-              <label className="flex gap-2 text-sm mb-2">
-                <input
-                  type="checkbox"
-                  checked={showPasswords}
-                  onChange={() => setShowPasswords(!showPasswords)}
-                />
-                Show Passwords
-              </label>
-
-              {pwError && <p className="text-red-500 mt-2">{pwError}</p>}
-              {pwSuccess && <p className="text-green-600 mt-2">{pwSuccess}</p>}
-            </div>
-          )}
-
-          {/* ERROR */}
-          {error && (
-            <p className="text-red-500 text-center mt-3">{error}</p>
-          )}
-
-          {/* SAVE BUTTON */}
-          <div className="mt-6 text-center">
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="bg-[#b8d8ba] disabled:opacity-60 text-[#3d5a3a] px-6 py-2 rounded-lg font-semibold hover:bg-[#a3c89f]"
-            >
-              {saving ? "Saving..." : "Save Changes"}
-            </button>
-          </div>
-
+          <button
+            className="w-full mt-4 flex items-center justify-center gap-2 text-[#7e9e6c] bg-[#7e9e6c]/10 py-3 rounded-xl font-bold hover:bg-[#7e9e6c] hover:text-white transition-all"
+            onClick={() => {
+              setShowPasswordPanel((s) => !s);
+              setPwError("");
+              setPwSuccess("");
+            }}
+          >
+            <FaLock size={14} />
+            {showPasswordPanel ? "Hide Password Settings" : "Change Password"}
+          </button>
         </div>
+
+        {/* PASSWORD PANEL */}
+        {showPasswordPanel && (
+          <div className="mt-4 p-5 rounded-2xl bg-gray-50 border border-gray-100 space-y-3 animate-in slide-in-from-top-2">
+            <input
+              type={showPasswords ? "text" : "password"}
+              placeholder="Old Password"
+              className="bg-white border border-gray-200 w-full p-3 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#b8d8ba]"
+              value={oldPassword}
+              onChange={(e) => setOldPassword(e.target.value)}
+            />
+            <input
+              type={showPasswords ? "text" : "password"}
+              placeholder="New Password"
+              className="bg-white border border-gray-200 w-full p-3 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#b8d8ba]"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+            />
+            <input
+              type={showPasswords ? "text" : "password"}
+              placeholder="Confirm New Password"
+              className="bg-white border border-gray-200 w-full p-3 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#b8d8ba]"
+              value={confirmNewPassword}
+              onChange={(e) => setConfirmNewPassword(e.target.value)}
+            />
+            <label className="flex items-center gap-2 text-xs font-semibold text-gray-500 cursor-pointer">
+              <input
+                type="checkbox"
+                className="rounded text-[#7e9e6c] focus:ring-[#7e9e6c]"
+                checked={showPasswords}
+                onChange={() => setShowPasswords(!showPasswords)}
+              />
+              Show Passwords
+            </label>
+
+            {pwError && <p className="text-red-500 text-xs font-medium bg-red-50 p-2 rounded-lg">{pwError}</p>}
+            {pwSuccess && <p className="text-green-600 text-xs font-medium bg-green-50 p-2 rounded-lg">{pwSuccess}</p>}
+          </div>
+        )}
       </div>
+
+      {/* ERROR MESSAGE */}
+      {error && (
+        <div className="mt-4 p-3 bg-red-50 border border-red-100 rounded-xl">
+          <p className="text-red-500 text-sm text-center font-medium">{error}</p>
+        </div>
+      )}
+
+      {/* FOOTER ACTION */}
+      <div className="mt-10 pb-4">
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="w-full bg-[#7e9e6c] disabled:opacity-60 text-white py-4 rounded-2xl font-bold text-lg shadow-lg shadow-[#7e9e6c]/30 hover:bg-[#6a8e5a] hover:translate-y-[-2px] active:translate-y-[0px] transition-all flex items-center justify-center gap-2"
+        >
+          {saving ? (
+            <span className="flex items-center gap-2">
+               <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+               Saving Changes...
+            </span>
+          ) : (
+            <>
+              <FaCheckCircle />
+              Save Changes
+            </>
+          )}
+        </button>
+      </div>
+
     </div>
+  </div>
+</div>
   );
 }
