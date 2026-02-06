@@ -11,9 +11,7 @@ exports.register = async (req, res) => {
       firstName,
       middleName,
       lastName,
-      street,
-      block,
-      lot,
+      address,
       phoneNumber,
       username,
       password,
@@ -46,9 +44,7 @@ exports.register = async (req, res) => {
       firstName,
       middleName,
       lastName,
-      street,
-      block,
-      lot,
+      address,
       phoneNumber,
       username,
       email,          // ⭐ ADDED
@@ -60,13 +56,14 @@ exports.register = async (req, res) => {
 
     res.status(201).json({
       message: "User registered successfully",
-      user: {
+        user: {
         id: newUser.id,
         firstName: newUser.firstName,
         lastName: newUser.lastName,
         username: newUser.username,
         email: newUser.email,         // ⭐ ADDED
         birthdate: newUser.birthdate, // ⭐ ADDED
+        address: newUser.address,
         role: newUser.role,
       },
     });

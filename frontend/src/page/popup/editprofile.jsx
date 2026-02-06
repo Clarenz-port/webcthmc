@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { FaUser, FaPhone, FaEnvelope, FaBirthdayCake, FaEdit, FaCamera, FaTimes, FaLock, FaCheckCircle } from 'react-icons/fa';
+import { FaUser, FaPhone, FaEnvelope, FaBirthdayCake, FaEdit, FaCamera, FaTimes, FaLock, FaCheckCircle, FaMapMarkerAlt } from 'react-icons/fa';
 import axios from "axios";
 
 /**
@@ -17,6 +17,7 @@ export default function EditProfilePopup({ isOpen, onClose, member, onSave }) {
     email: false,
     birthdate: false,
     username: false,
+    address: false,
   });
 
   const [profile, setProfile] = useState({});
@@ -62,6 +63,7 @@ export default function EditProfilePopup({ isOpen, onClose, member, onSave }) {
         email: member.email ?? "",
         birthdate: member.birthdate ?? "",
         username: member.username ?? "",
+        address: member.address ?? "",
         avatarUrl: avatar ?? null,
       });
 
@@ -76,8 +78,28 @@ export default function EditProfilePopup({ isOpen, onClose, member, onSave }) {
       setNewPassword("");
       setConfirmNewPassword("");
       setError("");
+
+      // Push a dummy history state when modal opens
+      // This allows the back button to "pop" this state and we can intercept it to close the modal
+      window.history.pushState({ isModalOpen: true }, null, window.location.href);
     }
   }, [isOpen, member]);
+
+  // Handle browser back button to close modal
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleBackButton = (event) => {
+      // Close the modal instead of navigating back
+      onClose();
+    };
+
+    window.addEventListener("popstate", handleBackButton);
+
+    return () => {
+      window.removeEventListener("popstate", handleBackButton);
+    };
+  }, [isOpen, onClose]);
 
   // Cleanup object URL on unmount/when preview changes
   useEffect(() => {
@@ -254,6 +276,7 @@ export default function EditProfilePopup({ isOpen, onClose, member, onSave }) {
             : profile.birthdate
           : null,
         username: profile.username,
+        address: profile.address || null,
         ...(wantsPasswordChange ? { oldPassword, password: newPassword } : {}),
       };
 
@@ -313,7 +336,7 @@ export default function EditProfilePopup({ isOpen, onClose, member, onSave }) {
 
             if (typeof onSave === "function") onSave(updatedMember);
 
-            setIsEditing({ name: false, phone: false, email: false, birthdate: false, username: false });
+            setIsEditing({ name: false, phone: false, email: false, birthdate: false, username: false, address: false });
             setPwSuccess(wantsPasswordChange ? "Password changed + profile updated." : "");
             setPwError("");
             setError("");
@@ -367,7 +390,7 @@ export default function EditProfilePopup({ isOpen, onClose, member, onSave }) {
       if (typeof onSave === "function") onSave(updated);
 
       setProfile((prev) => ({ ...prev, ...updated }));
-      setIsEditing({ name: false, phone: false, email: false, birthdate: false, username: false });
+      setIsEditing({ name: false, phone: false, email: false, birthdate: false, username: false, address: false });
       setPwSuccess(wantsPasswordChange ? "Password changed + profile updated." : "");
       setPwError("");
       setError("");
@@ -511,6 +534,30 @@ export default function EditProfilePopup({ isOpen, onClose, member, onSave }) {
               )}
             </div>
             <button onClick={() => handleEditToggle("phone")} className="ml-4 p-2 text-gray-400 hover:text-[#7e9e6c] hover:bg-white rounded-lg transition-all shadow-sm border border-transparent hover:border-gray-100">
+              <FaEdit />
+            </button>
+          </div>
+        </div>
+
+        {/* ADDRESS FIELD */}
+        <div className="group bg-gray-50 rounded-xl p-4 border border-transparent focus-within:border-[#b8d8ba] focus-within:bg-white transition-all">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4 flex-1">
+              <FaMapMarkerAlt className="text-[#7e9e6c]" />
+              {isEditing.address ? (
+                <input
+                  className="bg-white border border-gray-200 p-2 rounded-lg w-full text-sm focus:ring-2 focus:ring-[#b8d8ba] outline-none"
+                  value={profile.address}
+                  onChange={(e) => handleChange(e, "address")}
+                />
+              ) : (
+                <div>
+                  <p className="text-xs text-gray-400 font-medium">Address</p>
+                  <p className="text-gray-700 font-semibold">{profile.address || "Not provided"}</p>
+                </div>
+              )}
+            </div>
+            <button onClick={() => handleEditToggle("address")} className="ml-4 p-2 text-gray-400 hover:text-[#7e9e6c] hover:bg-white rounded-lg transition-all shadow-sm border border-transparent hover:border-gray-100">
               <FaEdit />
             </button>
           </div>

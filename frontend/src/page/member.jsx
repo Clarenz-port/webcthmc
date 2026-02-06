@@ -476,12 +476,8 @@ export default function Member() {
             <div className="flex items-start text-gray-600 gap-3 pt-1">
               <FiMapPin className="text-green-700  mt-0.5 shrink-0" />
               <p className="text-sm leading-relaxed">
-                {user.street || user.block || user.lot ? (
-                  <>
-                    {user.street && <span>{user.street}<br /></span>}
-                    {user.block && <span>Block {user.block} </span>}
-                    {user.lot && <span>Lot {user.lot}</span>}
-                  </>
+                {user.address ? (
+                  <span>{user.address}</span>
                 ) : (
                   "No address on file"
                 )}

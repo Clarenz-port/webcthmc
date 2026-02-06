@@ -27,9 +27,7 @@ export default function Signup() {
     first_name: "",
     middle_name: "",
     last_name: "",
-    street: "",
-    block: "",
-    lot: "",
+    address: "",
     email: "",          // ✅ added
     birthdate: "",      // ✅ added
     username: "",
@@ -70,9 +68,7 @@ export default function Signup() {
         firstName: form.first_name,
         middleName: form.middle_name,
         lastName: form.last_name,
-        street: form.street,
-        block: form.block,
-        lot: form.lot,
+        address: form.address,
         email: form.email,              // ✅ added
         birthdate: form.birthdate,      // ✅ added
         phoneNumber: form.phone_number,
@@ -195,11 +191,7 @@ export default function Signup() {
           />
 
           {/* Address */}
-          <div className="flex gap-2">
-            <input name="street" placeholder="Street" value={form.street} onChange={handleChange} className="form-input w-full" />
-            <input name="block" placeholder="Block" value={form.block} onChange={handleChange} className="form-input w-full" />
-            <input name="lot" placeholder="Lot" value={form.lot} onChange={handleChange} className="form-input w-full" />
-          </div>
+          <input name="address" placeholder="Address" value={form.address} onChange={handleChange} className="form-input" />
 
           {/* Account Info */}
           <input name="phone_number" placeholder="Phone Number" type="tel" required value={form.phone_number} onChange={handleChange} className="form-input" />

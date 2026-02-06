@@ -86,7 +86,7 @@ export default function Loannow({ isOpen, onClose }) {
       const user = res.data;
       if (user) {
         const fullName = `${user.firstName || ""} ${user.middleName || ""} ${user.lastName || ""}`.trim();
-        const fullAddress = `Blk ${user.block || ""} Lot ${user.lot || ""}, ${user.street || ""}`.trim();
+        const fullAddress = user.address || "";
         setMemberName(fullName);
         setAddress(fullAddress);
       }

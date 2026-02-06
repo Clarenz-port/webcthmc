@@ -26,16 +26,8 @@
       type: DataTypes.DATEONLY,
       allowNull: true,
     },
-
-    street: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
-    block: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
-    lot: {
+    
+    address: {
       type: DataTypes.STRING,
       allowNull: true,
     },

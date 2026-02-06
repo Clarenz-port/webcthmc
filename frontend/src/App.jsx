@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import './App.css'
 
 import Home from "./page/home.jsx";
@@ -14,6 +14,7 @@ import AdminNavbar from "./comp/adminnavbar.jsx";   // 👈 admin-specific heade
 
 function AppWrapper() {
   const location = useLocation();
+  const navigate = useNavigate();
 
   // determine which navbar to show
   let navbarToShow = <Navbar />;
@@ -34,7 +35,7 @@ function AppWrapper() {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/member" element={<Member />} />
-          <Route path="/admin" element={<Admin onBack={() => window.history.back()} />} />
+          <Route path="/admin" element={<Admin onBack={() => navigate("/")} />} />
         </Routes>
       </main>
     </>

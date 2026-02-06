@@ -209,6 +209,11 @@ useEffect(() => {
 }, [openAction]);
 
   const loan = loanHistory[0];
+  // only include loans whose status contains "approve" (e.g. "approved", "approve")
+  const approvedLoans = Array.isArray(loanHistory) ? loanHistory.filter((l) => String(l.status ?? "").toLowerCase().includes("approve")) : [];
+
+   const unpaid = purchases.filter((p) => String(p.status).toLowerCase() === "not paid");
+
   const name =
     `${member.firstName || ""} ${member.middleName || ""} ${member.lastName || ""}`.trim() ||
     member.memberName ||
@@ -711,75 +716,90 @@ useEffect(() => {
     </div>
   </div>
 
-        <h2 className="text-2xl font-bold mt-6 mb-3 text-[#7e9e6c]">Loan History</h2>
-{loading ? (
-  <p className="text-gray-600 text-lg mb-6">Loading loan history...</p>
-) : loanHistory.length > 0 ? (
-  <div className="overflow-auto border-gray-400 border rounded-lg">
-    <table className="w-full text-lg text-left">
-      <thead className="bg-[#d6ead8]">
-        <tr>
-          <th className="px-3 py-4">Purpose</th>
-          <th className="px-3 py-4">Amount</th>
-          <th className="px-3 py-4">Months</th>
-          <th className="px-3 py-4">Paid (count)</th>
-          <th className="px-3 py-4">Status</th>
-          <th className="px-3 py-4">Balance</th>
-        </tr>
-      </thead>
-      <tbody>
-        {loanHistory.map((l) => (
-          <tr key={l.id || Math.random()} className="border-t border-gray-400">
-            <td className="px-3 py-4">{l.purpose || "N/A"}</td>
-            <td className="px-3 py-4">{fmtMoney(l.loanAmount)}</td>
-            <td className="px-3 py-4">{l.duration ?? "0"}</td>
-            <td className="px-3 py-4">{l.paymentsMade ?? "0"}</td>
-            <td className="px-3 py-4">{l.status ?? "N/A"}</td>
-            <td className="px-3 py-4">{fmtMoney(l.remainbalance ?? l.balance ?? 0)}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <div className="mt-8">
+  <div className="flex items-center justify-between mb-6">
+    <h2 className="text-2xl font-extrabold tracking-tight text-[#5a7a4a]">
+      Approved Loans
+    </h2>
   </div>
-) : (
-  <p className="text-gray-600 text-lg mb-6">No loan history available.</p>
-)}
 
-        {/* Pending purchases UI (same as previous) */}
+  {loading ? (
+    <div className="flex items-center space-x-3 animate-pulse">
+      <div className="w-4 h-4 bg-[#7e9e6c] rounded-full"></div>
+      <p className="text-gray-500 font-medium">Fetching records...</p>
+    </div>
+  ) : approvedLoans.length > 0 ? (
+    <div className="overflow-hidden bg-white border border-gray-100 shadow-sm rounded-xl">
+      <table className="w-full text-left border-collapse">
+        <thead>
+          <tr className="bg-gray-50/50 border-b border-gray-100">
+            <th className="px-6 py-4 text-sm font-semibold text-gray-600 uppercase tracking-wider">Purpose</th>
+            <th className="px-6 py-4 text-sm font-semibold text-gray-600 uppercase tracking-wider">Amount</th>
+            <th className="px-6 py-4 text-sm font-semibold text-gray-600 uppercase tracking-wider text-center">Term</th>
+            <th className="px-6 py-4 text-sm font-semibold text-gray-600 uppercase tracking-wider text-center">Status</th>
+            <th className="px-6 py-4 text-sm font-semibold text-gray-600 uppercase tracking-wider text-center">Balance</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-50">
+          {approvedLoans.map((l) => (
+            <tr key={l.id || Math.random()} className="hover:bg-gray-50/80 transition-colors group">
+              <td className="px-6 py-5">
+                <p className="font-semibold text-gray-800">{l.purpose || "N/A"}</p>
+                <p className="text-xs text-gray-400 mt-0.5">{l.paymentsMade ?? "0"} payments made</p>
+              </td>
+              <td className="px-6 py-5 font-medium text-gray-700">
+                {fmtMoney(l.loanAmount)}
+              </td>
+              <td className="px-6 py-5 text-center">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700">
+                  {l.duration ?? "0"} Months
+                </span>
+              </td>
+              <td className="px-6 py-5 text-center">
+                <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                  l.status?.toLowerCase() === 'active' 
+                  ? 'bg-green-100 text-green-700' 
+                  : 'bg-gray-100 text-gray-600'
+                }`}>
+                  {l.status?.toUpperCase() ?? "N/A"}
+                </span>
+              </td>
+              <td className="px-6 py-5 text-center font-mono font-bold text-[#7e9e6c]">
+                {fmtMoney(l.remainbalance ?? l.balance ?? 0)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  ) : (
+    <div className="py-12 text-center border-2 border-dashed border-gray-200 rounded-xl">
+      <p className="text-gray-400 text-lg">No approved loans.</p>
+    </div>
+  )}
+</div>
+        
+        <div className="flex mt-8 items-center justify-between mb-6">
+            <h3 className="text-2xl font-extrabold tracking-tight text-[#5a7a4a]">Pending Purchase</h3>
+        </div>
+
        {loadingPurchases ? (
         <div className="mt-8 flex items-center justify-center p-8 bg-gray-50 rounded-xl border border-dashed border-gray-300">
           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#7e9e6c] mr-3"></div>
           <span className="text-sm text-gray-500 font-medium">Syncing purchase data...</span>
         </div>
-      ) : (() => {
-        const unpaid = purchases.filter((p) => String(p.status).toLowerCase() === "not paid");
-        if (unpaid.length === 0) return null;
-        
-        return (
+      ) : unpaid.length > 0 ? (
           <div className="mt-8 bg-white border border-red-100 rounded-2xl shadow-sm overflow-hidden">
-            <div className="bg-red-50/50 px-6 py-4 border-b border-red-100 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-red-100 text-red-600 rounded-lg">
-                  <FiAlertCircle size={20} />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-gray-800">Pending Payments</h3>
-                  <p className="text-xs text-red-500 font-medium">Action Required</p>
-                </div>
-              </div>
-              <span className="bg-white border border-red-100 text-red-600 px-3 py-1 rounded-full text-xs font-bold shadow-sm">
-                {unpaid.length} Unpaid
-              </span>
-            </div>
+        
 
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="bg-gray-50 text-gray-500 border-b border-gray-100">
+                <thead className="bg-gray-50/50 text-gray-500 border-b border-gray-100">
                   <tr>
-                    <th className="text-left px-6 py-3 font-semibold uppercase tracking-wider text-xs">Items</th>
-                    <th className="text-right px-6 py-3 font-semibold uppercase tracking-wider text-xs">Total</th>
-                    <th className="text-right px-6 py-3 font-semibold uppercase tracking-wider text-xs">Due Date</th>
-                    <th className="text-center px-6 py-3 font-semibold uppercase tracking-wider text-xs">Actions</th>
+                    <th className="text-left px-6 py-4 font-semibold uppercase tracking-wider text-md">Items</th>
+                    <th className="text-right px-6 py-4 font-semibold uppercase tracking-wider text-md">Total</th>
+                    <th className="text-right px-6 py-4 font-semibold uppercase tracking-wider text-md">Due Date</th>
+                    <th className="text-center px-6 py-4 font-semibold uppercase tracking-wider text-md">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
@@ -804,7 +824,7 @@ useEffect(() => {
                         <td className="px-6 py-4">
                           <div className="flex items-center justify-center gap-2">
                             <button 
-                              onClick={() => setSelectedPurchase(p)} 
+                              onClick={() => setSelectedPurchase1(p)} 
                               className="p-2 text-gray-400 hover:text-[#7e9e6c] hover:bg-white border border-transparent hover:border-gray-200 rounded-lg transition-all"
                               title="View Details"
                             >
@@ -830,8 +850,11 @@ useEffect(() => {
               </table>
             </div>
           </div>
-        );
-      })()}
+      ): (
+    <div className="py-12 text-center border-2 border-dashed border-gray-200 rounded-xl">
+      <p className="text-gray-400 text-lg">No Pending Purchase.</p>
+    </div>
+  ) } 
 
       {/* --- ACTION BUTTONS GRID --- */}
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mt-8">
@@ -1021,7 +1044,7 @@ useEffect(() => {
             {/* FOOTER */}
             <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end">
               <button
-                onClick={onBack}
+                onClick={() => setIsPurchaseHistoryOpen(false)}
                 className="bg-[#b8d8ba] text-white px-6 py-2 rounded-lg hover:bg-[#8fa182] hover:shadow-lg transition-all active:scale-95"
               >
                 Close

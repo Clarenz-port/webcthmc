@@ -262,7 +262,7 @@ export default function AccountOnlyPopup({ onClose = () => {}, inline = false })
 
   {/* 3. NEW DESIGN POPUP MODAL */}
   {showAddForm && (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-md p-4 transition-all">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40  p-4 transition-all">
       {/* Modal Card */}
       <div className="bg-white w-full max-w-4xl rounded-[2rem] shadow-2xl overflow-hidden ring-1 ring-black/5 animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
         

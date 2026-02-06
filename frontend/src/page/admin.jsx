@@ -121,6 +121,30 @@ const handlePayBills = (m) => { setSelectedMember(m); setMemberDetailsAction("pa
       console.error("Failed to reject member:", err);
     }
   };
+
+  /* -------------------------------------------------------------------------
+     PREVENT BACK BUTTON FROM NAVIGATING TO MEMBER PAGE
+  ------------------------------------------------------------------------- */
+  useEffect(() => {
+    // Push a history state when component mounts
+    window.history.pushState({ page: "admin" }, null);
+
+    // Handle the back button
+    const handleBackButton = (event) => {
+      // Prevent going back to member page
+      // Check if there's another state in history, if not just stay
+      if (window.history.length > 1) {
+        window.history.pushState({ page: "admin" }, null);
+      }
+    };
+
+    window.addEventListener("popstate", handleBackButton);
+
+    return () => {
+      window.removeEventListener("popstate", handleBackButton);
+    };
+  }, []);
+
   /* -------------------------------------------------------------------------
      FETCH MEMBERS
   ------------------------------------------------------------------------- */
@@ -516,7 +540,7 @@ const handlePayBills = (m) => { setSelectedMember(m); setMemberDetailsAction("pa
         ) : (
           filteredMembers.map((m) => {
             const fullName = `${m.firstName || ""} ${m.middleName || ""} ${m.lastName || ""}`.trim();
-            const fullAddress = [m.street, m.block ? `Blk ${m.block}` : null, m.lot ? `Lot ${m.lot}` : null].filter(Boolean).join(", ") || "—";
+            const fullAddress = m.address || "—";
             
             return (
               <tr
