@@ -12,7 +12,7 @@ import {
   FaSave,
   FaTimes,
   FaCalendarAlt, 
-    FaHistory
+   FaHistory
 } from "react-icons/fa";
 
 export default function AdminCreateNotice() {

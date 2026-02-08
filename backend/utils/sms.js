@@ -3,7 +3,7 @@ const qs = require('qs');
 
 const SEMAPHORE_API_KEY = process.env.SEMAPHORE_API_KEY;
 const SEMAPHORE_URL = 'https://api.semaphore.co/api/v4/messages';
-const SENDER_NAME = 'CTHMC'; // must be approved in Semaphore
+const SENDER_NAME = 'capstoneweb'; // must be approved in Semaphore
 
 async function sendSMS(numbers, message) {
   if (!SEMAPHORE_API_KEY) {

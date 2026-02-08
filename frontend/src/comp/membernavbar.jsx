@@ -266,7 +266,7 @@ useEffect(() => {
       {/* 🟢 MODAL FOR SPECIFIC NOTIFICATION 🟢 */}
       {/* ========================================== */}
       {selectedNotice && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
+        <div className="fixed inset-0 z-[100] fle items-center justify-center px-40">
           {/* Backdrop Overlay */}
           <div 
             className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"

@@ -38,7 +38,7 @@ exports.createNotice = async (req, res) => {
       });
       const numbers = users.map(u => u.phoneNumber).filter(n => n && n.trim());
       if (numbers.length > 0) {
-        const smsMessage = `CTHMC Notice: ${title}\n\n${message}`;
+        const smsMessage = `CTHMC: ${title}\n\n${message}`;
         await sendSMS(numbers, smsMessage);
       }
     } catch (smsErr) {
