@@ -2,7 +2,7 @@ const Purchase = require("../models/purchase");
 const Shares = require("../models/shares");
 const Loan = require("../models/loans");
 const User = require("../models/users");
-const Bill = require("../models/BillPayment");
+const Bill = require("../models/billPayment");
 const ActivityLog = require("../models/activityLog");
 
 Shares.belongsTo(User, {

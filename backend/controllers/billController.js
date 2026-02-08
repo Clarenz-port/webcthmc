@@ -1,4 +1,4 @@
-const BillPayment = require("../models/BillPayment");
+const BillPayment = require("../models/billPayment");
 const { logActivity } = require("../utils/activityLogger");
 
 exports.addBillPayment = async (req, res) => {
