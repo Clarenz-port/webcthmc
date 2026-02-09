@@ -45,9 +45,13 @@ app.get("/", (req, res) => {
 });
 
 sequelize
-  .sync()
+  .authenticate()
   .then(() => {
-    console.log("✅ Database connected and models synced");
+    console.log("✅ Database authenticated");
+    return sequelize.sync();
+  })
+  .then(() => {
+    console.log("✅ Database models synced");
 
     // Auto-create default superadmin if none exists
     (async () => {
@@ -82,4 +86,11 @@ sequelize
     const PORT = process.env.PORT || 8000;
     app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
   })
-  .catch((err) => console.error("❌ Database connection failed:", err));
+  .catch((err) => {
+    console.error("❌ Database connection failed:", err.message);
+    console.error("Troubleshooting:");
+    console.error("1. Check DB_HOST, DB_USER, DB_PASS, DB_NAME in environment variables");
+    console.error("2. Verify FreEDB/Railway database is active and running");
+    console.error("3. Check firewall/network connectivity to database server");
+    process.exit(1);
+  });
