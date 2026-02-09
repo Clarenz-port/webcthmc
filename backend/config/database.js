@@ -14,7 +14,9 @@ const dialectOptions = {
 
 // Add SSL for remote databases (like freedb.tech or Railway)
 if (process.env.DB_HOST && process.env.DB_HOST !== "localhost" && process.env.DB_HOST !== "127.0.0.1") {
-  dialectOptions.ssl = true;
+  dialectOptions.ssl = {
+    rejectUnauthorized: false
+  };
   dialectOptions.maxConnections = 5;
   dialectOptions.waitForConnections = true;
 }
