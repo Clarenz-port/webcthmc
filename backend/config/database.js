@@ -17,8 +17,6 @@ if (process.env.DB_HOST && process.env.DB_HOST !== "localhost" && process.env.DB
   dialectOptions.ssl = {
     rejectUnauthorized: false
   };
-  dialectOptions.maxConnections = 5;
-  dialectOptions.waitForConnections = true;
 }
 
 const sequelize = new Sequelize(process.env.DB_NAME, process.env.DB_USER, process.env.DB_PASS, {
