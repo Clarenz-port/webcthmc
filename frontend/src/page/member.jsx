@@ -2,7 +2,7 @@
 import { notify } from "../utils/toast";
 import { FiPhone, FiMail, FiCalendar, FiMapPin, FiDollarSign, FiTrendingUp, FiTarget, FiLayers, FiZap,FiInfo } from "react-icons/fi";
 import React, { useState, useEffect, useCallback } from "react";
-import axios from "axios";
+import API from '../apis/axios.js';
 import { useNavigate } from "react-router-dom";
 import {
   FaHistory,
@@ -91,8 +91,7 @@ export default function Member() {
     const token = localStorage.getItem("token");
     if (!token) return navigate("/login");
 
-    axios
-      .get("http://localhost:8000/api/members/profile", {
+    API.get("/api/members/profile", {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => {
@@ -108,7 +107,7 @@ export default function Member() {
       try {
         const token = localStorage.getItem("token");
         if (!token) return;
-        const response = await axios.get("http://localhost:8000/api/loans/members", {
+        const response = await API.get("/api/loans/members", {
           headers: { Authorization: `Bearer ${token}` },
         });
         const records = Array.isArray(response.data) ? response.data : [];
@@ -169,7 +168,7 @@ export default function Member() {
     setLoadingShares(true);
     try {
       const token = localStorage.getItem("token");
-      const res = await axios.get(`http://localhost:8000/api/shares/member/${memberId}`, {
+      const res = await API.get(`/api/shares/member/${memberId}`, {
         headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       });
       const rows = Array.isArray(res.data) ? res.data : [];
@@ -191,7 +190,7 @@ export default function Member() {
     setLoadingShareHistory(true);
     try {
       const token = localStorage.getItem("token");
-      const res = await axios.get(`http://localhost:8000/api/shares/member/${memberId}`, {
+      const res = await API.get(`/api/shares/member/${memberId}`, {
         headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       });
       const rows = Array.isArray(res.data) ? res.data : [];
@@ -230,7 +229,7 @@ export default function Member() {
         notify.success("You must be logged in.");
         return;
       }
-      const res = await axios.get(`http://localhost:8000/api/bills/member/${memberId}`, {
+      const res = await API.get(`/api/bills/member/${memberId}`, {
         headers: { Authorization: `Bearer ${token}` },
         validateStatus: null,
       });
@@ -259,7 +258,7 @@ export default function Member() {
         notify.success("You must be logged in.");
         return;
       }
-      const res = await axios.get(`/api/purchases/member/${encodeURIComponent(memberId)}`, {
+      const res = await API.get(`/api/purchases/member/${encodeURIComponent(memberId)}`, {
         headers: { Authorization: `Bearer ${token}` },
         validateStatus: null,
       });
@@ -320,7 +319,7 @@ export default function Member() {
         return;
       }
 
-      const res = await axios.get(`/api/dividends/member/${encodeURIComponent(memberId)}`, {
+      const res = await API.get(`/api/dividends/member/${encodeURIComponent(memberId)}`, {
         headers: { Authorization: `Bearer ${token}` },
         validateStatus: null,
       });

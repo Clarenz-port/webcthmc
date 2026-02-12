@@ -1,6 +1,6 @@
 import { notify } from "../utils/toast";
 import { useState, useEffect } from "react";
-import axios from "axios";
+import API from '../apis/axios.js';
 import { Link, useNavigate } from "react-router-dom";
 
 import { 
@@ -64,7 +64,7 @@ export default function Signup() {
     try {
       setError("");
 
-      await axios.post("http://localhost:8000/api/auth/register", {
+      await API.post("/api/auth/register", {
         firstName: form.first_name,
         middleName: form.middle_name,
         lastName: form.last_name,

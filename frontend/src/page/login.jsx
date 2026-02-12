@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import axios from "axios";
+import API from '../apis/axios.js';
 import { FaLeaf, FaArrowRight } from "react-icons/fa";
 
 /* =========================
@@ -51,7 +51,7 @@ export default function Login() {
     e.preventDefault();
 
     try {
-      const response = await axios.post("http://localhost:8000/api/auth/login", {
+      const response = await API.post("/api/auth/login", {
         username,
         password,
       });

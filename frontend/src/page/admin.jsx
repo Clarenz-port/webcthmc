@@ -24,7 +24,7 @@ import {
   FiChevronLeft, FiDollarSign, FiShoppingCart, FiTrendingUp, FiCreditCard, FiMoreHorizontal
 } from "react-icons/fi";
 
-import axios from "axios";
+import API from '../apis/axios.js';
 import Adminnavbar from "../comp/adminnavbar.jsx";
 import Sidebar from "../comp/adminsidebar.jsx";
 import AccountOnlyPopup from "./popup/accountpopup.jsx";
@@ -78,7 +78,7 @@ const handlePayBills = (m) => { setSelectedMember(m); setMemberDetailsAction("pa
   const fetchPendingMembers = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await axios.get("http://localhost:8000/api/admin/pending-members", {
+      const res = await API.get("/api/admin/pending-members", {
         headers: { Authorization: `Bearer ${token}` },
       });
       setPendingMembers(res.data || []);
@@ -94,7 +94,7 @@ const handlePayBills = (m) => { setSelectedMember(m); setMemberDetailsAction("pa
   const handleApprove = async (id) => {
     try {
       const token = localStorage.getItem("token");
-      await axios.put(`http://localhost:8000/api/admin/approve/${id}`, {}, {
+      await API.put(`/api/admin/approve/${id}`, {}, {
         headers: { Authorization: `Bearer ${token}` },
       });
       // Remove from pending list
@@ -111,7 +111,7 @@ const handlePayBills = (m) => { setSelectedMember(m); setMemberDetailsAction("pa
   const handleReject = async (id) => {
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`http://localhost:8000/api/admin/reject/${id}`, {
+     await API.delete(`/api/admin/reject/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       // Remove from list
@@ -152,7 +152,7 @@ const handlePayBills = (m) => { setSelectedMember(m); setMemberDetailsAction("pa
     const fetchMembers = async () => {
       try {
         const token = (localStorage.getItem("token") || "").trim();
-        const res = await axios.get("http://localhost:8000/api/admin/members", {
+        const res = await API.get("/api/admin/members", {
           headers: { Authorization: `Bearer ${token}` },
         });
         setMembers(res.data || []);
@@ -179,7 +179,7 @@ const handlePayBills = (m) => { setSelectedMember(m); setMemberDetailsAction("pa
       let approvedLoans = [];
 
       try {
-        const resCounts = await axios.get("http://localhost:8000/api/loans/loan-counts", {
+        const resCounts = await API.get("/api/loans/loan-counts", {
           headers: { Authorization: `Bearer ${token}` },
         });
         pendingCount = resCounts.data.pending ?? 0;
@@ -189,12 +189,12 @@ const handlePayBills = (m) => { setSelectedMember(m); setMemberDetailsAction("pa
       }
 
       try {
-        const res = await axios.get("http://localhost:8000/api/loans/approved-loans", {
+        const res = await API.get("/api/loans/approved-loans", {
           headers: { Authorization: `Bearer ${token}` },
         });
         approvedLoans = Array.isArray(res.data) ? res.data : [];
       } catch (err) {
-        const resAll = await axios.get("http://localhost:8000/api/loans/members", {
+        const resAll = await API.get("/api/loans/members", {
           headers: { Authorization: `Bearer ${token}` },
         });
         const allLoans = Array.isArray(resAll.data) ? resAll.data : resAll.data?.loans ?? [];
@@ -209,7 +209,7 @@ const handlePayBills = (m) => { setSelectedMember(m); setMemberDetailsAction("pa
         approvedLoans.map(async (loan) => {
           let payments = [];
           try {
-            const res = await axios.get(`http://localhost:8000/api/loans/${loan.id}/payments`, {
+            const res = await API.get(`/api/loans/${loan.id}/payments`, {
               headers: { Authorization: `Bearer ${token}` },
             });
             payments = res.data || [];
@@ -262,7 +262,7 @@ const handlePayBills = (m) => { setSelectedMember(m); setMemberDetailsAction("pa
       // FETCH UNPAID PURCHASES
        let purchaseDue = [];
       try {
-        const resPurchases = await axios.get("http://localhost:8000/api/purchases/pending", {
+        const resPurchases = await API.get("/api/purchases/pending", {
           headers: { Authorization: `Bearer ${token}` },
         });
         purchaseDue = Array.isArray(resPurchases.data) ? resPurchases.data : [];
@@ -308,7 +308,7 @@ const handlePayBills = (m) => { setSelectedMember(m); setMemberDetailsAction("pa
         let approvedOrPaidCount = 0;
 
         try {
-          const resCounts = await axios.get("http://localhost:8000/api/loans/loan-counts", {
+          const resCounts = await API.get("/api/loans/loan-counts", {
             headers: { Authorization: `Bearer ${token}` },
           });
           pendingCount = resCounts.data.pending ?? 0;
@@ -319,13 +319,13 @@ const handlePayBills = (m) => { setSelectedMember(m); setMemberDetailsAction("pa
 
         let approvedLoans = [];
         try {
-          const res = await axios.get("http://localhost:8000/api/loans/approved-loans", {
+          const res = await API.get("/api/loans/approved-loans", {
             headers: { Authorization: `Bearer ${token}` },
           });
           approvedLoans = Array.isArray(res.data) ? res.data : [];
         } catch (err) {
           try {
-            const resAll = await axios.get("http://localhost:8000/api/loans/members", {
+            const resAll = await API.get("/api/loans/members", {
               headers: { Authorization: `Bearer ${token}` },
             });
             const allLoans = Array.isArray(resAll.data) ? resAll.data : resAll.data?.loans ?? [];
@@ -377,21 +377,9 @@ const handlePayBills = (m) => { setSelectedMember(m); setMemberDetailsAction("pa
       setLoadingSharesTotal(true);
       try {
         const token = (localStorage.getItem("token") || "").trim();
-        const endpoints = [
-          "/api/shares",
-          "/api/shares/all",
-          "http://localhost:8000/api/shares"
-        ];
-
-        let res = null;
-        for (const ep of endpoints) {
-          try {
-            res = await axios.get(ep, {
-              headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-            });
-            if (res?.status >= 200 && res?.status < 300) break;
-          } catch (e) {}
-        }
+        const res = await API.get("/api/shares", {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
 
         if (cancelled) return;
 
@@ -644,7 +632,7 @@ const UsersActivityView = () => {
       setLoading(true);
       setPage(p);
       const token = localStorage.getItem("token");
-      const res = await axios.get("/api/activity", {
+      const res = await API.get("/api/activity", {
         params: { page: p, limit },
         headers: { Authorization: `Bearer ${token}` },
       });
