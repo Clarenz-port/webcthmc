@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { notify } from "../../utils/toast";
-import axios from "axios";
+import API from '../../apis/axios.js';
 import { FaFileAlt, FaCalendarAlt, FaDownload, FaTimes, FaChartLine, FaLayerGroup } from 'react-icons/fa';
 
 export default function ReportModal({ isOpen, onClose }) {
@@ -24,7 +24,7 @@ export default function ReportModal({ isOpen, onClose }) {
 if (!["income", "cashflow", "balance"].includes(reportType)) {
   body.mode = mode;
 }
-const res = await axios.post("http://localhost:8000/api/reports/generate", body, {
+const res = await API.post("/api/reports/generate", body, {
   headers: { Authorization: `Bearer ${token}` },
   responseType: "blob",
 });

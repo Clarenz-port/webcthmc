@@ -1,3 +1,4 @@
+
 import { notify } from "../utils/toast";
 import { useState, useEffect } from "react";
 import API from '../apis/axios.js';
@@ -12,15 +13,17 @@ export default function Signup() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const load = () => {
-      const logo = localStorage.getItem('siteLogo');
-      const sname = localStorage.getItem('siteName') || 'CTHMC';
-      setSiteLogo(logo);
-      setSiteName(sname);
+    const fetchConfig = async () => {
+      try {
+        const res = await API.get("/api/config");
+        setSiteLogo(res.data.logo || null);
+        setSiteName(res.data.siteName || "CTHMC");
+      } catch {
+        setSiteLogo(null);
+        setSiteName("CTHMC");
+      }
     };
-    load();
-    window.addEventListener('siteConfigChanged', load);
-    return () => window.removeEventListener('siteConfigChanged', load);
+    fetchConfig();
   }, []);
 
   const [form, setForm] = useState({

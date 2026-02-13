@@ -34,18 +34,19 @@ export default function Login() {
   const [siteName, setSiteName] = useState('CTHMC');
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const load = () => {
-      const logo = localStorage.getItem('siteLogo');
-      const sname = localStorage.getItem('siteName') || 'CTHMC';
-      setSiteLogo(logo);
-      setSiteName(sname);
-    };
-
-    load();
-    window.addEventListener('siteConfigChanged', load);
-    return () => window.removeEventListener('siteConfigChanged', load);
-  }, []);
+    useEffect(() => {
+      const fetchConfig = async () => {
+        try {
+          const res = await API.get("/api/config");
+          setSiteLogo(res.data.logo || null);
+          setSiteName(res.data.siteName || "CTHMC");
+        } catch {
+          setSiteLogo(null);
+          setSiteName("CTHMC");
+        }
+      };
+      fetchConfig();
+    }, []);
 
   const handleSubmit = async (e) => { 
     e.preventDefault();

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { notify } from "../../utils/toast";
-import axios from "axios";
+import API from '../../apis/axios.js';
 
 export default function RecordLoanPayment({ isOpen, onClose, member, loanId, onPaymentRecorded }) {
   const [amountPaid, setAmountPaid] = useState("");
@@ -21,8 +21,8 @@ export default function RecordLoanPayment({ isOpen, onClose, member, loanId, onP
 
     try {
       const token = localStorage.getItem("token");
-      const res = await axios.post(
-        "http://localhost:8000/api/loans/payment",
+      const res = await API.post(
+        "/api/loans/payment",
         {
           memberId: member.id,
           loanId,

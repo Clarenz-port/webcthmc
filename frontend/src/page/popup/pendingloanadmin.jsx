@@ -12,8 +12,7 @@ import {
   FiInbox,
   FiLoader 
 } from "react-icons/fi";
-import axios from "axios";
-
+import API from '../../apis/axios.js';
 export default function PendingLoanApplications({ onBack }) {
   const userRole = localStorage.getItem("role");
   const isSuperAdmin = userRole === "superadmin";
@@ -41,7 +40,7 @@ export default function PendingLoanApplications({ onBack }) {
         return;
       }
 
-      const res = await axios.get("http://localhost:8000/api/loans/pending-loans", {
+      const res = await API.get("/api/loans/pending-loans", {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -67,7 +66,7 @@ export default function PendingLoanApplications({ onBack }) {
     let payments = [];
     try {
       const token = localStorage.getItem("token");
-      const res = await axios.get(`/api/loans/${loan.id}/payments`, {
+      const res = await API.get(`/api/loans/${loan.id}/payments`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       payments = Array.isArray(res.data) ? res.data.map((p) => parseFloat(p.amountPaid || p.amount || 0)) : [];
@@ -117,8 +116,8 @@ export default function PendingLoanApplications({ onBack }) {
         return;
       }
 
-      const endpoint = `http://localhost:8000/api/loans/loan/${loanId}/approve`;
-      const res = await axios.post(
+      const endpoint = `/api/loans/loan/${loanId}/approve`;
+      const res = await API.post(
         endpoint,
         { checkNumber: String(checkNumber).trim() },
         { headers: { Authorization: `Bearer ${token}` } }
@@ -142,8 +141,8 @@ export default function PendingLoanApplications({ onBack }) {
         notify.success("Not authenticated.");
         return;
       }
-      const endpoint = `http://localhost:8000/api/loans/loan/${loanId}/reject`;
-      const res = await axios.post(endpoint, {}, { headers: { Authorization: `Bearer ${token}` } });
+      const endpoint = `/api/loans/loan/${loanId}/reject`;
+      const res = await API.post(endpoint, {}, { headers: { Authorization: `Bearer ${token}` } });
       notify.success(res.data?.message || "Loan rejected");
       fetchPendingLoans();
       setSelectedLoan(null);

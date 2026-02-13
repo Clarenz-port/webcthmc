@@ -1,17 +1,28 @@
+
 import React, { useEffect, useState } from "react";
 import { FiArrowLeft } from "react-icons/fi";
 import notify from "../utils/toast";
+import API from "../apis/axios";
 
 export default function Configuration({ onBack }) {
   const [logoPreview, setLogoPreview] = useState(null);
   const [siteName, setSiteName] = useState("CTHMC");
   const [saving, setSaving] = useState(false);
 
+
+  // Fetch config from backend on mount
   useEffect(() => {
-    const logo = localStorage.getItem("siteLogo");
-    const sname = localStorage.getItem("siteName") || "CTHMC";
-    setLogoPreview(logo);
-    setSiteName(sname);
+    const fetchConfig = async () => {
+      try {
+        const res = await API.get("/api/config");
+        setLogoPreview(res.data.logo || null);
+        setSiteName(res.data.siteName || "CTHMC");
+      } catch (err) {
+        setLogoPreview(null);
+        setSiteName("CTHMC");
+      }
+    };
+    fetchConfig();
   }, []);
 
   // Compress image using canvas to stay under storage limits
@@ -94,40 +105,31 @@ export default function Configuration({ onBack }) {
     }
   };
 
+
   const handleSave = async () => {
     setSaving(true);
     try {
-      if (logoPreview) {
-        try {
-          localStorage.setItem("siteLogo", logoPreview);
-        } catch (err) {
-          // likely quota exceeded
-          console.error("Failed to save logo to localStorage:", err);
-          notify.error("Logo too large to save. Please choose a smaller image.");
-          setSaving(false);
-          return;
-        }
-      } else {
-        localStorage.removeItem("siteLogo");
-      }
-
-      if (siteName != null) localStorage.setItem("siteName", siteName);
-      // notify other parts of the app
-      window.dispatchEvent(new Event('siteConfigChanged'));
+      await API.put("/api/config", {
+        siteName,
+        logo: logoPreview,
+      });
       notify.success("Configuration saved");
     } catch (err) {
-      console.error(err);
       notify.error("Failed to save configuration");
     } finally {
       setSaving(false);
     }
   };
 
-  const handleClearLogo = () => {
+
+  const handleClearLogo = async () => {
     setLogoPreview(null);
-    localStorage.removeItem("siteLogo");
-    window.dispatchEvent(new Event('siteConfigChanged'));
-    notify.success("Logo removed");
+    try {
+      await API.put("/api/config", { siteName, logo: null });
+      notify.success("Logo removed");
+    } catch {
+      notify.error("Failed to remove logo");
+    }
   };
 
   return (

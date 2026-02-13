@@ -1,6 +1,8 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaCog } from "react-icons/fa";
+import API from "../apis/axios";
 
 export default function Adminnavbar({ onManageNotice }) {
   const [showDropdown, setShowDropdown] = useState(false);
@@ -17,16 +19,17 @@ export default function Adminnavbar({ onManageNotice }) {
 
   // Load site logo/name and listen for configuration changes
   useEffect(() => {
-    const load = () => {
-      const logo = localStorage.getItem('siteLogo');
-      const sname = localStorage.getItem('siteName') || 'CTHMC';
-      setSiteLogo(logo);
-      setSiteName(sname);
+    const fetchConfig = async () => {
+      try {
+        const res = await API.get("/api/config");
+        setSiteLogo(res.data.logo || null);
+        setSiteName(res.data.siteName || "CTHMC");
+      } catch {
+        setSiteLogo(null);
+        setSiteName("CTHMC");
+      }
     };
-
-    load();
-    window.addEventListener('siteConfigChanged', load);
-    return () => window.removeEventListener('siteConfigChanged', load);
+    fetchConfig();
   }, []);
 
   // Handle logout properly

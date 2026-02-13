@@ -1,6 +1,8 @@
+
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { FaBars, FaTimes, FaHome, FaInfoCircle, FaPhoneAlt, FaLeaf, FaArrowRight } from "react-icons/fa";
+import API from "../apis/axios";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -29,15 +31,17 @@ export default function Navbar() {
   }, []);
 
   useEffect(() => {
-    const load = () => {
-      const logo = localStorage.getItem('siteLogo');
-      const sname = localStorage.getItem('siteName') || 'CTHMC';
-      setSiteLogo(logo);
-      setSiteName(sname);
+    const fetchConfig = async () => {
+      try {
+        const res = await API.get("/api/config");
+        setSiteLogo(res.data.logo || null);
+        setSiteName(res.data.siteName || "CTHMC");
+      } catch {
+        setSiteLogo(null);
+        setSiteName("CTHMC");
+      }
     };
-    load();
-    window.addEventListener('siteConfigChanged', load);
-    return () => window.removeEventListener('siteConfigChanged', load);
+    fetchConfig();
   }, []);
 
   return (

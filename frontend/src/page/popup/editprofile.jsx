@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { FaUser, FaPhone, FaEnvelope, FaBirthdayCake, FaEdit, FaCamera, FaTimes, FaLock, FaCheckCircle, FaMapMarkerAlt } from 'react-icons/fa';
-import axios from "axios";
+import API from '../../apis/axios.js';
 
 /**
  * EditProfilePopup (with Remove Picture)
@@ -47,12 +47,18 @@ export default function EditProfilePopup({ isOpen, onClose, member, onSave }) {
 
   // Initialize local state when modal opens or when member prop changes
   useEffect(() => {
-    if (isOpen && member) {
-      const id = member.id ?? member._id ?? null;
-      const avatar = member.avatarUrl ?? member.avatar ?? null;
-      const preview = avatar
-        ? (avatar.startsWith("http") ? avatar : `http://localhost:8000${avatar}`)
-        : DEFAULT_PLACEHOLDER;
+  if (isOpen && member) {
+  const id = member.id ?? member._id ?? null;
+  const avatar = member.avatarUrl ?? member.avatar ?? null;
+  
+  // Get the base URL and clean it up (remove /api if it's at the end)
+  const baseUrl = (import.meta.env.VITE_API_URL || "http://localhost:8000").replace(/\/api$/, "");
+
+  const preview = avatar
+    ? (avatar.startsWith("http") 
+        ? avatar 
+        : `${baseUrl}${avatar.startsWith("/") ? avatar : "/" + avatar}`)
+    : DEFAULT_PLACEHOLDER;
 
       setProfile({
         id,
@@ -172,7 +178,7 @@ export default function EditProfilePopup({ isOpen, onClose, member, onSave }) {
     try {
       // Try DELETE endpoint first (preferred)
       try {
-        const delRes = await axios.delete(`http://localhost:8000/api/members/${id}/avatar`, {
+        const delRes = await API.delete(`/api/members/${id}/avatar`, {
           headers: { ...authHeader },
         });
         // server should return updated member or avatarUrl
@@ -195,7 +201,7 @@ export default function EditProfilePopup({ isOpen, onClose, member, onSave }) {
       // Fallback: clear avatarUrl via JSON PUT
       try {
         const payload = { avatarUrl: null };
-        const putRes = await axios.put(`http://localhost:8000/api/members/${id}`, payload, {
+        const putRes = await API.put(`/api/members/${id}`, payload, {
           headers: { "Content-Type": "application/json", ...authHeader },
         });
         const updated = putRes.data?.member ?? putRes.data ?? { ...profile, avatarUrl: null };
@@ -289,8 +295,8 @@ export default function EditProfilePopup({ isOpen, onClose, member, onSave }) {
           const form = new FormData();
           form.append("avatar", imageFile);
           // Optional: include id or other fields if your endpoint needs it
-          const avatarRes = await axios.post(
-            `http://localhost:8000/api/members/${id}/avatar`,
+          const avatarRes = await API.post(
+            `/api/members/${id}/avatar`,
             form,
             {
               headers: {
@@ -310,8 +316,8 @@ export default function EditProfilePopup({ isOpen, onClose, member, onSave }) {
               if (v !== null && v !== undefined) form.append(k, v);
             });
             form.append("avatar", imageFile);
-            const putRes = await axios.put(
-              `http://localhost:8000/api/members/${id}`,
+            const putRes = await API.put(
+              `/api/members/${id}`,
               form,
               {
                 headers: {
@@ -325,16 +331,22 @@ export default function EditProfilePopup({ isOpen, onClose, member, onSave }) {
             const updatedMember = putRes.data?.member ?? putRes.data ?? { id, ...payload, avatarUrl: uploadedAvatarUrl };
 
             // Update UI and inform parent
-            const fullAvatar = uploadedAvatarUrl && !uploadedAvatarUrl.startsWith("http")
-              ? (uploadedAvatarUrl.startsWith("/") ? `http://localhost:8000${uploadedAvatarUrl}` : `http://localhost:8000/${uploadedAvatarUrl}`)
-              : uploadedAvatarUrl;
+           // 1. Get the base domain (stripping /api if necessary)
+const baseDomain = (import.meta.env.VITE_API_URL || "http://localhost:8000").replace(/\/api$/, "");
 
-            if (fullAvatar) {
-              setProfile((prev) => ({ ...prev, avatarUrl: fullAvatar }));
-              setImagePreviewUrl(fullAvatar);
-            }
+// 2. Build the full URL dynamically
+const fullAvatar = uploadedAvatarUrl && !uploadedAvatarUrl.startsWith("http")
+  ? (uploadedAvatarUrl.startsWith("/") 
+      ? `${baseDomain}${uploadedAvatarUrl}` 
+      : `${baseDomain}/${uploadedAvatarUrl}`)
+  : uploadedAvatarUrl;
 
-            if (typeof onSave === "function") onSave(updatedMember);
+if (fullAvatar) {
+  setProfile((prev) => ({ ...prev, avatarUrl: fullAvatar }));
+  setImagePreviewUrl(fullAvatar);
+}
+
+if (typeof onSave === "function") onSave(updatedMember);
 
             setIsEditing({ name: false, phone: false, email: false, birthdate: false, username: false, address: false });
             setPwSuccess(wantsPasswordChange ? "Password changed + profile updated." : "");
@@ -360,7 +372,7 @@ export default function EditProfilePopup({ isOpen, onClose, member, onSave }) {
       }
 
       // Final: send JSON PUT to update profile (without file)
-      const res = await axios.put(`http://localhost:8000/api/members/${id}`, payload, {
+      const res = await API.put(`/api/members/${id}`, payload, {
         headers: {
           "Content-Type": "application/json",
           ...authHeader,
@@ -371,21 +383,24 @@ export default function EditProfilePopup({ isOpen, onClose, member, onSave }) {
 
       // derive updated member and avatar url
       const updated = res.data?.member ?? res.data ?? { id, ...payload };
-      let returnedAvatar = updated.avatarUrl ?? updated.avatar ?? payload.avatarUrl ?? null;
+let returnedAvatar = updated.avatarUrl ?? updated.avatar ?? payload.avatarUrl ?? null;
 
-      // If server gave a relative path, make it absolute (adjust base URL if needed)
-      if (returnedAvatar && !returnedAvatar.startsWith("http")) {
-        // adjust base url if your server uses a different host in production
-        returnedAvatar = returnedAvatar.startsWith("/")
-          ? `http://localhost:8000${returnedAvatar}`
-          : `http://localhost:8000/${returnedAvatar}`;
-      }
+// Get the base domain from your environment variable
+// We remove '/api' because images are usually static files served from the root
+const baseDomain = (import.meta.env.VITE_API_URL || "http://localhost:8000").replace(/\/api$/, "");
 
-      if (returnedAvatar) {
-        updated.avatarUrl = returnedAvatar;
-        setProfile((prev) => ({ ...prev, avatarUrl: returnedAvatar }));
-        setImagePreviewUrl(returnedAvatar);
-      }
+// If server gave a relative path, make it absolute using the dynamic baseDomain
+if (returnedAvatar && !returnedAvatar.startsWith("http")) {
+  returnedAvatar = returnedAvatar.startsWith("/")
+    ? `${baseDomain}${returnedAvatar}`
+    : `${baseDomain}/${returnedAvatar}`;
+}
+
+if (returnedAvatar) {
+  updated.avatarUrl = returnedAvatar;
+  setProfile((prev) => ({ ...prev, avatarUrl: returnedAvatar }));
+  setImagePreviewUrl(returnedAvatar);
+}
 
       if (typeof onSave === "function") onSave(updated);
 

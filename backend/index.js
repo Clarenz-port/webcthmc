@@ -16,6 +16,7 @@ const dividendRoutes = require("./routes/dividendRoutes");
 const reportRoutes = require("./routes/reportRoutes");
 const NoticeRoutes = require("./routes/noticeRoutes");
 const activityRoutes = require("./routes/activityRoutes");
+const configRoutes = require("./routes/configRoutes");
 
 const path = require("path");
 
@@ -39,7 +40,9 @@ app.use("/api/dividends", dividendRoutes);
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/api/reports", reportRoutes);
 app.use("/api/notices", NoticeRoutes);
+
 app.use("/api/activity", activityRoutes);
+app.use("/api/config", configRoutes);
 
 app.get("/", (req, res) => {
   res.send("✅ Server is running correctly");

@@ -79,12 +79,21 @@ export default function Member() {
 
   const getAvatarSrc = (u) => {
     if (!u) return DEFAULT_AVATAR;
-    const avatarUrl = u.avatarUrl ?? u.avatar ?? null;
-    if (!avatarUrl) return DEFAULT_AVATAR;
-    if (avatarUrl.startsWith("http")) return avatarUrl;
-    const rel = avatarUrl.startsWith("/") ? avatarUrl : `/${avatarUrl}`;
-    return `http://localhost:8000${rel}`;
-  };
+  
+  const avatarUrl = u.avatarUrl ?? u.avatar ?? null;
+  if (!avatarUrl) return DEFAULT_AVATAR;
+  
+  // If it's already a full external URL (like a Google profile pic), use it
+  if (avatarUrl.startsWith("http")) return avatarUrl;
+  
+  // Get the base domain and strip '/api' if it's there
+  const baseDomain = (import.meta.env.VITE_API_URL || "http://localhost:8000").replace(/\/api$/, "");
+  
+  // Ensure the relative path starts with a single slash
+  const rel = avatarUrl.startsWith("/") ? avatarUrl : `/${avatarUrl}`;
+  
+  return `${baseDomain}${rel}`;
+};
 
   // fetch profile
   useEffect(() => {

@@ -9,7 +9,7 @@ import {
   FiEye,
   FiActivity
 } from "react-icons/fi";
-import axios from "axios";
+import API from '../../apis/axios.js';
 import MemberDetails from "../popup/adminmember.jsx";
 
 export default function Duedate({ onBack, onView }) {
@@ -110,7 +110,7 @@ export default function Duedate({ onBack, onView }) {
         // 1) fetch approved loans
         let approved = [];
         try {
-          const res = await axios.get("http://localhost:8000/api/loans/approved-loans", {
+          const res = await API.get("/api/loans/approved-loans", {
             headers: { Authorization: `Bearer ${token}` },
           });
           approved = Array.isArray(res.data) ? res.data : [];
@@ -121,7 +121,7 @@ export default function Duedate({ onBack, onView }) {
         // 2) fetch purchases
         let purchases = [];
         try {
-          const res = await axios.get("http://localhost:8000/api/purchases/all", {
+          const res = await API.get("/api/purchases/all", {
             headers: { Authorization: `Bearer ${token}` },
           });
           purchases = Array.isArray(res.data) ? res.data : res.data?.purchases ?? [];
@@ -190,7 +190,7 @@ export default function Duedate({ onBack, onView }) {
           approved.map(async (loan) => {
             let payments = [];
             try {
-              const res = await axios.get(`http://localhost:8000/api/loans/${loan.id}/payments`, {
+              const res = await API.get(`/api/loans/${loan.id}/payments`, {
                 headers: { Authorization: `Bearer ${token}` },
               });
               payments = res.data || [];
@@ -268,7 +268,7 @@ export default function Duedate({ onBack, onView }) {
     // If we have an id, fetch exact member
     if (possibleId) {
       try {
-        const res = await axios.get(`/api/members/${encodeURIComponent(possibleId)}`, {
+        const res = await API.get(`/api/members/${encodeURIComponent(possibleId)}`, {
           headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
           validateStatus: null,
         });
@@ -288,7 +288,7 @@ export default function Duedate({ onBack, onView }) {
     const name = record.memberName ?? record.customerName ?? record.name ?? null;
     if (name) {
       try {
-        const res = await axios.get(`/api/members?search=${encodeURIComponent(name)}`, {
+        const res = await API.get(`/api/members?search=${encodeURIComponent(name)}`, {
           headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
           validateStatus: null,
         });
@@ -327,11 +327,13 @@ export default function Duedate({ onBack, onView }) {
     let payments = [];
     try {
       const token = localStorage.getItem("token")?.trim() || "";
-      const res = await axios.get(`http://localhost:8000/api/loans/${loan.id}/payments`, {
+      const res = await API.get(`/api/loans/${loan.id}/payments`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       payments = res.data || [];
-    } catch {}
+    } catch (err) {
+      console.warn("Failed to fetch loan payments:", err);
+    }
 
     const paymentsSum = payments.reduce(
       (a, p) => a + (parseFloat(p.amountPaid || p.amount || 0) || 0),

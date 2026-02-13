@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import API from '../../apis/axios.js';
 import { 
   FiArrowLeft, 
   FiTrendingUp, 
@@ -75,35 +75,29 @@ export default function SharesPage({ onBack, members = [] }) {
       setLoading(true);
       setError(null);
 
-      try {
-        const token = localStorage.getItem("token") || "";
-        const endpoints = [
-          "/api/shares",
-          "/api/shares/all",
-          "http://localhost:8000/api/shares",
-        ];
+     try {
+  const token = localStorage.getItem("token") || "";
 
-        let res = null;
+  // No need for a for-loop! 
+  // API.get() already uses the baseURL (Local or Render)
+  const res = await API.get("/api/shares", {
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  });
 
-        for (const ep of endpoints) {
-          try {
-            res = await axios.get(ep, {
-              headers: token
-                ? { Authorization: `Bearer ${token}` }
-                : undefined,
-            });
-            if (res?.status >= 200 && res?.status < 300) break;
-          } catch (e) {}
-        }
-
-        const rows = res?.data ?? [];
-        if (!cancelled)
-          setShares(Array.isArray(rows) ? rows : rows.rows ?? []);
-      } catch (err) {
-        if (!cancelled) setError("Failed to load shares.");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
+  const rows = res?.data ?? [];
+  
+  if (!cancelled) {
+    // Normalization logic: check if it's an array or inside a 'rows' property
+    setShares(Array.isArray(rows) ? rows : (rows.rows ?? []));
+  }
+} catch (err) {
+  if (!cancelled) {
+    console.error("❌ Error loading shares:", err);
+    setError("Failed to load shares.");
+  }
+} finally {
+  if (!cancelled) setLoading(false);
+}
     };
 
     fetchShares();

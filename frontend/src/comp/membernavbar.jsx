@@ -1,10 +1,12 @@
 
+
 import axios from "axios";
 import { notify } from "../utils/toast";
 import React, { useState, useRef, useEffect } from "react";
 import { FaBell, FaCog,  FaUserEdit, FaSignOutAlt, FaInfoCircle, FaTimes } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import EditProfilePopup from "../page/popup/editprofile.jsx";
+import API from "../apis/axios";
 
 export default function MemberNavbar() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -72,16 +74,17 @@ useEffect(() => {
 
   // Load site logo/name and react to changes from Configuration page
   useEffect(() => {
-    const loadConfig = () => {
-      const logo = localStorage.getItem('siteLogo');
-      const sname = localStorage.getItem('siteName') || 'CTHMC';
-      setSiteLogo(logo);
-      setSiteName(sname);
+    const fetchConfig = async () => {
+      try {
+        const res = await API.get("/api/config");
+        setSiteLogo(res.data.logo || null);
+        setSiteName(res.data.siteName || "CTHMC");
+      } catch {
+        setSiteLogo(null);
+        setSiteName("CTHMC");
+      }
     };
-
-    loadConfig();
-    window.addEventListener('siteConfigChanged', loadConfig);
-    return () => window.removeEventListener('siteConfigChanged', loadConfig);
+    fetchConfig();
   }, []);
 
   // Prevent going back after logout

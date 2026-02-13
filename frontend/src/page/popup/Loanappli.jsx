@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 
 import { FiEye} from "react-icons/fi";
 import { FaArrowLeft } from "react-icons/fa";
-import axios from "axios";
+import API from '../../apis/axios.js';
 
 export default function LoanApplication({ onBack, memberId = null, memberName = null, onLoanUpdated = null }) {
   const [loanRecords, setLoanRecords] = useState([]);
@@ -28,7 +28,7 @@ export default function LoanApplication({ onBack, memberId = null, memberName = 
         let response;
 
         if (memberId) {
-          response = await axios.get(`/api/loans/member/${memberId}`, {
+          response = await API.get(`/api/loans/member/${memberId}`, {
             headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
             validateStatus: null,
           });
@@ -66,7 +66,7 @@ export default function LoanApplication({ onBack, memberId = null, memberName = 
           setLoanRecords(cleaned);
           setError(null);
         } else {
-          response = await axios.get("/api/loans/members", {
+          response = await API.get("/api/loans/members", {
             headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
             validateStatus: null,
           });
@@ -112,7 +112,7 @@ export default function LoanApplication({ onBack, memberId = null, memberName = 
     let payments = [];
     try {
       const token = localStorage.getItem("token");
-      const res = await axios.get(`/api/loans/${loan.id}/payments`, {
+      const res = await API.get(`/api/loans/${loan.id}/payments`, {
         headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       });
       if (Array.isArray(res.data)) payments = res.data;
