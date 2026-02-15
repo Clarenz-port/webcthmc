@@ -219,10 +219,14 @@ export default function AccountOnlyPopup({ onClose = () => {}, inline = false })
             ) : (
               admins.map((a) => {
                 const id = a.id ?? a._id ?? a.username;
+                const isSuperAdmin = a.username === 'superadmin' || a.role === 'superadmin' || a.isSuperAdmin;
                 return (
                   <tr key={id} className="hover:bg-[#d6ead8]/10 transition-colors group">
                     <td className="px-6 py-4 font-bold text-gray-700 capitalize">
                       {a.firstName} <span className="text-[10px] text-gray-300 mx-1">•</span> {a.lastName}
+                      {isSuperAdmin && (
+                        <span className="ml-2 px-2 py-0.5 rounded bg-amber-100 text-amber-600 text-[10px] font-bold uppercase align-middle">Super Admin</span>
+                      )}
                     </td>
                     <td className="px-6 py-4">
                       <span className="bg-gray-100 text-gray-500 px-3 py-1 rounded-lg font-mono text-xs">
@@ -241,13 +245,23 @@ export default function AccountOnlyPopup({ onClose = () => {}, inline = false })
                         >
                           <FiEdit2 size={18} />
                         </button>
-                        <button
-                          onClick={() => openDeleteConfirm(a)}
-                          className="p-2 rounded-xl text-gray-500 hover:text-red-500 hover:bg-red-50 transition-all"
-                          title="Delete"
-                        >
-                          <FiTrash2 size={18} />
-                        </button>
+                        {isSuperAdmin ? (
+                          <button
+                            disabled
+                            className="p-2 rounded-xl text-gray-300 bg-gray-50 cursor-not-allowed"
+                            title="Super Admin cannot be deleted"
+                          >
+                            <FiTrash2 size={18} />
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => openDeleteConfirm(a)}
+                            className="p-2 rounded-xl text-gray-500 hover:text-red-500 hover:bg-red-50 transition-all"
+                            title="Delete"
+                          >
+                            <FiTrash2 size={18} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

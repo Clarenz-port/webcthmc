@@ -66,7 +66,10 @@ exports.addAdmin = async (req, res) => {
 // ✅ Get all admins
 exports.getAdmins = async (req, res) => {
   try {
-    const admins = await User.findAll({ where: { role: "admin" } });
+    // Return both admin and superadmin accounts
+    const admins = await User.findAll({
+      where: { role: ["admin", "superadmin"] },
+    });
     res.json(admins);
   } catch (error) {
     console.error("❌ Error fetching admins:", error);

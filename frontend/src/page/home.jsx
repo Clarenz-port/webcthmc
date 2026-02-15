@@ -149,11 +149,8 @@ useEffect(() => {
             
             {/* Center Piece (Logo/Brand Representation) */}
             <div className="relative z-20 w-32 h-32 bg-gradient-to-br from-emerald-600 to-teal-800 rounded-full flex items-center justify-center shadow-[0_0_40px_-10px_rgba(16,185,129,0.5)] border-4 border-emerald-100 overflow-hidden">
-               {siteLogo ? (
-                 <img src={siteLogo} alt="site logo" className="object-contain w-full h-full bg-white rounded-full" />
-               ) : (
                  <FaUserPlus className="text-5xl text-white" />
-               )}
+
             </div>
 
             {/* Orbit Ring 1 (Small) */}

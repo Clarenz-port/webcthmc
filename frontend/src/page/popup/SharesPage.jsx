@@ -168,7 +168,7 @@ export default function SharesPage({ onBack, members = [] }) {
         <p className="text-sm text-gray-400 font-black animate-pulse uppercase tracking-widest">Synchronizing Ledger...</p>
       </div>
     ) : shares.length === 0 ? (
-      <div className="flex flex-col items-center justify-center py-20 text-gray-300">
+      <div className="flex flex-col mt-2 rounded-t-[2rem] bg-white items-center justify-center py-20 text-gray-4  00">
         <FiLayers size={64} className="mb-4 opacity-20" />
         <p className="font-bold uppercase tracking-widest text-xs">No share transactions found</p>
       </div>
