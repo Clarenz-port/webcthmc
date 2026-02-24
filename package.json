@@ -1,7 +1,0 @@
-{
-  "dependencies": {
-    "pdfkit": "^0.17.2",
-    "sequelize": "^6.37.7",
-    "sequelize-cli": "^6.6.5"
-  }
-}
