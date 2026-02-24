@@ -39,7 +39,7 @@ import SharesLineChart from "../comp/charts/SharesLineChart.jsx";
 import SharesPage from "../page/popup/SharesPage.jsx";
 
 // Import the real ReportModal from the popup folder
-import ReportModal from "./popup/ReportModal.jsx";
+import ReportModal from "./popup/ReportModal.jsx";  
 import Configuration from "./configuration.jsx";
 
 export default function Admin({ onBack }) {
@@ -57,6 +57,8 @@ export default function Admin({ onBack }) {
 
   // Report modal open state
   const [showReportModal, setShowReportModal] = useState(false);
+  // Ledger modal open state
+  const [showLedgerModal, setShowLedgerModal] = useState(false);
 
   // Pending members modal
   const [showPendingMembersModal, setShowPendingMembersModal] = useState(false);
@@ -423,8 +425,10 @@ const handlePayBills = (m) => { setSelectedMember(m); setMemberDetailsAction("pa
   const [searchTerm, setSearchTerm] = useState("");
   const filteredMembers = React.useMemo(() => {
     const q = (searchTerm || "").trim().toLowerCase();
-    if (!q) return members;
-    return members.filter((m) => {
+    // Only show approved members
+    const approvedMembers = members.filter(m => String(m.status).toLowerCase() === "approved");
+    if (!q) return approvedMembers;
+    return approvedMembers.filter((m) => {
       const name = `${m.firstName || ""} ${m.middleName || ""} ${m.lastName || ""} ${m.memberName || ""} ${m.name || ""}`.toLowerCase();
       return name.includes(q);
     });
@@ -434,120 +438,117 @@ const handlePayBills = (m) => { setSelectedMember(m); setMemberDetailsAction("pa
     <div>
   
   {/* HEADER SECTION */}
-  <div className="border-b border-gray-50 ">
-    <div className="flex flex-col md:flex-row md:items-center mb-2 justify-between gap-6">
-      <div className="flex items-center gap-5">
-        <button
-          onClick={() => setActiveSection("dashboard")}
-          className="p-3 bg-white border border-gray-100 text-gray-500 hover:text-[#7e9e6c] hover:border-[#7e9e6c] rounded-xl transition-all shadow-sm active:scale-95 group"
-          title="Back to Dashboard"
-        >
-          <FiArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
-        </button>
-        <div>
-          <h2 className="text-3xl font-black text-gray-800 tracking-tight">Members</h2>
-          <div className="flex items-center gap-2 mt-1">
-            <span className="flex h-2 w-2 rounded-full bg-[#7e9e6c]"></span>
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
-              {members.length} Total Registered Members
-            </p>
+    <div className="border-b border-gray-50 ">
+      <div className="flex flex-col md:flex-row md:items-center mb-2 justify-between gap-6">
+        <div className="flex items-center gap-5">
+          <button
+            onClick={() => setActiveSection("dashboard")}
+            className="p-3 bg-white border border-gray-100 text-gray-500 hover:text-[#7e9e6c] hover:border-[#7e9e6c] rounded-xl transition-all shadow-sm active:scale-95 group"
+            title="Back to Dashboard"
+          >
+            <FiArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
+          </button>
+          <div>
+            <h2 className="text-3xl font-black text-gray-800 tracking-tight">Members</h2>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="flex h-2 w-2 rounded-full bg-[#7e9e6c]"></span>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+                {members.length} Total Registered Members
+              </p>
+            </div>
           </div>
         </div>
-      </div>
-<div className="bg-white rounded-[2rem] shadow-2xl shadow-gray-200/50 border border-gray-100 overflow-hidden flex flex-col max-h-[90vh]"></div>
-      {/* SEARCH ROW */}
-      <div className="flex items-center gap-4">
+  <div className="bg-white rounded-[2rem] shadow-2xl shadow-gray-200/50 border border-gray-100 overflow-hidden flex flex-col max-h-[90vh]"></div>
+        {/* SEARCH ROW */}
+        <div className="flex items-center gap-4">
 
-        <div className="relative w-full md:w-80 group">
-          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-            <FiSearch className={`transition-colors ${searchTerm ? "text-[#7e9e6c]" : "text-gray-300"}`} />
+          <div className="relative w-full md:w-80 group">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <FiSearch className={`transition-colors ${searchTerm ? "text-[#7e9e6c]" : "text-gray-300"}`} />
+            </div>
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search members..."
+              className="w-full bg-gray-50 border border-gray-400 py-3 pl-11 pr-12 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-[#7e9e6c]/20 transition-all placeholder:text-gray-300"
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm("")}
+                className="absolute inset-y-0 right-0 pr-4  flex items-center text-gray-300 hover:text-red-400 transition-colors"
+              >
+                <FiX size={18} />
+              </button>
+            )}
           </div>
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search members..."
-            className="w-full bg-gray-50 border border-gray-400 py-3 pl-11 pr-12 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-[#7e9e6c]/20 transition-all placeholder:text-gray-300"
-          />
-          {searchTerm && (
-            <button
-              onClick={() => setSearchTerm("")}
-              className="absolute inset-y-0 right-0 pr-4  flex items-center text-gray-300 hover:text-red-400 transition-colors"
-            >
-              <FiX size={18} />
-            </button>
-          )}
+          <button
+            onClick={() => { fetchPendingMembers(); setShowPendingMembersModal(true); }}
+            className="flex items-center gap-2 px-4 py-2 bg-purple-100 text-purple-600 rounded-xl hover:bg-purple-200 transition-all shadow-sm active:scale-95"
+            title="View Pending Members"
+          >
+            <FaUserClock size={16} />
+            Pending Members
+          </button>
         </div>
-        <button
-          onClick={() => { fetchPendingMembers(); setShowPendingMembersModal(true); }}
-          className="flex items-center gap-2 px-4 py-2 bg-purple-100 text-purple-600 rounded-xl hover:bg-purple-200 transition-all shadow-sm active:scale-95"
-          title="View Pending Members"
-        >
-          <FaUserClock size={16} />
-          Pending Members
-        </button>
       </div>
     </div>
-  </div>
-<div className="bg-white rounded-[2rem] shadow-2xl shadow-gray-200/50 border border-gray-100 overflow-hidden flex flex-col max-h-[90vh]"></div>
-  {/* TABLE AREA */}
-  <div className="flex-1 rounded-t-[2rem] bg-white overflow-auto">
-    <table className="w-full text-left border-collapse">
-      <thead>
-        <tr className="bg-gray-50/50 sticky top-0 z-10 backdrop-blur-md">
-          <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-100">
-            <div className="flex items-center gap-2"><FiUser className="text-[#7e9e6c]" /> Member Identity</div>
-          </th>
-          <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-100">
-             <div className="flex items-center gap-2"><FiMail className="text-[#7e9e6c]" /> Contact Info</div>
-          </th>
-          <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-100">
-             <div className="flex items-center gap-2"><FiMapPin className="text-[#7e9e6c]" /> Address</div>
-          </th>
-          <th className="px-8 py-5 text-center text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-100">
-             Quick Actions
-          </th>
-        </tr>
-      </thead>
-      <tbody className="divide-y divide-gray-50">
-        {members.length === 0 ? (
-          <tr>
-            <td colSpan="4" className="px-8 py-20 text-center">
-              <div className="flex flex-col items-center opacity-30">
-                <FiUser size={48} />
-                <p className="mt-4 font-bold uppercase tracking-widest text-xs">No members found in database</p>
-              </div>
-            </td>
+  <div className="bg-white rounded-[2rem] shadow-2xl shadow-gray-200/50 border border-gray-100 overflow-hidden flex flex-col max-h-[90vh]"></div>
+    {/* TABLE AREA */}
+    <div className="flex-1 rounded-t-[2rem] bg-white overflow-auto">
+      <table className="w-full text-left border-collapse">
+        <thead>
+          <tr className="bg-gray-50/50 sticky top-0 z-10 backdrop-blur-md">
+            <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-100">
+              <div className="flex items-center gap-2"><FiUser className="text-[#7e9e6c]" /> Member Identity</div>
+            </th>
+            <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-100">
+              <div className="flex items-center gap-2"><FiMail className="text-[#7e9e6c]" /> Contact Info</div>
+            </th>
+            <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-100">
+              <div className="flex items-center gap-2"><FiMapPin className="text-[#7e9e6c]" /> Address</div>
+            </th>
           </tr>
-        ) : filteredMembers.length === 0 ? (
-          <tr>
-            <td colSpan="4" className="px-8 py-20 text-center">
-               <p className="text-gray-400 italic">No results matching "{searchTerm}"</p>
-            </td>
-          </tr>
-        ) : (
-          filteredMembers.map((m) => {
-            const fullName = `${m.firstName || ""} ${m.middleName || ""} ${m.lastName || ""}`.trim();
-            const fullAddress = m.address || "—";
-            
-            return (
-              <tr
-                key={m.id}
-                onClick={() => handleSelectMember(m)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleSelectMember(m); }}
-                className="hover:bg-gray-50 cursor-pointer transition-colors"
-              >
-                <td className="px-8 py-5">
-                  <p className="text-sm font-black text-gray-800 group-hover:text-[#7e9e6c] transition-colors uppercase tracking-tight">
-                    {fullName || "Unnamed Member"}
-                  </p>
-                  <p className="text-[10px] text-gray-400 font-bold mt-0.5">ID: {m.id?.toString().slice(-6).toUpperCase() || 'N/A'}</p>
-                </td>
-                
-                <td className="px-8 py-5">
-                  <div className="flex flex-col gap-1">
+        </thead>
+        <tbody className="divide-y divide-gray-50">
+          {members.length === 0 ? (
+            <tr>
+              <td colSpan="4" className="px-8 py-20 text-center">
+                <div className="flex flex-col items-center opacity-30">
+                  <FiUser size={48} />
+                  <p className="mt-4 font-bold uppercase tracking-widest text-xs">No members found in database</p>
+                </div>
+              </td>
+            </tr>
+          ) : filteredMembers.length === 0 ? (
+            <tr>
+              <td colSpan="4" className="px-8 py-20 text-center">
+                <p className="text-gray-400 italic">No results matching "{searchTerm}"</p>
+              </td>
+            </tr>
+          ) : (
+            filteredMembers.map((m) => {
+              const fullName = `${m.firstName || ""} ${m.middleName || ""} ${m.lastName || ""}`.trim();
+              const fullAddress = m.address || "—";
+              
+              return (
+                <tr
+                  key={m.id}
+                  onClick={() => handleSelectMember(m)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleSelectMember(m); }}
+                  className="hover:bg-gray-50 cursor-pointer transition-colors"
+                >
+                  <td className="px-8 py-5">
+                    <p className="text-sm font-black text-gray-800 group-hover:text-[#7e9e6c] transition-colors uppercase tracking-tight">
+                      {fullName || "Unnamed Member"}
+                    </p>
+                    <p className="text-[10px] text-gray-400 font-bold mt-0.5">ID: {m.id?.toString().slice(-6).toUpperCase() || 'N/A'}</p>
+                  </td>
+                  
+                  <td className="px-8 py-5">
+                    <div className="flex flex-col gap-1">
                     <div className="flex items-center gap-2 text-xs text-gray-600 font-medium">
                       <FiMail size={12} className="text-gray-300" /> {m.email || "—"}
                     </div>
@@ -563,45 +564,7 @@ const handlePayBills = (m) => { setSelectedMember(m); setMemberDetailsAction("pa
                   </p>
                 </td>
 
-                <td className="px-8 py-5">
-                  <div className="flex items-center justify-center gap-2">
-                    {/* Action: Paid Loan */}
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); handlePaidLoan(m); }}
-                      title="Paid Loan"
-                      className="p-2.5 bg-[#d6ead8] text-[#7e9e6c] rounded-xl hover:bg-[#7e9e6c] hover:text-white transition-all shadow-sm active:scale-90"
-                    >
-                      <FiDollarSign size={16} />
-                    </button>
-                    
-                    {/* Action: Purchase */}
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); handlePurchase(m); }}
-                      title="Purchase"
-                      className="p-2.5 bg-[#ebf1fb] text-[#6b8fd7] rounded-xl hover:bg-[#6b8fd7] hover:text-white transition-all shadow-sm active:scale-90"
-                    >
-                      <FiShoppingCart size={16} />
-                    </button>
-
-                    {/* Action: Add Shares */}
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); handleAddShares(m); }}
-                      title="Add Shares"
-                      className="p-2.5 bg-[#fff4e8] text-[#f6b26b] rounded-xl hover:bg-[#f6b26b] hover:text-white transition-all shadow-sm active:scale-90"
-                    >
-                      <FiTrendingUp size={16} />
-                    </button>
-
-                    {/* Action: Pay Bills */}
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); handlePayBills(m); }}
-                      title="Pay Bills"
-                      className="p-2.5 bg-[#fdeaea] text-[#e06b6b] rounded-xl hover:bg-[#e06b6b] hover:text-white transition-all shadow-sm active:scale-90"
-                    >
-                      <FiCreditCard size={16} />
-                    </button>
-                  </div>
-                </td>
+                
               </tr>
             );
           })
@@ -642,7 +605,23 @@ const UsersActivityView = () => {
       setLogs(rows);
 
       // Do not use a total count from the API — prefer page-size fallback
-      setHasMore(Array.isArray(rows) ? rows.length === limit : false);
+      // If the API returns exactly 'limit' logs, check if the next page has data
+      if (Array.isArray(rows) && rows.length === limit) {
+        // Try to fetch the next page to check if it has data
+        const token = localStorage.getItem("token");
+        try {
+          const nextRes = await API.get("/api/activity", {
+            params: { page: p + 1, limit },
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const nextRows = nextRes.data?.rows ?? (Array.isArray(nextRes.data) ? nextRes.data : []);
+          setHasMore(nextRows.length > 0);
+        } catch {
+          setHasMore(false);
+        }
+      } else {
+        setHasMore(false);
+      }
     } catch (err) {
       console.error("Failed to fetch activity logs:", err);
       setLogs([]);
@@ -664,7 +643,7 @@ const UsersActivityView = () => {
     <div>
       <div className="space-y-4">
   {/* HEADER SECTION */}
-  <div className="flex items-center justify-between mb-6">
+  <div className="flex items-center justify-between mb-">
     <div className="flex items-center gap-3">
       <button
   onClick={() => setActiveSection("dashboard")}
@@ -772,9 +751,9 @@ const UsersActivityView = () => {
             <div className="text-xs text-gray-500 px-3">Page {page}</div>
 
             <button
-              onClick={handleNext}
-              disabled={!hasMore || loading}
-              className={`px-3 py-1 rounded-lg text-sm font-semibold ${!hasMore || loading ? 'bg-gray-100 text-gray-400' : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'}`}
+              onClick={hasMore && logs.length === limit && !loading ? handleNext : undefined}
+              disabled={!hasMore || logs.length !== limit || loading}
+              className={`px-3 py-1 rounded-lg text-sm font-semibold ${!hasMore || logs.length !== limit || loading ? 'bg-gray-100 text-gray-400' : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'}`}
             >
               Next
             </button>
@@ -864,13 +843,15 @@ const UsersActivityView = () => {
       <h1 className="text-4xl font-extrabold text-gray-800 tracking-tight">Dashboard</h1>
     </div>
 
-    <button
-      onClick={handleReport}
-      className="flex items-center justify-center gap-2 px-8 py-3 rounded-xl bg-[#7e9e6c] text-white font-bold hover:bg-[#6a8b5a] transition-all shadow-md hover:shadow-lg active:scale-95"
-    >
-      <FaFileAlt />
-      Generate Reports
-    </button>
+    <div className="flex gap-4">
+      <button
+        onClick={handleReport}
+        className="flex items-center justify-center gap-2 px-8 py-3 rounded-xl bg-[#7e9e6c] text-white font-bold hover:bg-[#6a8b5a] transition-all shadow-md hover:shadow-lg active:scale-95"
+      >
+        <FaFileAlt />
+        Generate Reports
+      </button>
+    </div>
   </div>
 
   {/* CARDS GRID */}

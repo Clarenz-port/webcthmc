@@ -48,11 +48,8 @@ export default function BillsHistory({
     {/* MODAL HEADER */}
     <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between bg-white">
       <div className="flex items-center gap-3">
-        <div className="p-2.5 bg-[#d6ead8] text-[#7e9e6c] rounded-xl shadow-sm">
-          <FiFileText size={22} />
-        </div>
         <div>
-          <h3 className="text-xl font-bold text-gray-800">Bills History</h3>
+          <h3 className="text-xl font-bold text-[#56794a]">Bills History</h3>
         </div>
       </div><div className="h-1 w-20 bg-[#7e9e6c] rounded-full"></div>
     </div>

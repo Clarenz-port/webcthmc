@@ -14,7 +14,12 @@ const {
   countMemberLoans,
   getLoanCounts,
   getApprovedLoans,
+  getApproveLoanSchedule,
+  addLoanPayment,
 } = require("../controllers/loanController");
+// Amortization schedule for a loan (ApproveLoan model)
+router.get("/:loanId/amortization", verifyToken, getApproveLoanSchedule);
+router.post('/loanpayment/add', verifyToken, addLoanPayment);
 
 // Member routes
 router.post("/apply", verifyToken, createLoan);
@@ -41,5 +46,9 @@ router.get("/member/:id/loan-count", verifyToken, countMemberLoans);
 router.get("/loan-counts", verifyToken, allowRoles("admin", "superadmin"), getLoanCounts);
 
 router.get("/approved-loans", verifyToken, allowRoles("admin", "superadmin"), getApprovedLoans);
+
+// PDF download for loan application form
+const { generateLoanFormPDF } = require('../controllers/loanController');
+router.get('/loan/:id/form', verifyToken, generateLoanFormPDF);
 
 module.exports = router;

@@ -24,6 +24,16 @@ const loanPayment = sequelize.define("loanPayment", {
     type: DataTypes.DATEONLY, // ✅ new field
     allowNull: false,
   },
+  status: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    defaultValue: 'Paid', // Paid, Late
+  },
+  penalty: {
+    type: DataTypes.DECIMAL(12, 2),
+    allowNull: true,
+    defaultValue: 0.00,
+  },
   
 });
 

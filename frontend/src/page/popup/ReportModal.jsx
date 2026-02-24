@@ -72,11 +72,6 @@ const res = await API.post("/api/reports/generate", body, {
           className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-gray-700 outline-none focus:ring-2 focus:ring-[#7e9e6c]/20 focus:border-[#7e9e6c] transition-all cursor-pointer"
           onChange={e => setReportType(e.target.value)}
         >
-          <option value="all">All Records</option>
-          <option value="loans">Loans Report</option>
-          <option value="shares">Shares Report</option>
-          <option value="purchases">Purchases Report</option>
-          <option value="bills">Bills Report</option>
           <option value="balance">Balance Sheet</option>
           <option value="income">Income Statement</option>
           <option value="cashflow">Cash Flow</option>
@@ -95,7 +90,6 @@ const res = await API.post("/api/reports/generate", body, {
           onChange={e => setPeriod(e.target.value)} 
           disabled={reportType === "ledger"}
         >
-          <option value="all">All Time</option>
           <option value="monthly">Monthly</option>
           <option value="yearly">Yearly</option>
         </select>

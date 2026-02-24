@@ -69,66 +69,100 @@ export default function Approvedloan({ onBack }) {
     fetchApprovedLoans();
   }, []);
 
-  // compute amortization schedule similar to your provided algorithm
-  const computeSchedule = async (loan) => {
-    const principal = parseFloat(loan.loanAmount) || 0;
-    const months = parseInt(loan.duration, 10) || 0;
-    const monthlyRate = 0.02;
 
-    // Fetch payments for this loan (optional; we use to determine paid status per month)
-    let payments = [];
+  // Fetch amortization schedule from ApproveLoan model (backend endpoint)
+  const fetchApproveLoanSchedule = async (loanId, token) => {
     try {
-      const token = (localStorage.getItem("token") || "").trim();
-      const res = await axios.get(`http://localhost:8000/api/loans/${loan.id}/payments`, {
+      const res = await axios.get(`http://localhost:8000/api/loans/${loanId}/amortization`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      payments = Array.isArray(res.data) ? res.data.map((p) => parseFloat(p.amountPaid || p.amount || 0)) : [];
+      // The backend returns: [{ month, interest, penalty, balance, amortization, dueDate, status }, ...]
+      return Array.isArray(res.data) ? res.data : [];
     } catch (err) {
-      // ignore failures, we'll just compute schedule without paid info
-      console.warn("Failed to fetch payments for schedule:", err?.message || err);
+      console.error("❌ Error fetching amortization schedule:", err);
+      return [];
     }
-
-    const cumulativePaid = payments.reduce((a, b) => a + b, 0);
-    const scheduleData = [];
-    let remainingBalance = principal;
-    const approvalDate = loan.approvalDate ? new Date(loan.approvalDate) : new Date(loan.createdAt || Date.now());
-    const monthlyPrincipal = months > 0 ? principal / months : principal;
-
-    let paidSoFar = 0;
-    for (let i = 1; i <= Math.max(1, months); i++) {
-      const interestPayment = remainingBalance * monthlyRate;
-      // keep equal principal payments (simple amortization approximation used in your sample)
-      const principalPayment = monthlyPrincipal;
-      let totalPayment = principalPayment + interestPayment;
-
-      // last month adjust rounding/remaining
-      if (i === months) {
-        totalPayment = remainingBalance + interestPayment;
-      }
-
-      const status = cumulativePaid >= paidSoFar + totalPayment ? "Paid" : "Unpaid";
-
-      scheduleData.push({
-        month: i,
-        interestPayment: Number(interestPayment.toFixed(2)),
-        totalPayment: Number(totalPayment.toFixed(2)),
-        remainingBalance: Number(remainingBalance.toFixed(2)),
-        dueDate: new Date(
-          approvalDate.getFullYear(),
-          approvalDate.getMonth() + i,
-          approvalDate.getDate()
-        ),
-        status,
-      });
-
-      remainingBalance -= principalPayment;
-      paidSoFar += totalPayment;
-    }
-
-    setSchedule(scheduleData);
   };
 
-    const readCheckNumber = (loan) =>
+  // When a loan is selected, fetch the amortization schedule from ApproveLoan
+  const handleViewLoan = async (record) => {
+    setSelectedLoan(record);
+    setSchedule([]);
+    const token = (localStorage.getItem("token") || "").trim();
+    // Fetch from ApproveLoan model via backend endpoint
+    const scheduleRows = await fetchApproveLoanSchedule(record.id, token);
+    setSchedule(scheduleRows);
+  };
+
+  // compute amortization schedule similar to your provided algorithm
+  const computeSchedule = async (loan) => {
+  const principal = parseFloat(loan.loanAmount) || 0;
+  const months = parseInt(loan.duration, 10) || 0;
+  const monthlyRate = 0.02;
+
+  // Fetch payments for this loan (optional; we use to determine paid status per month)
+  let payments = [];
+  try {
+    const token = (localStorage.getItem("token") || "").trim();
+    const res = await axios.get(`http://localhost:8000/api/loans/${loan.id}/payments`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    payments = Array.isArray(res.data) ? res.data.map((p) => parseFloat(p.amountPaid || p.amount || 0)) : [];
+  } catch (err) {
+    // ignore failures, we'll just compute schedule without paid info
+    console.warn("Failed to fetch payments for schedule:", err?.message || err);
+  }
+
+  const cumulativePaid = payments.reduce((a, b) => a + b, 0);
+  const scheduleData = [];
+  let remainingBalance = principal;
+  const approvalDate = loan.approvalDate ? new Date(loan.approvalDate) : new Date(loan.createdAt || Date.now());
+  const monthlyPrincipal = months > 0 ? principal / months : principal;
+
+  let paidSoFar = 0;
+  for (let i = 1; i <= Math.max(1, months); i++) {
+    const interest = remainingBalance * monthlyRate;
+    const principalPayment = monthlyPrincipal;
+    let amortization = principalPayment + interest;
+
+    // last month adjust rounding/remaining
+    if (i === months) {
+      amortization = remainingBalance + interest;
+    }
+
+    const dueDate = new Date(
+      approvalDate.getFullYear(),
+      approvalDate.getMonth() + i,
+      approvalDate.getDate()
+    );
+
+    const now = new Date();
+    let penalty = 0;
+    // Example: add penalty if overdue and not paid
+    if (now > dueDate && cumulativePaid < paidSoFar + amortization) {
+      penalty = 200; // Set your penalty logic/amount here
+    }
+
+    const status = cumulativePaid >= paidSoFar + amortization ? "Paid" : "Unpaid";
+
+    scheduleData.push({
+      month: i,
+      interest: Number(interest.toFixed(2)),
+      penalty: Number(penalty.toFixed(2)),
+      balance: Number(remainingBalance.toFixed(2)),
+      amortization: Number(amortization.toFixed(2)),
+      dueDate,
+      status,
+    });
+
+    remainingBalance -= principalPayment;
+    paidSoFar += amortization;
+  }
+
+  setSchedule(scheduleData);
+};
+
+      const readCheckNumber = (loan) =>
     loan?.checkNumber ?? loan?.check_number ?? loan?.checkNo ?? loan?.check_no ?? loan?.check ?? "—";
 
       // generic numeric reader - returns 0 if not found / not numeric
@@ -259,10 +293,7 @@ export default function Approvedloan({ onBack }) {
                   {/* View Action Column */}
                   <td className="px-6 py-5 bg-white text-center">
                     <button
-                      onClick={() => {
-                        setSelectedLoan(record);
-                        computeSchedule(record);
-                      }}
+                      onClick={() => handleViewLoan(record)}
                       className="p-3 bg-white border border-gray-100 text-[#7e9e6c] rounded-xl hover:bg-[#7e9e6c] hover:text-white hover:border-[#7e9e6c] transition-all shadow-sm active:scale-90"
                       title="View Loan Schedule"
                     >
@@ -293,8 +324,7 @@ export default function Approvedloan({ onBack }) {
     {/* Header Section (Sticky) */}
     <div className="flex justify-between items-center px-8 py-5 border-b border-gray-100 bg-gray-50/80 sticky top-0 z-10">
       <div>
-        <h2 className="text-2xl font-bold text-gray-800">Loan Details</h2>
-        <p className="text-sm text-gray-500 mt-1">Review loan terms and amortization schedule</p>
+        <h2 className="text-2xl font-bold text-[#56794a]">Loan Details</h2>
       </div>
       <button 
         onClick={() => setSelectedLoan(null)} 
@@ -378,29 +408,35 @@ export default function Approvedloan({ onBack }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 bg-white">
-              {schedule.map((row) => (
-                <tr key={row.month} className="hover:bg-green-50/30 transition-colors">
-                  <td className="py-3 px-4 font-medium text-gray-900">{row.month}</td>
-                  <td className="py-3 px-4 text-right text-gray-600">{formatCurrency(row.interestPayment)}</td>
-                  <td className="py-3 px-4 text-right text-red-500">{formatCurrency(readPenalties(selectedLoan))}</td>
-                  <td className="py-3 px-4 text-right text-gray-700 font-medium">{formatCurrency(row.remainingBalance)}</td>
-                  <td className="py-3 px-4 text-right font-bold text-green-700 bg-green-50/30">{formatCurrency(row.totalPayment)}</td>
-                  <td className="py-3 px-4 text-center text-gray-500 text-xs">
-                    {row.dueDate ? new Date(row.dueDate).toLocaleDateString("en-PH") : "N/A"}
-                  </td>
-                  <td className="py-3 px-4 text-center">
-                    {row.status === "Paid" ? (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
-                         Paid
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200">
-                        {row.status}
-                      </span>
-                    )}
-                  </td>
+              {schedule.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="text-center py-6 text-gray-400 italic">No amortization schedule found for this loan.</td>
                 </tr>
-              ))}
+              ) : (
+                schedule.map((row) => (
+                  <tr key={row.month} className="hover:bg-green-50/30 transition-colors">
+                    <td className="py-3 px-4 font-medium text-gray-900">{row.month}</td>
+                    <td className="py-3 px-4 text-right text-gray-600">{formatCurrency(row.interest)}</td>
+                    <td className="py-3 px-4 text-right text-red-500">{formatCurrency(row.penalty)}</td>
+                    <td className="py-3 px-4 text-right text-gray-700 font-medium">{formatCurrency(row.balance)}</td>
+                    <td className="py-3 px-4 text-right font-bold text-green-700 bg-green-50/30">{formatCurrency(row.amortization)}</td>
+                    <td className="py-3 px-4 text-center text-gray-500 text-xs">
+                      {row.dueDate ? new Date(row.dueDate).toLocaleDateString("en-PH") : "N/A"}
+                    </td>
+                    <td className="py-3 px-4 text-center">
+                      {row.status === "Paid" ? (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
+                          Paid
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200">
+                          {row.status}
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

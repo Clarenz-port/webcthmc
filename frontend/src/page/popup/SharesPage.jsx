@@ -132,7 +132,7 @@ export default function SharesPage({ onBack, members = [] }) {
           <FiArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
         </button>
         <div>
-          <h2 className="text-3xl font-black text-gray-800 tracking-tight">Shares</h2>
+          <h2 className="text-3xl font-black text-gray-800 tracking-tight">Contributions and Savings</h2>
           
         </div>
       </div>
@@ -168,9 +168,9 @@ export default function SharesPage({ onBack, members = [] }) {
         <p className="text-sm text-gray-400 font-black animate-pulse uppercase tracking-widest">Synchronizing Ledger...</p>
       </div>
     ) : shares.length === 0 ? (
-      <div className="flex flex-col mt-2 rounded-t-[2rem] bg-white items-center justify-center py-20 text-gray-4  00">
+      <div className="flex flex-col mt-2 rounded-t-[2rem] bg-white items-center justify-center py-20 text-gray-400">
         <FiLayers size={64} className="mb-4 opacity-20" />
-        <p className="font-bold uppercase tracking-widest text-xs">No share transactions found</p>
+        <p className="font-bold uppercase tracking-widest text-xs">No contributions and savings transactions found</p>
       </div>
     ) : (
       <div className="bg-gray-50 rounded-t-[2rem] mt-3 overflow-x-auto">
@@ -180,7 +180,7 @@ export default function SharesPage({ onBack, members = [] }) {
               <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em]"><div className="flex items-center gap-2"><FiCalendar /> Date</div></th>
               <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em]"><div className="flex items-center gap-2"><FiUser /> Member</div></th>
               <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em]"><div className="flex items-center gap-2"><FiDollarSign /> Amount</div></th>
-              <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] border-r-0 rounded-r-2xl"><div className="flex items-center gap-2"><FiCreditCard /> Method</div></th>
+              <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] border-r-0 rounded-r-2xl"><div className="flex items-center gap-2"><FiCreditCard /> Payment</div></th>
             </tr>
           </thead>
 

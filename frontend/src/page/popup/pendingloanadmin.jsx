@@ -12,6 +12,16 @@ import {
   FiInbox,
   FiLoader 
 } from "react-icons/fi";
+import { 
+  FaTimes, 
+  FaUser, 
+  FaMapMarkerAlt, 
+  FaBullseye, 
+  FaMoneyBillWave, 
+  FaCalendarAlt, 
+  FaCheckCircle, 
+  FaTimesCircle 
+} from "react-icons/fa";
 import API from '../../apis/axios.js';
 export default function PendingLoanApplications({ onBack }) {
   const userRole = localStorage.getItem("role");
@@ -291,95 +301,146 @@ export default function PendingLoanApplications({ onBack }) {
 
       {/* Loan Details Modal */}
       {selectedLoan && (
-        <div className="fixed inset-0 bg-black/60 flex justify-center items-center z-50 px-4">
-          <div className="bg-white rounded-2xl w-full max-w-[820px] max-h-[85vh] overflow-y-auto shadow-2xl relative p-6">
-            <button
-              onClick={() => {
-                setSelectedLoan(null);
-                setCheckNumber("");
-              }}
-              className="absolute top-3 right-5 text-gray-500 hover:text-black text-3xl"
-            >
-              &times;
-            </button>
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4 py-6  transition-opacity">
+    <div className="relative w-full max-w-[850px] max-h-full overflow-hidden rounded-2xl bg-white shadow-2xl flex flex-col">
+      
+      {/* Header section (Sticky) */}
+      <div className="flex items-center justify-between border-b border-gray-100 bg-white px-6 py-4">
+        <div>
+          <h2 className="text-2xl font-extrabold text-[#56794a]">Loan Application Details</h2>
+        </div>
+        <button
+          onClick={() => {
+            setSelectedLoan(null);
+            setCheckNumber("");
+          }}
+          className="rounded-full p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700"
+        >
+          <FaTimes className="text-xl" />
+        </button>
+      </div>
 
-            <h2 className="text-2xl font-bold text-center text-[#7e9e6c] mb-4">Loan Application Details</h2>
-
-            <div className="space-y-3 text-gray-700">
-              <p><strong>Member:</strong> {selectedLoan.memberName}</p>
-              <p><strong>Address:</strong> {selectedLoan.address}</p>
-              <p><strong>Purpose:</strong> {selectedLoan.purpose}</p>
-              <p><strong>Loan Amount:</strong> {formatCurrency(selectedLoan.loanAmount)}</p>
-              <p><strong>Duration:</strong> {selectedLoan.duration} months</p>
-              <p><strong>Start Month:</strong> {selectedLoan.startMonth}</p>
-              <p><strong>End Month:</strong> {selectedLoan.endMonth}</p>
-
-              <hr className="my-3" />
-
-              <h3 className="text-xl font-bold text-[#56794a] mb-2">Amortization Schedule</h3>
-
-              <div className="overflow-auto">
-                <table className="w-full border-collapse text-sm">
-                  <thead>
-                    <tr className="bg-[#f4f9f4] text-[#56794a] border-b">
-                      <th className="py-2 px-2 text-left">Month</th>
-                      <th className="py-2 px-2 text-right">Interest</th>
-                      <th className="py-2 px-2 text-right">Balance</th>
-                      <th className="py-2 px-2 text-right">Amortization</th>
-                      <th className="py-2 px-2 text-center">Due Date</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {schedule.map((row) => (
-                      <tr key={row.month} className="border-b ">
-                        <td className="py-1 px-2">{row.month}</td>
-                        <td className="py-1 px-2 text-right">{formatCurrency(row.interestPayment)}</td>
-                        <td className="py-1 px-2 text-right">{formatCurrency(row.remainingBalance)}</td>
-                        <td className="py-1 px-2 text-right">{formatCurrency(row.totalPayment)}</td>
-                        <td className="py-1 px-2 text-center">{row.dueDate ? new Date(row.dueDate).toLocaleDateString("en-PH") : "N/A"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Check number input (required before approve) */}
-              {isSuperAdmin && (
-                <div className="mt-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Check Number (required to approve)</label>
-                  <input
-                    type="text"
-                    value={checkNumber}
-                    onChange={(e) => setCheckNumber(e.target.value)}
-                    placeholder="Enter check number"
-                    className="w-full border px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-green-200"
-                  />
-                </div>
-              )}
-
-              {isSuperAdmin ? (
-                <div className="flex justify-center mt-6 space-x-4">
-                  <button
-                    onClick={() => handleApprove(selectedLoan.id)}
-                    className="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700"
-                  >
-                    Approve
-                  </button>
-
-                  <button
-                    onClick={() => handleReject(selectedLoan.id)}
-                    className="bg-red-600 text-white px-6 py-2 rounded hover:bg-red-700"
-                  >
-                    Reject
-                  </button>
-                </div>
-              ) : (
-                <p className="text-center text-red-600 font-semibold mt-4">Only SuperAdmins can approve or reject loans.</p>
-              )}
+      {/* Scrollable Content Body */}
+      <div className="overflow-y-auto px-6 py-5 custom-scrollbar">
+        
+        {/* Loan Details Grid */}
+        <div className="grid grid-cols-1 gap-4 rounded-xl border border-gray-100 bg-gray-50 p-5 md:grid-cols-2">
+          <div className="flex items-start gap-3">
+            <FaUser className="mt-1 text-[#7e9e6c]" />
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">Member Name</p>
+              <p className="text-base font-medium text-gray-900">{selectedLoan.memberName}</p>
             </div>
           </div>
+          
+          <div className="flex items-start gap-3">
+            <FaMapMarkerAlt className="mt-1 text-[#7e9e6c]" />
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">Address</p>
+              <p className="text-base font-medium text-gray-900">{selectedLoan.address}</p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3">
+            <FaBullseye className="mt-1 text-[#7e9e6c]" />
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">Purpose</p>
+              <p className="text-base font-medium text-gray-900">{selectedLoan.purpose}</p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3">
+            <FaMoneyBillWave className="mt-1 text-[#7e9e6c]" />
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">Loan Amount</p>
+              <p className="text-lg font-bold text-green-700">{formatCurrency(selectedLoan.loanAmount)}</p>
+            </div>
+          </div>
+
+          <div className="col-span-1 md:col-span-2 mt-2 flex flex-wrap gap-4 border-t border-gray-200 pt-4">
+            <div className="flex items-center gap-2 rounded-lg bg-white px-3 py-1.5 shadow-sm border border-gray-100">
+              <FaCalendarAlt className="text-[#7e9e6c]" />
+              <span className="text-sm text-gray-600"><strong>Duration:</strong> {selectedLoan.duration} months</span>
+            </div>
+
+          </div>
         </div>
-      )}
+
+        {/* Amortization Table */}
+        <div className="mt-8">
+          <h3 className="mb-3 text-lg font-bold text-[#56794a]">Amortization Schedule</h3>
+          <div className="overflow-hidden rounded-xl border border-gray-200 shadow-sm">
+            <table className="w-full border-collapse text-left text-sm">
+              <thead className="bg-[#f4f9f4] text-[#56794a]">
+                <tr>
+                  <th className="px-4 py-3 font-semibold">Month</th>
+                  <th className="px-4 py-3 text-center font-semibold">Interest</th>
+                  <th className="px-4 py-3 text-center font-semibold">Balance</th>
+                  <th className="px-4 py-3 text-center font-semibold">Amortization</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 bg-white">
+                {schedule.map((row) => (
+                  <tr key={row.month} className="transition-colors hover:bg-gray-50">
+                    <td className="px-4 py-2.5 font-medium text-gray-700">{row.month}</td>
+                    <td className="px-4 py-2.5 text-center text-gray-600">{formatCurrency(row.interestPayment)}</td>
+                    <td className="px-4 py-2.5 text-center text-gray-600">{formatCurrency(row.remainingBalance)}</td>
+                    <td className="px-4 py-2.5 text-center font-medium text-gray-800">{formatCurrency(row.totalPayment)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer / Action Area (Sticky Bottom) */}
+      <div className="border-t border-gray-100 bg-gray-50 px-6 py-4">
+        {isSuperAdmin ? (
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+            <div className="flex-1 max-w-sm">
+              <label className="mb-1.5 block text-sm font-semibold text-gray-700">
+                Check Number <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={checkNumber}
+                onChange={(e) => setCheckNumber(e.target.value)}
+                placeholder="Required for approval"
+                className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-800 transition-all focus:border-[#7e9e6c] focus:outline-none focus:ring-2 focus:ring-[#7e9e6c]/20"
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => handleReject(selectedLoan.id)}
+                className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-5 py-2.5 text-sm font-semibold text-red-700 transition-all hover:bg-red-100 hover:border-red-300 focus:ring-4 focus:ring-red-100"
+              >
+                <FaTimesCircle />
+                Reject
+              </button>
+              
+              <button
+                onClick={() => handleApprove(selectedLoan.id)}
+                className="flex items-center gap-2 rounded-lg bg-[#56794a] px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-[#46633c] focus:ring-4 focus:ring-[#7e9e6c]/30"
+              >
+                <FaCheckCircle />
+                Approve
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-lg bg-amber-50 p-3 text-center border border-amber-200">
+            <p className="text-sm font-medium text-amber-800">
+              Only Super Admins have permission to approve or reject loans.
+            </p>
+          </div>
+        )}
+      </div>
+
+    </div>
+  </div>
+)}
     </div>
   );
 }

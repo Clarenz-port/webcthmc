@@ -92,7 +92,7 @@ export default function Sidebar({ onNavigate = () => {} }) {
               {subItem("Pending Loans", "pendingLoans")}
               {subItem("Approved Loans", "approvedLoan")}
               {subItem("Due Dates", "totalloan")}
-              {subItem("Shares", "shares")}
+              {subItem("Savings", "shares")}
             </div>
 
             {headerItem("Users", <FaUsers />)}

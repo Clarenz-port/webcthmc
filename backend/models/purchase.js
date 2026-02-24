@@ -33,6 +33,16 @@ const Purchase = sequelize.define(
       allowNull: false,
       defaultValue: 0.0,
     },
+     cost: {
+      type: DataTypes.DECIMAL(12, 2),
+      allowNull: false,
+      defaultValue: 0.0,
+    },
+    income: {
+      type: DataTypes.DECIMAL(12, 2),
+      allowNull: false,
+      defaultValue: 0.0,
+    },
     total: {
       type: DataTypes.DECIMAL(12, 2),
       allowNull: false,

@@ -28,24 +28,41 @@ exports.createPurchase = async (req, res) => {
       return res.status(400).json({ message: "Missing member id" });
     }
 
-    // Normalize items and compute subtotal
+
+    // Normalize items and compute subtotal, cost, and income
+
     let computedSubtotal = 0;
+    let computedCost = 0;
+    let computedIncome = 0;
     const normalizedItems = items.map((it) => {
       const qty = Number(it.qty) || 0;
       const unitPrice = Number(it.unitPrice) || 0;
+      const costOfSale = Number(it.costOfSale) || 0;
       const lineTotal = Number((qty * unitPrice).toFixed(2));
+      const lineCost = Number((qty * costOfSale).toFixed(2));
+      const income = unitPrice - costOfSale;
+      const lineIncome = Number((income * qty).toFixed(2));
       computedSubtotal += lineTotal;
+      computedCost += lineCost;
+      computedIncome += lineIncome;
       return {
         name: it.name ?? "Item",
         qty,
         unitPrice: Number(unitPrice.toFixed(2)),
+        costOfSale: Number(costOfSale.toFixed(2)),
         lineTotal,
+        lineCost,
+        income: Number(income.toFixed(2)),
+        lineIncome,
       };
     });
 
     const validatedSubtotal = (typeof bodySubtotal === "number" && !Number.isNaN(bodySubtotal))
       ? Number(bodySubtotal.toFixed(2))
       : Number(computedSubtotal.toFixed(2));
+
+    const validatedCost = Number(computedCost.toFixed(2));
+    const validatedIncome = Number(computedIncome.toFixed(2));
 
     const oneMonth = isOneMonthMethod(paymentMethod);
     const validatedSurcharge = (typeof bodySurcharge === "number" && !Number.isNaN(bodySurcharge))
@@ -59,12 +76,13 @@ exports.createPurchase = async (req, res) => {
     const status = oneMonth ? "not paid" : "paid";
 
     const purchase = await Purchase.create({
-
       userId: String(memberId),
       memberName: memberName ?? (requester ? `${requester.firstName ?? ""} ${requester.lastName ?? ""}`.trim() : null),
       items: normalizedItems,
       subtotal: validatedSubtotal,
       surcharge: validatedSurcharge,
+      cost: validatedCost,
+      income: validatedIncome,
       total: validatedTotal,
       dueDate: dueDate ?? (oneMonth ? new Date(Date.now() + 30 * 24 * 3600 * 1000) : null),
       paymentMethod: paymentMethod ?? "cash",

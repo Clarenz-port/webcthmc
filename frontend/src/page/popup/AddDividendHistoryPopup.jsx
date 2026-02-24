@@ -17,12 +17,8 @@ export default function AddDividendHistoryPopup({ isOpen, onClose, rows = [], lo
     {/* Header Section */}
     <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between bg-white shrink-0">
       <div className="flex items-center gap-3">
-        <div className="p-2.5 bg-[#d6ead8] text-[#7e9e6c] rounded-xl">
-          {/* Ensure you have FiGift or FiPieChart imported */}
-          <FiGift size={22} />
-        </div>
         <div>
-          <h3 className="text-xl font-bold text-gray-800">Dividend History</h3>
+          <h3 className="text-xl font-bold text-[#56794a]">Dividend History</h3>
         </div>
       </div>
       <div className="h-1 w-20 bg-[#7e9e6c] rounded-full hidden sm:block"></div>

@@ -109,10 +109,15 @@ export default function Configuration({ onBack }) {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await API.put("/api/config", {
-        siteName,
-        logo: logoPreview,
-      });
+      const token = localStorage.getItem("token");
+      await API.put(
+        "/api/config",
+        {
+          siteName,
+          logo: logoPreview,
+        },
+        token ? { headers: { Authorization: `Bearer ${token}` } } : undefined
+      );
       notify.success("Configuration saved");
     } catch (err) {
       notify.error("Failed to save configuration");
@@ -125,7 +130,12 @@ export default function Configuration({ onBack }) {
   const handleClearLogo = async () => {
     setLogoPreview(null);
     try {
-      await API.put("/api/config", { siteName, logo: null });
+      const token = localStorage.getItem("token");
+      await API.put(
+        "/api/config",
+        { siteName, logo: null },
+        token ? { headers: { Authorization: `Bearer ${token}` } } : undefined
+      );
       notify.success("Logo removed");
     } catch {
       notify.error("Failed to remove logo");

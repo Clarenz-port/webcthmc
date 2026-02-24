@@ -19,7 +19,15 @@ const Shares = sequelize.define("Shares", {
     type: DataTypes.ENUM("GCash", "Cash"),
     allowNull: false,
     defaultValue: "Cash"
-  }
+  },
+  note: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  loanId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+  },
 });
 
 module.exports = Shares;

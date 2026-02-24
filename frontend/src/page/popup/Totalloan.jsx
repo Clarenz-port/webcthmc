@@ -388,7 +388,6 @@ export default function Duedate({ onBack, onView }) {
             <tr className="text-gray-400">
               <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-left"><div className="flex items-center gap-2"><FiUser /> Member</div></th>
               <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-left"><div className="flex items-center gap-2"><FiActivity /> Type</div></th>
-              <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-left">Payable Amount</th>
               <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-left">Due Status</th>
               <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-center">Action</th>
             </tr>
@@ -409,21 +408,12 @@ export default function Duedate({ onBack, onView }) {
 
                   {/* Type Column */}
                   <td className={`px-6 py-4 bg-white`}>
-                    <span className={`text-[10px] font-black px-2 py-1 rounded-md uppercase tracking-tighter ${record.type === 'Purchase' ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'}`}>
+                    <span className={`text-[11px] font-black px-2 py-1 rounded-md uppercase tracking-tighter ${record.type === 'Purchase' ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'}`}>
                       {record.type}
                     </span>
                     <div className="text-[10px] font-bold text-gray-400 mt-1 italic">
-                      {record.type === "Purchase"
-                        ? `Bal: ${formatCurrency(record.total)}`
-                        : `Princ: ${formatCurrency(record.loanAmount)}`}
+                      {record.type === "Purchase"}
                     </div>
-                  </td>
-
-                  {/* Pay Amount Column */}
-                  <td className={`px-6 py-4 bg-white`}>
-                    <span className="text-sm font-black text-gray-700 font-mono">
-                      {formatCurrency(record.payAmount)}
-                    </span>
                   </td>
 
                   {/* Next Due Column */}

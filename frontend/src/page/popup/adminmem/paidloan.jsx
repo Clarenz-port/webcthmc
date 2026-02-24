@@ -41,23 +41,24 @@ export default function PaidLoanPopup({ isOpen, onClose, member, onUpdateLoan })
     const bal1 = parseFloat(loan.remainbalance) || 0;
     const newba = parseFloat(loan.loanball) || 0;
     const remainingPayments = months - (loan.paymentsMade || 0);
-
     const principalPayment = principal / months;
-    const interest =
-      remainingPayments === months ? principal * monthlyRate : newba * monthlyRate;
-
+    const interest = remainingPayments === months ? principal * monthlyRate : newba * monthlyRate;
     const amortization = principalPayment + interest;
-    const amountToPay =
-      remainingPayments === 1 ? parseFloat(loan.remainbalance).toFixed(2) : amortization.toFixed(2);
-    setPaidAmount(amountToPay);
-
-    // Use Manila now for paymentDate
+    const paymentsCount = (loan.paymentsMade || 0) + 1;
+    const createdAt = loan.createdAt ? new Date(loan.createdAt) : new Date();
+    const nextDue = new Date(createdAt.getTime() + paymentsCount * 3 * 60 * 1000);
     const manilaNow = getManilaNow();
-    const manilaIso = manilaNow.toISOString(); // ISO representing the Manila-local instant
-    setPaymentDate(manilaIso);
-
-    const nextDue = loan.dueDate;
-    setDueDate(nextDue);
+    let penalty = 0;
+    // If payment is after nextDue + 3min grace period, add penalty
+    const graceDue = new Date(nextDue.getTime() + 3 * 60 * 1000);
+    if (manilaNow > graceDue) {
+      penalty = parseFloat((newba * 0.01).toFixed(2));
+    }
+    const amountToPay = (remainingPayments === 1 ? parseFloat(loan.remainbalance) : amortization) + penalty;
+    setPaidAmount(amountToPay.toFixed(2));
+    // Use Manila now for paymentDate
+    setPaymentDate(manilaNow.toISOString());
+    setDueDate(nextDue.toISOString());
   }, [isOpen, member]);
 
   if (!isOpen) return null;
@@ -71,13 +72,11 @@ export default function PaidLoanPopup({ isOpen, onClose, member, onUpdateLoan })
     try {
       const token = localStorage.getItem("token");
 
-      // Compute next due based on current stored loan.dueDate (adjust with Manila offset)
-      const currentDue = member?.loan?.dueDate ? new Date(member.loan.dueDate) : new Date();
-      // If your DB stores UTC and you want Manila, add +8h
-      const currentDueManila = new Date(currentDue.getTime() + 8 * 60 * 60 * 1000);
-      const nextDue = new Date(currentDueManila);
-      nextDue.setMonth(currentDueManila.getMonth() + 1);
 
+      // Compute next due date: add (paymentsMade + 1) * 3 minutes to loan.createdAt directly
+      const createdAt = member?.loan?.createdAt ? new Date(member.loan.createdAt) : new Date();
+      const paymentsCount = (member?.loan?.paymentsMade || 0) + 1;
+      const nextDue = new Date(createdAt.getTime() + paymentsCount * 3 * 60 * 1000);
       const formattedNextDue = nextDue.toISOString();
 
       const res = await axios.post(
@@ -87,7 +86,7 @@ export default function PaidLoanPopup({ isOpen, onClose, member, onUpdateLoan })
           loanId: member.loan.id,
           amountPaid: parseFloat(paidAmount),
           paymentDate: paymentDate, // already Manila ISO
-          dueDate: formattedNextDue, // Manila ISO
+          duedate: formattedNextDue, // Manila ISO
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );

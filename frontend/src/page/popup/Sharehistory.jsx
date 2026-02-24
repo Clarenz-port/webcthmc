@@ -35,11 +35,8 @@ export default function Sharehistory({ isOpen, onClose, rows = [], loading = fal
     {/* Modal Header */}
     <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-white">
       <div className="flex items-center gap-3">
-        <div className="p-2 bg-[#d6ead8] rounded-lg text-[#7e9e6c]">
-          <FiTrendingUp size={24} />
-        </div>
         <div>
-          <h3 className="text-xl font-bold text-gray-800">Shares History</h3>
+          <h3 className="text-xl font-bold text-[#56794a]">Shares History</h3>
         </div>
         
       </div><div className="h-1 w-20 bg-[#7e9e6c] rounded-full"></div>
@@ -77,6 +74,9 @@ export default function Sharehistory({ isOpen, onClose, rows = [], loading = fal
                     <FiCreditCard/> Method
                   </div>
                 </th>
+                <th className="px-4 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                  Note
+                </th>
                 <th className="px-4 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">
                   Amount
                 </th>
@@ -88,6 +88,7 @@ export default function Sharehistory({ isOpen, onClose, rows = [], loading = fal
                 const rawDate = r.date ?? r.createdAt ?? r.created_at ?? r.transaction_date;
                 const paymentMethod = r.paymentMethod ?? r.method ?? r.mode ?? r.channel ?? "—";
                 const amt = r.shareamount ?? r.shareAmount ?? r.amount ?? r.value ?? 0;
+                const note = r.note ?? "";
 
                 return (
                   <tr 
@@ -101,6 +102,9 @@ export default function Sharehistory({ isOpen, onClose, rows = [], loading = fal
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 group-hover:bg-white group-hover:shadow-sm transition-all border border-transparent group-hover:border-gray-100">
                         {String(paymentMethod)}
                       </span>
+                    </td>
+                    <td className="px-4 py-4 text-xs text-gray-500 font-medium max-w-[120px] truncate">
+                      {note}
                     </td>
                     <td className="px-4 py-4 text-sm text-right font-bold text-[#7e9e6c]">
                       {fmtMoney(amt)}

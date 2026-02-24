@@ -1,4 +1,6 @@
+
 const SiteConfig = require('../models/siteConfig');
+const { logActivity } = require("../utils/activityLogger");
 
 // Get current site config
 exports.getConfig = async (req, res) => {
@@ -12,6 +14,7 @@ exports.getConfig = async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch config' });
   }
 };
+
 
 // Update site config (logo and/or name)
 exports.updateConfig = async (req, res) => {
@@ -30,13 +33,46 @@ exports.updateConfig = async (req, res) => {
     }
 
     let config = await SiteConfig.findOne();
+    let oldSiteName = config ? config.siteName : undefined;
+    let oldLogo = config ? config.logo : undefined;
+    let changedFields = [];
+
     if (!config) {
       config = await SiteConfig.create({ siteName, logo });
+      if (siteName !== undefined) changedFields.push("siteName");
+      if (logo !== undefined) changedFields.push("logo");
     } else {
-      if (siteName !== undefined) config.siteName = siteName;
-      if (logo !== undefined) config.logo = logo;
+      if (siteName !== undefined && siteName !== config.siteName) {
+        changedFields.push("siteName");
+        config.siteName = siteName;
+      }
+      if (logo !== undefined && logo !== config.logo) {
+        changedFields.push("logo");
+        config.logo = logo;
+      }
       await config.save();
     }
+
+    // Log activity if any field changed
+    if (changedFields.length > 0) {
+      const userId = req.user ? req.user.id : null;
+      const role = req.user ? req.user.role : null;
+      let details = {};
+      if (changedFields.includes("siteName")) {
+        details.siteName = { from: oldSiteName, to: siteName };
+      }
+      if (changedFields.includes("logo")) {
+        details.logo = { from: oldLogo ? "[set]" : null, to: logo ? "[set]" : null };
+      }
+      await logActivity({
+        userId,
+        role,
+        action: `Updated site configuration (${changedFields.join(", ")})`,
+        details,
+        ip: req.ip || null,
+      });
+    }
+
     res.json({ success: true, config });
   } catch (err) {
     res.status(500).json({ error: 'Failed to update config' });

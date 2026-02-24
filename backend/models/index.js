@@ -1,9 +1,12 @@
+const ApproveLoan = require("../models/approveloan");
 const Purchase = require("../models/purchase");
 const Shares = require("../models/shares");
 const Loan = require("../models/loans");
 const User = require("../models/users");
 const Bill = require("../models/billPayment");
 const ActivityLog = require("../models/activityLog");
+const Dividend = require("../models/dividend");
+const loanpay = require("../models/loanpay");
 
 Shares.belongsTo(User, {
   foreignKey: "userId",
@@ -55,4 +58,7 @@ module.exports = {
   Purchase,
   Bill,
   ActivityLog,
+  Dividend,
+  loanpay,
+  ApproveLoan,
 };

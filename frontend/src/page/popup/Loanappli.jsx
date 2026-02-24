@@ -1,6 +1,8 @@
 // src/page/popup/LoanApplication.jsx
 import React, { useEffect, useState } from "react";
 
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import { FiEye} from "react-icons/fi";
 import { FaArrowLeft } from "react-icons/fa";
 import API from '../../apis/axios.js';
@@ -11,6 +13,48 @@ export default function LoanApplication({ onBack, memberId = null, memberName = 
   const [schedule, setSchedule] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const handleDownloadPDF = () => {
+  if (!selectedLoan) return;
+
+  const doc = new jsPDF();
+
+  // Title
+  doc.setFontSize(18);
+  doc.text("Loan Application Details", 14, 16);
+
+  // Member Info
+  doc.setFontSize(12);
+  doc.text(`Member Name: ${selectedLoan.memberName || "N/A"}`, 14, 28);
+  doc.text(`Address: ${selectedLoan.address || "N/A"}`, 14, 36);
+
+  // Purpose
+  doc.text(`Purpose: ${selectedLoan.purpose || "N/A"}`, 14, 44);
+  doc.text(`Amount: ${selectedLoan.loanAmount || "N/A"}`, 14, 52);
+
+  // Agreement
+  doc.setFontSize(14);
+  doc.text("Agreement:", 14, 62);
+  doc.setFontSize(12);
+  doc.text(
+    `           I hereby promise to pay Carmona Townhomes Homeowners Multi-purpose Cooperative the sum of ${selectedLoan.loanAmount || "N/A"} pesos for ${selectedLoan.duration || "N/A"} month(s) starting next month ${selectedLoan.startMonth || "N/A"} to ${selectedLoan.endMonth || "N/A"}.`,
+    14,
+    72,
+    { maxWidth: 180 }
+  );
+
+  // Amortization Details
+  doc.setFontSize(14);
+  doc.text("Amortization Details:", 14, 95);
+  doc.setFontSize(12);
+  doc.text(`2% Loan Interest: ${(selectedLoan.interest || 0)}`, 14, 114);
+  doc.text(`2% Service Charge: ${(selectedLoan.serviceCharge || 0)}`, 14, 122);
+  doc.text(`1% Filing Fee: ${(selectedLoan.filingFee || 0)}`, 14, 130);
+  doc.text(`2% Capital Build-Up: ${(selectedLoan.capitalBuildUp || 0)}`, 14, 138);
+  doc.text(`Net Amount: ${(selectedLoan.netAmount || 0)}`, 14, 146);
+
+  doc.save("LoanApplication.pdf");
+};
 
   // helper: currency
   const formatCurrency = (num) =>
@@ -104,60 +148,18 @@ export default function LoanApplication({ onBack, memberId = null, memberName = 
 
   // compute amortization schedule for a loan
   const computeSchedule = async (loan) => {
-    const principal = parseFloat(loan.loanAmount) || 0;
-    const months = parseInt(loan.duration) || 0;
-    const monthlyRate = 0.02; // 2% monthly
-
-    // Fetch payments for this loan
-    let payments = [];
-    try {
-      const token = localStorage.getItem("token");
-      const res = await API.get(`/api/loans/${loan.id}/payments`, {
-        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-      });
-      if (Array.isArray(res.data)) payments = res.data;
-      else if (Array.isArray(res.data?.payments)) payments = res.data.payments;
-    } catch (err) {
-      console.warn("Failed to fetch payments:", err);
-    }
-
-    const paymentsNums = payments.map((p) => parseFloat(p.amountPaid ?? p.amount ?? 0) || 0);
-    const cumulativePaid = paymentsNums.reduce((a, b) => a + b, 0);
-
-    const scheduleData = [];
-    let remainingBalance = principal;
-    const approvalDate = loan.approvalDate ? new Date(loan.approvalDate) : new Date(loan.createdAt || Date.now());
-    const monthlyPrincipal = months > 0 ? principal / months : principal;
-
-    let paidSoFar = 0;
-    for (let i = 1; i <= Math.max(1, months); i++) {
-      const interestPayment = remainingBalance * monthlyRate;
-      let principalPayment = monthlyPrincipal;
-      let totalPayment = principalPayment + interestPayment;
-
-      if (i === months) {
-        totalPayment = remainingBalance + interestPayment;
-        principalPayment = remainingBalance;
-      }
-
-      const status = cumulativePaid >= paidSoFar + totalPayment ? "Paid" : "Unpaid";
-
-      scheduleData.push({
-        month: i,
-        interestPayment: Number(interestPayment.toFixed(2)),
-        totalPayment: Number(totalPayment.toFixed(2)),
-        remainingBalance: Number(remainingBalance.toFixed(2)),
-        dueDate: new Date(approvalDate.getFullYear(), approvalDate.getMonth() + i, approvalDate.getDate()),
-        status,
-      });
-
-      remainingBalance -= principalPayment;
-      paidSoFar += totalPayment;
-    }
-
-    setSchedule(scheduleData);
+  try {
+    const token = localStorage.getItem("token");
+    const res = await API.get(`/api/loans/${loan.id}/amortization`, {
+      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    });
+    setSchedule(Array.isArray(res.data) ? res.data : []);
     setSelectedLoan(loan);
-  };
+  } catch (err) {
+    setSchedule([]);
+    setSelectedLoan(loan);
+  }
+};
 
   // allow parent to update loan in this list
   const handleLoanUpdateLocal = (updatedLoan) => {
@@ -208,7 +210,7 @@ export default function LoanApplication({ onBack, memberId = null, memberName = 
   {/* Header Section */}
   <div className="flex items-center justify-between mb-8">
     <div>
-      <h3 className="text-2xl font-extrabold text-gray-800 tracking-tight">Loan History</h3>
+      <h3 className="text-2xl font-extrabold text-[#56794a] tracking-tight">Loan History</h3>
     </div>
     <div className="h-1 w-20 bg-[#7e9e6c] rounded-full"></div>
   </div>
@@ -298,15 +300,15 @@ export default function LoanApplication({ onBack, memberId = null, memberName = 
 
       {/* Loan Details Modal */}
       {selectedLoan && (
-        <div className="fixed inset-0 flex justify-center items-center z-50 px-4 transition-opacity duration-300">
+        <div className="fixed inset-0 flex bg-black/20 justify-center items-center z-50 px-4 transition-opacity duration-300">
   {/* Modal Container */}
   <div className="bg-white rounded-2xl w-full max-w-5xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden relative animate-in fade-in zoom-in-95 duration-200">
     
     {/* Header Section (Sticky) */}
     <div className="flex justify-between items-center px-8 py-5 border-b border-gray-100 bg-gray-50/80 sticky top-0 z-10">
-      <div>
-        <h2 className="text-2xl font-bold text-gray-800">Loan Details</h2>
-        <p className="text-sm text-gray-500 mt-1">Review loan terms and amortization schedule</p>
+      <div className="flex items-center gap-4">
+        <h2 className="text-2xl font-bold text-[#56794a]">Loan Details</h2>
+       
       </div>
       <button 
         onClick={() => setSelectedLoan(null)} 
@@ -389,34 +391,55 @@ export default function LoanApplication({ onBack, memberId = null, memberName = 
                 <th className="py-3 px-4 text-center font-semibold">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 bg-white">
-              {schedule.map((row) => (
-                <tr key={row.month} className="hover:bg-green-50/30 transition-colors">
-                  <td className="py-3 px-4 font-medium text-gray-900">{row.month}</td>
-                  <td className="py-3 px-4 text-right text-gray-600">{formatCurrency(row.interestPayment)}</td>
-                  <td className="py-3 px-4 text-right text-red-500">{formatCurrency(readPenalties(selectedLoan))}</td>
-                  <td className="py-3 px-4 text-right text-gray-700 font-medium">{formatCurrency(row.remainingBalance)}</td>
-                  <td className="py-3 px-4 text-right font-bold text-green-700 bg-green-50/30">{formatCurrency(row.totalPayment)}</td>
-                  <td className="py-3 px-4 text-center text-gray-500 text-xs">
-                    {row.dueDate ? new Date(row.dueDate).toLocaleDateString("en-PH") : "N/A"}
-                  </td>
-                  <td className="py-3 px-4 text-center">
-                    {row.status === "Paid" ? (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
-                         Paid
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200">
-                        {row.status}
-                      </span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
+           <tbody className="divide-y divide-gray-100 bg-white">
+  {schedule.map((row, idx) => (
+    <tr key={row.month || idx} className="hover:bg-green-50/30 transition-colors">
+      <td className="py-3 px-4 font-medium text-gray-900">{row.month}</td>
+      <td className="py-3 px-4 text-right text-gray-600">{formatCurrency(row.interest ?? row.interestPayment)}</td>
+      <td className="py-3 px-4 text-right text-red-500">{formatCurrency(row.penalty ?? 0)}</td>
+      <td className="py-3 px-4 text-right text-gray-700 font-medium">{formatCurrency(row.balance ?? row.remainingBalance)}</td>
+      <td className="py-3 px-4 text-right font-bold text-green-700 bg-green-50/30">{formatCurrency(row.amortization ?? row.totalPayment)}</td>
+      <td className="py-3 px-4 text-center text-gray-500 text-xs">
+        {row.dueDate ? new Date(row.dueDate).toLocaleDateString("en-PH") : "N/A"}
+      </td>
+      <td className="py-3 px-4 text-center">
+        {row.status === "Paid" ? (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
+            Paid
+          </span>
+        ) : (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200">
+            {row.status}
+          </span>
+        )}
+      </td>
+    </tr>
+  ))}
+</tbody>
           </table>
         </div>
-      </div>
+      </div> 
+      {/* Download Form Button: Only show if user is member */}
+        {(() => {
+          const role = localStorage.getItem("role");
+          if (role === "member") {
+            return (
+            <button
+  className="mt-3 px-4 py-2 bg-[#7e9e6c] text-white rounded-lg shadow-sm hover:bg-[#46633c] transition-all text-sm font-semibold flex items-center gap-2"
+  onClick={handleDownloadPDF}
+  title="Download Loan Form"
+  disabled={selectedLoan?.status === "Pending"}
+  style={selectedLoan?.status === "Pending" ? { opacity: 0.5, cursor: "not-allowed" } : {}}
+>
+  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v16h16V4H4zm4 8v4m0 0l4-4m-4 4l-4-4" />
+  </svg>
+  Download Form
+</button>
+            );
+          }
+          return null;
+        })()}
       
     </div>
   </div>

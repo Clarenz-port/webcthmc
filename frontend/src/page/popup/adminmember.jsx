@@ -1,5 +1,15 @@
+// Helper to format date as MM/DD/YYYY or locale string
+  const formatDate = (date) => {
+    if (!date) return "-";
+    const d = new Date(date);
+    if (isNaN(d)) return "-";
+    return d.toLocaleDateString();
+  };
 import React, { useState, useEffect } from "react";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import { notify } from "../../utils/toast";
+import API from '../../apis/axios.js';
 import { 
   FiArrowLeft, FiFilter, FiTrendingUp, FiPieChart, 
   FiCreditCard, FiShoppingBag, FiActivity, FiExternalLink, FiCalendar 
@@ -48,11 +58,17 @@ export default function MemberDetails({ member, onBack, openAction }) {
   const [loading, setLoading] = useState(true);
   const [totalLoans, setTotalLoans] = useState(0);
 
+  const [payModal, setPayModal] = useState({ open: false, row: null });
+  const [processingPayment, setProcessingPayment] = useState(false);
+
   const [purchases, setPurchases] = useState([]);
   const [loadingPurchases, setLoadingPurchases] = useState(true);
   const [selectedPurchase, setSelectedPurchase] = useState(null);
   const [selectedPurchase1, setSelectedPurchase1] = useState(null);
   const [processingPayId, setProcessingPayId] = useState(null);
+
+  const [schedule, setSchedule] = useState([]);
+  const [loadingSchedule, setLoadingSchedule] = useState(false);
 
   const [bills, setBills] = useState([]);
   const [loadingBills, setLoadingBills] = useState(true);
@@ -84,28 +100,91 @@ const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
 const [availableYears, setAvailableYears] = useState([]);
 // add near other buttons inside the Actions block
 const [loadingReport, setLoadingReport] = useState(false);
+const allLoaded = !loading && !loadingPurchases && !loadingBills && !loadingShares && !loadingDividends;
 
 const downloadMemberReport = async () => {
   setLoadingReport(true);
   try {
-    const token = localStorage.getItem("token");
-    const body = { reportType: "member_ledger", period: "all", memberId: member.id };
-    const res = await axios.post("/api/reports/generate", body, {
-      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-      responseType: "blob",
+    const doc = new jsPDF();
+    let lastY = 25;
+    // Shares Table
+    doc.text("Shares", 14, 20);
+    autoTable(doc, {
+      startY: lastY ,
+      head: [["Date", "Share Amount", "Payment Method", "Note"]],
+      body: (shareRows || []).map(s => [
+        s.date ? new Date(s.date).toLocaleDateString() : "-",
+        s.shareamount ?? 0,
+        s.paymentMethod ?? "-",
+        s.note ?? ""
+      ])
     });
-    const url = window.URL.createObjectURL(new Blob([res.data]));
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `member-ledger-${member.id}-${Date.now()}.pdf`;
-    link.click();
+    lastY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 10 : lastY + 40;
+    doc.text("Loans", 14, lastY);
+    autoTable(doc, {
+      startY: lastY + 5,
+      head: [["Date", "Loan Amount", "Amortization", "Balance", "Interest", "Service Charge", "Filing Fee", "Capital Buildup"]],
+      body: (loanHistory || []).map(l => [
+        l.approvalDate ? new Date(l.approvalDate).toLocaleDateString() : "-",
+        l.loanAmount ?? 0,
+        l.amortization ?? 0,
+        l.loanAmount ?? 0,
+        l.interest ?? 0,
+        l.serviceCharge ?? 0,
+        l.filingFee ?? 0,
+        l.capitalBuildUp ?? 0
+      ])
+    });
+    lastY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 10 : lastY + 40;
+    doc.text("Purchases", 14, lastY);
+    autoTable(doc, {
+      startY: lastY + 5,
+      head: [["Date", "Items", "Total Cost", "Total Income", "Total"]],
+      body: (purchases || []).map(p => [
+        p.created_at ? new Date(p.created_at).toLocaleDateString() : "-",
+        (p.items || []).map(it => `${it.name ?? "Item"} x${it.qty ?? 1}`).join(", "),
+        p.cost ?? 0,
+        p.income ?? 0,
+        p.total ?? 0
+      ])
+    });
+    lastY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 10 : lastY + 40;
+    doc.text("Bills Pay", 14, lastY);
+    autoTable(doc, {
+      startY: lastY + 5,
+      head: [["Date", "Bill Name", "Amount", "Payment Method"]],
+      body: (bills || []).map(b => [
+        b.date ? new Date(b.date).toLocaleDateString() : "-",
+        b.billName ?? "-",
+        b.amount ?? 0,
+        b.paymentMethod ?? "-"
+      ])
+    });
+    lastY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 10 : lastY + 40;
+    doc.text("Dividend", 14, lastY);
+    autoTable(doc, {
+      startY: lastY + 5,
+      head: [["Date", "Amount"]],
+      body: (dividends || []).map(d => [
+        d.date ? new Date(d.date).toLocaleDateString() : "-",
+        d.amount ?? 0
+      ])
+    });
+    // Check if all tables are empty
+    const isEmpty = [shareRows, loanHistory, purchases, bills, dividends].every(arr => !arr || arr.length === 0);
+    if (isEmpty) {
+      notify.error("No data available to generate report.");
+      setLoadingReport(false);
+      return;
+    }
+    doc.save("member-report.pdf");
+    notify.success("Report generated successfully.");
   } catch (err) {
-    notify.success("Failed to generate member report");
-    console.error(err);
-  } finally {
-    setLoadingReport(false);
+    notify.error("Failed to generate report: " + (err?.message || err));
   }
+  setLoadingReport(false);
 };
+
 // normalize date helper
 const getDateFrom = (item) => {
   const d = item?.date ?? item?.createdAt ?? item?.created_at ?? item?.paidAt ?? item?.paid_at ?? item?.created ?? item?.approvalDate;
@@ -199,6 +278,24 @@ useEffect(() => {
 
   computeOverview();
 }, [memberShares, loanHistory, purchases, bills, dividends]);
+
+useEffect(() => {
+  const fetchSchedule = async () => {
+    if (!isPaidPopupOpen || !loanHistory[0]?.id) return;
+    setLoadingSchedule(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await API.get(`/api/loans/${loanHistory[0].id}/amortization`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setSchedule(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      setSchedule([]);
+    }
+    setLoadingSchedule(false);
+  };
+  fetchSchedule();
+}, [isPaidPopupOpen, loanHistory]);
 
   useEffect(() => {
   if (!openAction) return;
@@ -737,7 +834,7 @@ useEffect(() => {
             <th className="px-6 py-4 text-sm font-semibold text-gray-600 uppercase tracking-wider">Amount</th>
             <th className="px-6 py-4 text-sm font-semibold text-gray-600 uppercase tracking-wider text-center">Term</th>
             <th className="px-6 py-4 text-sm font-semibold text-gray-600 uppercase tracking-wider text-center">Status</th>
-            <th className="px-6 py-4 text-sm font-semibold text-gray-600 uppercase tracking-wider text-center">Balance</th>
+            <th className="px-6 py-4 text-sm font-semibold text-gray-600 uppercase tracking-wider text-center">Action</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-50">
@@ -764,8 +861,18 @@ useEffect(() => {
                   {l.status?.toUpperCase() ?? "N/A"}
                 </span>
               </td>
-              <td className="px-6 py-5 text-center font-mono font-bold text-[#7e9e6c]">
-                {fmtMoney(l.remainbalance ?? l.balance ?? 0)}
+              <td className="px-6 py-5 text-center">
+                <button
+                  className="px-3 py-1 bg-[#7e9e6c] text-white rounded-lg text-center text-xs font-bold shadow-sm hover:bg-[#6a865a] transition-all"
+                  onClick={() => {
+                    // Show PaidLoanPopup for this loan
+                    setLoanHistory([l]);
+                    setIsPaidPopupOpen(true);
+                  }}
+                  title="Mark as Paid"
+                >
+                   Paid Loan
+                </button>
               </td>
             </tr>
           ))}
@@ -778,99 +885,15 @@ useEffect(() => {
     </div>
   )}
 </div>
-        
-        <div className="flex mt-8 items-center justify-between mb-6">
-            <h3 className="text-2xl font-extrabold tracking-tight text-[#5a7a4a]">Pending Purchase</h3>
-        </div>
-
-       {loadingPurchases ? (
-        <div className="mt-8 flex items-center justify-center p-8 bg-gray-50 rounded-xl border border-dashed border-gray-300">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#7e9e6c] mr-3"></div>
-          <span className="text-sm text-gray-500 font-medium">Syncing purchase data...</span>
-        </div>
-      ) : unpaid.length > 0 ? (
-          <div className="mt-8 bg-white border border-red-100 rounded-2xl shadow-sm overflow-hidden">
-        
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50/50 text-gray-500 border-b border-gray-100">
-                  <tr>
-                    <th className="text-left px-6 py-4 font-semibold uppercase tracking-wider text-md">Items</th>
-                    <th className="text-right px-6 py-4 font-semibold uppercase tracking-wider text-md">Total</th>
-                    <th className="text-right px-6 py-4 font-semibold uppercase tracking-wider text-md">Due Date</th>
-                    <th className="text-center px-6 py-4 font-semibold uppercase tracking-wider text-md">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {unpaid.map((p) => {
-                    const pid = p.id ?? p._id ?? p.purchaseId;
-                    return (
-                      <tr key={pid} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-6 py-4">
-                          <div className="font-medium text-gray-700">{itemsSummary(p.items)}</div>
-                        </td>
-                        <td className="px-6 py-4 text-right font-bold text-[#7e9e6c]">
-                          {fmtMoney(p.total)}
-                        </td>
-                        <td className="px-6 py-4 text-right text-gray-500">
-                          {p.dueDate ? (
-                            <div className="flex items-center justify-end gap-1 text-orange-600 bg-orange-50 px-2 py-1 rounded-md inline-flex">
-                              <FiClock size={12} />
-                              <span className="text-xs font-bold">{new Date(p.dueDate).toLocaleDateString()}</span>
-                            </div>
-                          ) : "-"}
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center justify-center gap-2">
-                            <button 
-                              onClick={() => setSelectedPurchase1(p)} 
-                              className="p-2 text-gray-400 hover:text-[#7e9e6c] hover:bg-white border border-transparent hover:border-gray-200 rounded-lg transition-all"
-                              title="View Details"
-                            >
-                              <FiEye size={18} />
-                            </button>
-                            <button 
-                              onClick={() => payPurchase(pid)} 
-                              disabled={processingPayId === pid} 
-                              className="px-4 py-1.5 bg-[#7e9e6c] hover:bg-[#6a865a] text-white rounded-lg text-xs font-bold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
-                            >
-                              {processingPayId === pid ? "Processing..." : (
-                                <>
-                                  <FiCreditCard /> Pay Now
-                                </>
-                              )}
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-      ): (
-    <div className="py-12 text-center border-2 border-dashed border-gray-200 rounded-xl">
-      <p className="text-gray-400 text-lg">No Pending Purchase.</p>
-    </div>
-  ) } 
-
+      
       {/* --- ACTION BUTTONS GRID --- */}
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mt-8">
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 mt-8">
         {[
-          { label: "Paid Loan", icon: <FiCreditCard size={24} />, action: () => {
-              if (!loan) { notify.success("No active loan found."); return; }
-              const remainBalance = parseFloat(loan.remainbalance) || 0;
-              if (remainBalance <= 0) { notify.success("No active loan — this member has fully paid the loan."); return; }
-              setIsPaidPopupOpen(true);
-            } 
-          },
           { label: "Purchase", icon: <FiShoppingCart size={24} />, action: () => setIsPurchaseOpen(true) },
           { label: "Add Shares", icon: <FiPieChart size={24} />, action: () => setIsSharePopupOpen(true) },
           { label: "Pay Bills", icon: <FiFileText size={24} />, action: () => setIsBillOpen(true) },
           { label: "Add Dividend", icon: <FiTrendingUp size={24} />, action: () => setIsDividendOpen(true) },
-          { label: "Member Report", icon: <FiPrinter size={24} />, action: downloadMemberReport, disabled: loadingReport, loadingText: "Generating..." }
+          { label: "Member Report", icon: <FiPrinter size={24} />, action: downloadMemberReport, disabled: loadingReport || !allLoaded, loadingText: "Generating..." }
         ].map((btn, idx) => (
           <button
             key={idx}
@@ -961,11 +984,8 @@ useEffect(() => {
             {/* HEADER */}
             <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between bg-white">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-[#d6ead8] text-[#7e9e6c] rounded-xl">
-                  <FiPackage size={22} />
-                </div>
                 <div>
-                  <h2 className="text-xl font-bold text-gray-800">Purchase History</h2> 
+                  <h2 className="text-xl font-bold text-[#56794a]">Purchase History</h2> 
                 </div>
               </div><div className="h-1 w-20 bg-[#7e9e6c] rounded-full"></div>
             </div>
@@ -974,7 +994,7 @@ useEffect(() => {
             <div className="flex-1 overflow-auto p-6 bg-white">
               {purchases.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 text-center">
-                  <div className="w-16 h-16 bg-gray-50 text-gray-200 rounded-full flex items-center justify-center mb-4">
+                  <div className="w-16 h-16 bg-gray-50 text-gray-200 rounded-full flex items-center justify-center mb-4 border border-gray-100">
                     <FiPackage size={32} />
                   </div>
                   <h4 className="text-gray-800 font-semibold">No records found</h4>
@@ -982,62 +1002,71 @@ useEffect(() => {
                 </div>
               ) : (
                 <div className="border border-gray-100 rounded-xl overflow-hidden shadow-sm">
-                  <table className="w-full text-sm">
-                    <thead className="bg-gray-50">
-                      <tr className="border-b border-gray-100">
-                        <th className="text-left px-4 py-4 font-bold text-gray-500 uppercase tracking-wider text-xs">Date</th>
-                        <th className="text-left px-4 py-4 font-bold text-gray-500 uppercase tracking-wider text-xs">Items</th>
-                        <th className="text-right px-4 py-4 font-bold text-gray-500 uppercase tracking-wider text-xs">Total</th>
-                        <th className="text-right px-4 py-4 font-bold text-gray-500 uppercase tracking-wider text-xs">Due Date</th>
-                        <th className="text-center px-4 py-4 font-bold text-gray-500 uppercase tracking-wider text-xs">Status</th>
-                        <th className="text-center px-4 py-4 font-bold text-gray-500 uppercase tracking-wider text-xs">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-50">
-                      {purchases.map((p) => {
-                        const pid = p.id ?? p._id ?? p.purchaseId;
-                        const statusStr = String(p.status).toLowerCase();
-                        
-                        return (
-                          <tr key={pid} className="group hover:bg-[#d6ead8]/10 transition-colors">
-                            <td className="px-4 py-4 text-gray-600 font-medium whitespace-nowrap">
-                              {p.createdAt ? new Date(p.createdAt).toLocaleDateString() : "-"}
-                            </td>
-                            <td className="px-4 py-4">
-                              <p className="text-gray-800 font-semibold line-clamp-1 max-w-[200px]">
-                                {itemsSummary(p.items)}
-                              </p>
-                            </td>
-                            <td className="px-4 py-4 text-right font-bold text-[#7e9e6c]">
-                              {fmtMoney(p.total)}
-                            </td>
-                            <td className="px-4 py-4 text-right text-gray-500 italic">
-                              {p.dueDate ? new Date(p.dueDate).toLocaleDateString() : "-"}
-                            </td>
-                            <td className="px-4 py-4 text-center">
-                              <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
-                                statusStr === 'paid' ? 'bg-green-100 text-green-700' :
-                                statusStr.includes('not') ? 'bg-red-100 text-red-700' :
-                                'bg-yellow-100 text-yellow-700'
-                              }`}>
-                                {statusStr}
-                              </span>
-                            </td>
-                            <td className="px-4 py-4 text-center">
-                              <button
-                                onClick={() => setSelectedPurchase1(p)}
-                                className="p-2 text-gray-400 hover:text-[#7e9e6c] hover:bg-white rounded-lg shadow-sm border border-transparent hover:border-gray-100 transition-all"
-                                title="View Details"
-                              >
-                                <FiEye size={18} />
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                          <table className="w-full text-sm">
+                            <thead className="bg-gray-50">
+                              <tr className="border-b border-gray-100">
+                                <th className="text-left px-4 py-4 font-bold text-gray-500 uppercase tracking-tighter">Date</th>
+                                <th className="text-left px-4 py-4 font-bold text-gray-500 uppercase tracking-tighter">Items Summary</th>
+                                <th className="text-right px-4 py-4 font-bold text-gray-500 uppercase tracking-tighter">Cost</th> 
+                                <th className="text-right px-4 py-4 font-bold text-gray-500 uppercase tracking-tighter">Total Income</th>
+                                <th className="text-right px-4 py-4 font-bold text-gray-500 uppercase tracking-tighter">Total</th>
+  
+                                <th className="text-center px-4 py-4 font-bold text-gray-500 uppercase tracking-tighter">Status</th>
+<th className="text-center px-4 py-4 font-bold text-gray-500 uppercase tracking-tighter">Action</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-50">
+                              {purchases.map((p, i) => {
+                                const pid = p.id || p._id || p.purchaseId || i;
+                                const statusStr = String(p.status ?? p.paymentStatus ?? "unknown").toLowerCase();
+                                // Compute total income if not present
+                                const totalIncome = typeof p.income === 'number' ? p.income : (Array.isArray(p.items) ? p.items.reduce((sum, it) => sum + (((it.unitPrice || 0) - (it.costOfSale || 0)) * (it.qty || 1)), 0) : 0);
+                                const cost = typeof p.cost === 'number' ? p.cost : (Array.isArray(p.items) ? p.items.reduce((sum, it) => sum + ((it.costOfSale || 0) * (it.qty || 1)), 0) : 0);
+                                const incomePerUnit = Array.isArray(p.items) && p.items.length > 0 ? (p.items[0].unitPrice || 0) - (p.items[0].costOfSale || 0) : (p.incomePerUnit || 0);
+                                return (
+                                  <tr key={pid} className="group hover:bg-[#d6ead8]/10 transition-colors">
+                                    <td className="px-4 py-4 text-gray-600 font-medium whitespace-nowrap">
+                                      {formatDate(p.createdAt || p.created_at || p.date)}
+                                    </td>
+                                    <td className="px-4 py-4">
+                                      <p className="text-gray-800 font-semibold line-clamp-1 truncate max-w-[190px]">
+                                        {itemsSummary(p.items)}
+                                      </p>
+                                    </td>
+                                    <td className="px-4 py-4 text-right text-gray-700">
+                                      {fmtMoney(cost)}
+                                    </td>
+                                    <td className="px-4 py-4 text-right text-gray-700">
+                                      {fmtMoney(totalIncome)}
+                                    </td>
+                                    <td className="px-4 py-4 text-right font-bold text-[#7e9e6c]">
+                                      {fmtMoney(p.total ?? p.totalAmount ?? p.amount ?? p.price ?? 0)}
+                                    </td>
+                                    <td className="px-4 py-4 text-center">
+                                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                                        statusStr === 'paid' ? 'bg-green-100 text-green-700' :
+                                        statusStr === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                                        'bg-gray-100 text-gray-600'
+                                      }`}>
+                                        {statusStr}
+                                      </span>
+                                      
+                                    </td>
+                                    <td>
+                                      <button
+                                        className="ml-2 px-3 py-1 bg-[#7e9e6c] text-white rounded-lg text-xs font-bold shadow-sm hover:bg-[#6a865a] transition-all"
+                                        onClick={() => setSelectedPurchase(p)}
+                                        title="View Details"
+                                      >
+                                        View Details
+                                      </button>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
               )}
             </div>
             
@@ -1050,6 +1079,51 @@ useEffect(() => {
                 Close
               </button>
             </div>
+            {/* PURCHASE DETAILS MODAL (selectedPurchase) */}
+            {selectedPurchase && (
+              <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/40">
+                <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden">
+                  <div className="p-6 bg-[#7e9e6c] text-white">
+                    <div className="flex justify-between items-start mb-4">
+                      <FiCheckCircle size={32} className="opacity-80" />
+                      <button onClick={() => setSelectedPurchase(null)} className="hover:rotate-90 transition-transform">
+                        <FiX size={24} />
+                      </button>
+                    </div>
+                    <h3 className="text-2xl font-black">Purchase Details</h3>
+                  </div>
+                  <div className="flex-1 overflow-auto p-6">
+                    <table className="w-full text-sm mb-6">
+                      <thead>
+                        <tr className="text-gray-400 text-[10px] font-black uppercase tracking-widest border-b border-gray-100">
+                          <th className="text-left pb-2">Item Description</th>
+                          <th className="text-right pb-2">Qty</th>
+                          <th className="text-right pb-2">Price</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50">
+                        {(selectedPurchase.items ?? []).map((it, index) => (
+                          <tr key={index}>
+                            <td className="py-3 text-gray-700 font-medium">{it.name || it.item}</td>
+                            <td className="py-3 text-right text-gray-500">x{it.qty ?? 1}</td>
+                            <td className="py-3 text-right font-bold text-gray-900">
+                              {fmtMoney((it.qty ?? 1) * (it.unitPrice ?? 0))}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    <div className="bg-gray-50 rounded-xl p-4 space-y-2">
+
+                      <div className="flex justify-between text-gray-900 font-black text-lg border-t border-gray-200 pt-2">
+                        <span>Total Amount</span>
+                        <span className="text-[#7e9e6c]">{fmtMoney(selectedPurchase.total)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -1065,12 +1139,8 @@ useEffect(() => {
     {/* MODAL HEADER */}
     <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between bg-white shrink-0">
       <div className="flex items-center gap-3">
-        <div className="p-2.5 bg-[#d6ead8] text-[#7e9e6c] rounded-xl shadow-sm">
-          {/* Ensure FiFileText is imported from 'react-icons/fi' */}
-          <FiFileText size={22} />
-        </div>
         <div>
-          <h3 className="text-xl font-bold text-gray-800">Bills History</h3>
+          <h3 className="text-xl font-bold text-[#56794a]">Bills History</h3>
         </div>
       </div>
       <div className="h-1 w-20 bg-[#7e9e6c] rounded-full hidden sm:block"></div>
@@ -1202,13 +1272,177 @@ useEffect(() => {
 )}
 
       {isPaidPopupOpen && (
-        <PaidLoanPopup
-          isOpen={isPaidPopupOpen}
-          onClose={() => setIsPaidPopupOpen(false)}
-          member={{ ...member, loan: loanHistory[0] }}
-          onUpdateLoan={(updatedLoan) => { setLoanHistory([updatedLoan]); setIsPaidPopupOpen(false); }}
-        />
+        <div className="fixed inset-0 bg-black/45 flex items-center justify-center z-[900] p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl flex flex-col max-h-[85vh] overflow-hidden">
+            {/* Header */}
+            <div className="px-6 py-5 bg-[#7e9e6c] text-white flex justify-between items-start">
+              <div>
+                <h4 className="text-xl font-bold">Paid Loan History</h4>
+              </div>
+              <button 
+                onClick={() => setIsPaidPopupOpen(false)} 
+                className="p-1 bg-white/20 hover:bg-white/40 rounded-full transition-colors"
+              >
+                <FiX size={20} />
+              </button>
+            </div>
+            {/* Body */}
+            <div className="flex-1 overflow-auto p-0">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 text-gray-500">
+                  <tr>
+                    <th className="text-left px-6 py-3 font-semibold text-xs uppercase">Month</th>
+                    <th className="text-right px-6 py-3 font-semibold text-xs uppercase">Due Date</th>
+                      <th className="text-right px-6 py-3 font-semibold text-xs uppercase">Amortization</th>
+                    <th className="text-center px-6 py-3 font-semibold text-xs uppercase">Status</th>
+                    <th className="text-center px-6 py-3 font-semibold text-xs uppercase">Penalty</th>
+                    <th className="text-center px-6 py-3 font-semibold text-xs uppercase">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+  {loadingSchedule ? (
+    <tr>
+      <td colSpan={6} className="text-center py-8 text-gray-400">Loading schedule...</td>
+    </tr>
+  ) : schedule.length === 0 ? (
+    <tr>
+      <td colSpan={6} className="text-center py-8 text-gray-400">No schedule found.</td>
+    </tr>
+  ) : (
+    schedule.map((row, idx) => (
+      <tr key={idx}>
+        <td className="px-6 py-3 text-gray-700 font-medium">{row.month}</td>
+        <td className="px-6 py-3 text-right text-gray-500">{row.dueDate ? new Date(row.dueDate).toLocaleString() : "-"}</td>
+        <td className="px-6 py-3 text-right font-semibold text-gray-800">{fmtMoney(row.amortization)}</td>
+        <td className="px-6 py-3 text-center">
+          <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
+            row.status === "Paid"
+              ? "bg-green-100 text-green-700"
+              : row.status === "Late"
+              ? "bg-red-100 text-red-700"
+              : "bg-gray-100 text-gray-600"
+          }`}>{row.status}</span>
+        </td>
+        <td className="px-6 py-3 text-center text-orange-600">{fmtMoney(row.penalty)}</td>
+        <td className="px-6 py-3 text-center">
+  {row.status !== "Paid" && (
+    <button
+      className="px-3 py-1 bg-[#7e9e6c] text-white rounded-lg text-center text-xs font-bold shadow-sm hover:bg-[#6a865a] transition-all"
+      onClick={() => setPayModal({ open: true, row })}
+      title="Mark as Paid"
+    >
+      Paid
+    </button>
+  )}
+</td>
+      </tr>
+    ))
+  )}
+</tbody>
+              </table>
+            </div>
+          </div>
+        </div>
       )}
+
+      {payModal.open && payModal.row && (
+  <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/40">
+    <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-8 flex flex-col items-center">
+      <h2 className="text-xl font-bold mb-4 text-[#56794a]">Confirm Payment</h2>
+      <div className="mb-4 text-center">
+  <div className="text-gray-700 mb-2">
+    <span className="font-semibold">Month:</span> {payModal.row.month}
+  </div>
+  <div className="text-gray-700 mb-2">
+    <span className="font-semibold">Amortization:</span> {fmtMoney(payModal.row.amortization)}
+  </div>
+  <div className="text-gray-700 mb-2">
+    <span className="font-semibold">Penalty:</span> {fmtMoney(payModal.row.penalty)}
+  </div>
+  <div className="text-gray-700 mb-2">
+    <span className="font-semibold">Paid Date:</span> {new Date().toLocaleString()}
+  </div>
+  <div className="text-lg font-bold text-[#7e9e6c] mt-2">
+    Total to Pay: {fmtMoney(Number(payModal.row.amortization) + Number(payModal.row.penalty))}
+  </div>
+</div>
+      <div className="flex gap-4 mt-4">
+        <button
+  className="px-6 py-2 bg-[#7e9e6c] text-white rounded-lg font-bold hover:bg-[#6a865a] transition-all"
+  disabled={processingPayment}
+  onClick={async () => {
+    setProcessingPayment(true);
+    try {
+      const token = localStorage.getItem("token");
+      const now = new Date();
+      const due = payModal.row.dueDate ? new Date(payModal.row.dueDate) : null;
+      let newStatus = "Paid";
+      let penalty = 0;
+      // If overdue, set penalty to 1% of balance and status to Late
+      if (due && now > due) {
+        newStatus = "Late";
+        // Use remaining balance for penalty calculation
+        const balance = loanHistory[0]?.remainbalance || loanHistory[0]?.balance || 0;
+        penalty = Number(balance) * 0.01;
+      }
+      await API.post(
+        "/api/loans/loanpayment/add",
+        {
+          loanId: loanHistory[0]?.id,
+          memberId: member.id,
+          paymentNumber: payModal.row.month,
+          amount: Number(payModal.row.amortization) + penalty,
+          penalty,
+          status: newStatus,
+          paidAt: now,
+          dueDate: payModal.row.dueDate,
+          paidDate: now,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        }
+      );
+      // Increment paymentsMade in UI after successful payment
+      setLoanHistory((prev) => {
+        if (!prev || prev.length === 0) return prev;
+        const updated = [...prev];
+        const loanObj = { ...updated[0] };
+        loanObj.paymentsMade = (loanObj.paymentsMade || 0) + 1;
+        updated[0] = loanObj;
+        return updated;
+      });
+      notify.success("Payment recorded!");
+      setPayModal({ open: false, row: null });
+      // Refresh schedule after payment
+      setLoadingSchedule(true);
+      const res = await axios.get(`/api/loans/${loanHistory[0].id}/amortization`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setSchedule(Array.isArray(res.data) ? res.data : []);
+      setLoadingSchedule(false);
+    } catch (err) {
+      notify.success("Failed to record payment: " + (err?.response?.data?.message || err.message));
+      setLoadingSchedule(false);
+    }
+    setProcessingPayment(false);
+  }}
+>
+  {processingPayment ? "Processing..." : "Yes, Pay"}
+</button>
+        <button
+          className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg font-bold hover:bg-gray-300 transition-all"
+          onClick={() => setPayModal({ open: false, row: null })}
+          disabled={processingPayment}
+        >
+          No
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 
       {isLoanAppOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">

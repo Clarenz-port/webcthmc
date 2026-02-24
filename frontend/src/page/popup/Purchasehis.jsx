@@ -66,11 +66,8 @@ export default function PurchaseHistory({ onBack, rows = [], loading = false }) 
     {/* HEADER */}
     <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between bg-white">
       <div className="flex items-center gap-3">
-        <div className="p-2.5 bg-[#d6ead8] text-[#7e9e6c] rounded-xl">
-          <FiShoppingBag size={22} />
-        </div>
         <div>
-          <h2 className="text-xl font-bold text-gray-800">Purchase History</h2>
+          <h2 className="text-xl font-bold text-[#56794a]">Purchase History</h2>
         </div>
       </div><div className="h-1 w-20 bg-[#7e9e6c] rounded-full"></div>
     </div>

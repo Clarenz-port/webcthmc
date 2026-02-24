@@ -1,6 +1,60 @@
+const PDFDocument = require('pdfkit');
+// Generate PDF for loan application form
+exports.generateLoanFormPDF = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const loan = await Loan.findByPk(id);
+    if (!loan) return res.status(404).json({ message: 'Loan not found' });
+
+    // Create PDF
+    const doc = new PDFDocument({ margin: 40 });
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=loan_application_${id}.pdf`);
+    doc.pipe(res);
+
+    doc.fontSize(18).text('Loan Application Form', { align: 'center' });
+    doc.moveDown();
+    doc.fontSize(12);
+    doc.text(`Member Name: ${loan.memberName || ''}`);
+    doc.text(`Address: ${loan.address || ''}`);
+    doc.text(`Purpose: ${loan.purpose || ''}`);
+    doc.text(`Loan Amount: ₱${loan.loanAmount}`);
+    doc.text(`Duration: ${loan.duration} months`);
+    doc.text(`Start Month: ${loan.startMonth || ''}`);
+    doc.text(`End Month: ${loan.endMonth || ''}`);
+    doc.text(`Service Charge: ₱${loan.serviceCharge}`);
+    doc.text(`Filing Fee: ₱${loan.filingFee}`);
+    doc.text(`Capital Build-Up: ₱${loan.capitalBuildUp}`);
+    doc.text(`Net Amount: ₱${loan.netAmount}`);
+    doc.moveDown();
+    doc.text('Amortization Details:', { underline: true });
+    doc.text(`Amortization (Monthly): ₱${loan.amortization}`);
+    doc.text(`Interest: ₱${loan.interest}`);
+    doc.moveDown();
+    doc.text('Agreement:', { underline: true });
+    doc.text('I hereby promise to pay Carmona Townhomes Homeowners Multi-purpose Cooperative the sum above for the specified term.');
+    doc.end();
+  } catch (err) {
+    console.error('❌ Error generating loan form PDF:', err);
+    res.status(500).json({ message: 'Error generating PDF' });
+  }
+};
+// Get amortization schedule for a loan from approve_loans
+exports.getApproveLoanSchedule = async (req, res) => {
+  try {
+    const { loanId } = req.params;
+    const ApproveLoan = require('../models/approveloan');
+    const schedule = await ApproveLoan.getScheduleByLoanId(loanId);
+    res.json(schedule);
+  } catch (err) {
+    console.error('❌ Error fetching approve_loan schedule:', err);
+    res.status(500).json({ message: 'Failed to fetch amortization schedule' });
+  }
+};
 
 // controllers/loanController.js
 const Loan = require("../models/loans");
+const ApproveLoan = require('../models/approveloan');
 const { logActivity } = require("../utils/activityLogger");
 const Payment = require("../models/loanpay"); // new
 const { Op } = require("sequelize");
@@ -8,7 +62,43 @@ const { Op } = require("sequelize");
 
 // createLoan (existing) — set balance = loanAmount when creating
 
+exports.addLoanPayment = async (req, res) => {
+  try {
+    // Extract relevant fields from request
+    const { loanId, memberId, paymentNumber, status, paidDate, amount, dueDate } = req.body;
 
+    // Update ApproveLoan schedule for this payment
+    await ApproveLoan.update(
+      { status, paidDate },
+      { where: { loanId, month: paymentNumber } }
+    );
+
+    // Create payment record in loanpay table
+    await Payment.create({
+      loanId,
+      memberId,
+      amountPaid: amount,
+      paymentDate: paidDate,
+      dueDate,
+      status,
+    });
+
+    // Increment paymentsMade in Loan model
+    const loan = await Loan.findByPk(loanId);
+    if (loan) {
+      loan.paymentsMade = (loan.paymentsMade || 0) + 1;
+      // If paymentsMade equals duration, set status to 'Paid'
+      if (loan.paymentsMade >= loan.duration) {
+        loan.status = 'Paid';
+      }
+      await loan.save();
+    }
+
+    res.json({ success: true, message: "Payment and schedule updated." });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
 
 exports.createLoan = async (req, res) => {
   try {
@@ -154,7 +244,67 @@ exports.approveLoan = async (req, res) => {
     loan.dueDate = dueDate;
     loan.status = "Approved";
 
+
+
     await loan.save();
+
+    // Capital Build Up: Add to Shares if capitalBuildUp exists and > 0
+    if (loan.capitalBuildUp && parseFloat(loan.capitalBuildUp) > 0) {
+      try {
+        const Shares = require('../models/shares');
+        await Shares.create({
+          userId: loan.userId,
+          shareamount: loan.capitalBuildUp,
+          date: new Date(),
+          paymentMethod: 'Cash', // or set as needed
+          note: 'capital build up',
+          loanId: loan.id,
+        });
+      } catch (shareErr) {
+        console.error('❌ Error adding capital build up to shares:', shareErr);
+        // Optionally: return error or continue
+      }
+    }
+
+
+    
+    // Compute and save amortization schedule to ApproveLoan
+    const ApproveLoan = require('../models/approveloan');
+    // Remove previous schedule if exists (optional, for idempotency)
+    await ApproveLoan.destroy({ where: { loanId: loan.id } });
+
+    // Amortization calculation
+    const principal = parseFloat(loan.loanAmount) || 0;
+    const months = parseInt(loan.duration) || 0;
+    const monthlyRate = 0.02; // 2% per month
+    let remainingBalance = principal;
+    const monthlyPrincipal = months > 0 ? principal / months : principal;
+    let baseDate = loan.createdAt ? new Date(loan.createdAt) : new Date();
+    if (Number.isNaN(baseDate.getTime())) baseDate = new Date();
+
+    const scheduleRows = [];
+    for (let i = 1; i <= Math.max(1, months); i++) {
+      const interest = remainingBalance * monthlyRate;
+      let amortization = monthlyPrincipal + interest;
+      if (i === months) {
+        amortization = remainingBalance + interest;
+      }
+      // Due date is every 1 month from baseDate
+      const dueDate = new Date(baseDate.getTime());
+      dueDate.setMonth(dueDate.getMonth() + i);
+      scheduleRows.push({
+        loanId: loan.id,
+        month: i,
+        interest: parseFloat(interest.toFixed(2)),
+        balance: parseFloat(remainingBalance.toFixed(2)),
+        amortization: parseFloat(amortization.toFixed(2)),
+        dueDate: dueDate.toISOString(),
+      });
+      remainingBalance -= monthlyPrincipal;
+    }
+    if (scheduleRows.length > 0) {
+      await ApproveLoan.bulkCreate(scheduleRows);
+    }
 
     await logActivity({
         userId: req.user?.id,
@@ -169,6 +319,7 @@ exports.approveLoan = async (req, res) => {
     res.json({
       message: "Loan approved successfully",
       loan,
+      amortizationSchedule: scheduleRows,
     });
   } catch (error) {
     console.error("❌ Error approving loan:", error);
@@ -258,31 +409,28 @@ exports.recordPayment = async (req, res) => {
     }
 
     // 
-    let baseDate;
-    if (loan.dueDate) {
-      baseDate = new Date(loan.dueDate);
-    } else if (loan.createdAt) {
-      baseDate = new Date(loan.createdAt);
-    } else {
-      baseDate = new Date();
+    // Calculate due date for this payment based on createdAt and paymentsMade
+    const paymentsCount = (loan.paymentsMade || 0) + 1;
+    const createdAt = loan.createdAt ? new Date(loan.createdAt) : new Date();
+    const nextDueDate = new Date(createdAt.getTime() + paymentsCount * 3 * 60 * 1000);
+    const nextDueDate12 = new Date(createdAt.getTime() + paymentsCount * 3 * 60 * 1000);
+
+    // Compute penalty and status
+    let penalty = 0;
+    let status = 'Paid';
+    const paidDate = new Date(paymentDate);
+    const dueDateForThis = new Date(nextDueDate12);
+    // Add 3 minutes to dueDateForThis for grace period
+    const graceDueDate = new Date(dueDateForThis.getTime() + 3 * 60 * 1000);
+    if (paidDate > graceDueDate) {
+      // Late payment after 3 minutes
+      penalty = parseFloat((loan.loanball * 0.01).toFixed(2));
+      status = 'Late';
+      // Require paid amount to include penalty
+      if (numericPaid < penalty + remainBefore) {
+        return res.status(400).json({ message: `Late payment requires penalty. Total due: ₱${(penalty + remainBefore).toFixed(2)}` });
+      }
     }
-    if (Number.isNaN(baseDate.getTime())) baseDate = new Date();
-
-    const nextDueDate = new Date(baseDate.getTime());
-    nextDueDate.setMonth(nextDueDate.getMonth() + 1);
-
-    let baseDate1;
-    if (loan.dueDate) {
-      baseDate1 = new Date(loan.dueDate);
-    } else if (loan.createdAt) {
-      baseDate1 = new Date(loan.createdAt);
-    } else {
-      baseDate1 = new Date();
-    }
-    if (Number.isNaN(baseDate1.getTime())) baseDate1 = new Date();
-
-    const nextDueDate12 = new Date(baseDate1.getTime());
-    nextDueDate12.setMonth(nextDueDate12.getMonth());
 
     const payment = await Payment.create({
       loanId,
@@ -290,6 +438,8 @@ exports.recordPayment = async (req, res) => {
       amountPaid: numericPaid,
       paymentDate,
       dueDate: nextDueDate12,
+      penalty,
+      status,
     });
 
     // Update the loan record
