@@ -11,7 +11,7 @@ import {
   FiFileText,
   FiActivity
 } from "react-icons/fi";
-import axios from "axios";
+import API from '../../apis/axios.js';
 
 export default function Approvedloan({ onBack }) {
   const [loanRecords, setLoanRecords] = useState([]);
@@ -37,7 +37,7 @@ export default function Approvedloan({ onBack }) {
 
         // Primary: try an explicit endpoint for approved loans (create it in backend if you want)
         try {
-          const res = await axios.get("http://localhost:8000/api/loans/approved-loans", {
+          const res = await API.get("/api/loans/approved-loans", {
             headers: { Authorization: `Bearer ${token}` },
           });
           if (Array.isArray(res.data)) {
@@ -50,7 +50,7 @@ export default function Approvedloan({ onBack }) {
         }
 
         // Fallback: fetch all loans and filter locally (adjust endpoint if you have an admin list)
-        const resAll = await axios.get("http://localhost:8000/api/loans/members", {
+        const resAll = await API.get("/api/loans/members", {
           headers: { Authorization: `Bearer ${token}` },
         });
         const allLoans = Array.isArray(resAll.data) ? resAll.data : resAll.data.loans || [];
@@ -73,7 +73,7 @@ export default function Approvedloan({ onBack }) {
   // Fetch amortization schedule from ApproveLoan model (backend endpoint)
   const fetchApproveLoanSchedule = async (loanId, token) => {
     try {
-      const res = await axios.get(`http://localhost:8000/api/loans/${loanId}/amortization`, {
+      const res = await API.get(`/api/loans/${loanId}/amortization`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       // The backend returns: [{ month, interest, penalty, balance, amortization, dueDate, status }, ...]
@@ -104,7 +104,7 @@ export default function Approvedloan({ onBack }) {
   let payments = [];
   try {
     const token = (localStorage.getItem("token") || "").trim();
-    const res = await axios.get(`http://localhost:8000/api/loans/${loan.id}/payments`, {
+    const res = await API.get(`/api/loans/${loan.id}/payments`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     payments = Array.isArray(res.data) ? res.data.map((p) => parseFloat(p.amountPaid || p.amount || 0)) : [];

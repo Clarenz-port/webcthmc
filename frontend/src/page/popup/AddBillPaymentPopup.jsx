@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import axios from "axios";
+import API from '../../apis/axios.js';
 import { notify } from "../../utils/toast";
 import { FaFileInvoice, FaMoneyBillWave, FaWallet, FaCalendarAlt, FaTrashAlt, FaTimes, FaSave, FaCheckCircle } from 'react-icons/fa';
 
@@ -93,14 +93,14 @@ export default function AddBillPaymentPopup({ isOpen, onClose, memberId, onSaved
       let res;
       if (isEditing) {
         const id = bill.id ?? bill._id ?? bill.billId;
-        res = await axios.put(`/api/bills/${encodeURIComponent(id)}`, payload, {
+        res = await API.put(`/api/bills/${encodeURIComponent(id)}`, payload, {
           headers: {
             "Content-Type": "application/json",
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
         });
       } else {
-        res = await axios.post("/api/bills/add", payload, {
+        res = await API.post("/api/bills/add", payload, {
           headers: {
             "Content-Type": "application/json",
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -127,7 +127,7 @@ export default function AddBillPaymentPopup({ isOpen, onClose, memberId, onSaved
     try {
       const token = localStorage.getItem("token");
       const id = bill.id ?? bill._id ?? bill.billId;
-      const res = await axios.delete(`/api/bills/${encodeURIComponent(id)}`, {
+      const res = await API.delete(`/api/bills/${encodeURIComponent(id)}`, {
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },

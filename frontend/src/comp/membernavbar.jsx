@@ -1,6 +1,5 @@
 
 
-import axios from "axios";
 import { notify } from "../utils/toast";
 import React, { useState, useRef, useEffect } from "react";
 import { FaBell, FaCog,  FaUserEdit, FaSignOutAlt, FaInfoCircle, FaTimes } from "react-icons/fa";
@@ -50,7 +49,7 @@ useEffect(() => {
     try {
       const token = localStorage.getItem("token");
 
-      const res = await axios.get("http://localhost:8000/api/notices", {
+      const res = await API.get("/api/notices", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -96,28 +95,24 @@ useEffect(() => {
   }, []);
 
   // Load current member profile (used to populate the EditProfilePopup)
-  useEffect(() => {
+   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) return; // not logged in — other code handles redirect
     let mounted = true;
     (async () => {
       try {
-        const res = await fetch("http://localhost:8000/api/members/profile", {
+        const res = await API.get("/api/members/profile", {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!mounted) return;
-        if (!res.ok) {
-          // If unauthorized or failed, don't crash — optionally navigate to login
-          if (res.status === 401 || res.status === 403) {
-            localStorage.removeItem("token");
-            navigate("/login", { replace: true });
-          }
-          return;
-        }
-        const data = await res.json();
-        if (mounted) setMember(data);
+        setMember(res.data);
       } catch (err) {
-        console.error("Failed to load profile in navbar:", err);
+        if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+          localStorage.removeItem("token");
+          navigate("/login", { replace: true });
+        } else {
+          console.error("Failed to load profile in navbar:", err);
+        }
       }
     })();
     return () => {

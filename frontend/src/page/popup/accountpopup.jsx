@@ -4,7 +4,7 @@ import {
   FiArrowLeft, FiPlus, FiEdit2, FiTrash2, FiShield, 
   FiUser, FiPhone, FiLock, FiEye, FiEyeOff, FiX 
 } from "react-icons/fi";
-import axios from "axios";
+import API from '../../apis/axios.js';
 
 export default function AccountOnlyPopup({ onClose = () => {}, inline = false }) {
   const [admins, setAdmins] = useState([]);
@@ -30,8 +30,8 @@ export default function AccountOnlyPopup({ onClose = () => {}, inline = false })
 
   // Fetch existing admins on mount
   useEffect(() => {
-    axios
-      .get("http://localhost:8000/api/admin/list", {
+    API
+      .get("/api/admin/list", {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => setAdmins(res.data))
@@ -74,8 +74,8 @@ export default function AccountOnlyPopup({ onClose = () => {}, inline = false })
       if (editingId) {
         const body = { ...newAdmin };
         delete body.confirmPassword;
-        const res = await axios.put(
-          `http://localhost:8000/api/admin/${editingId}`,
+        const res = await API.put(
+          `/api/admin/${editingId}`,
           body,
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -91,7 +91,7 @@ export default function AccountOnlyPopup({ onClose = () => {}, inline = false })
       } else {
         const body = { ...newAdmin };
         delete body.confirmPassword;
-        const res = await axios.post("http://localhost:8000/api/admin/add", body, {
+        const res = await API.post("/api/admin/add", body, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -144,7 +144,7 @@ export default function AccountOnlyPopup({ onClose = () => {}, inline = false })
     const id = adminToDelete.id ?? adminToDelete._id ?? adminToDelete.username;
 
     try {
-      const res = await axios.delete(`http://localhost:8000/api/admin/${id}`, {
+      const res = await API.delete(`/api/admin/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 

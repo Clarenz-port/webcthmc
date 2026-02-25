@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { notify } from "../../utils/toast";
-import axios from "axios";
+import API from '../../apis/axios.js';
 import { FaUser, FaMoneyBillWave, FaTimes, FaSave, FaInfoCircle, FaHandHoldingUsd } from 'react-icons/fa';
 
 export default function AddDividendPopup({ isOpen, onClose, memberId, memberName, onSaved }) {
@@ -60,7 +60,7 @@ export default function AddDividendPopup({ isOpen, onClose, memberId, memberName
         date: new Date().toISOString(),
       };
 
-      const res = await axios.post("/api/dividends/add", payload, {
+      const res = await API.post("/api/dividends/add", payload, {
         headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       });
 

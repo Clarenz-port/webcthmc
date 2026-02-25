@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { notify } from "../../utils/toast";
-import axios from "axios";
+import API from '../../apis/axios.js';
 import { 
   FaBullhorn, 
   FaHeading, 
@@ -33,7 +33,7 @@ export default function AdminCreateNotice() {
   const fetchNotices = async () => {
     setLoading(true);
     try {
-      const res = await axios.get("http://localhost:8000/api/notices", {
+      const res = await API.get("/api/notices", {
         headers: { Authorization: `Bearer ${token}` },
       });
       setNotices(res.data || []);
@@ -47,8 +47,8 @@ export default function AdminCreateNotice() {
 
   const submitNotice = async () => {
     try {
-      await axios.post(
-        "http://localhost:8000/api/notices",
+      await API.post(
+        "/api/notices",
         { title, message },
         {
           headers: {
@@ -79,8 +79,8 @@ export default function AdminCreateNotice() {
 
   const saveEdit = async (id) => {
     try {
-      await axios.put(
-        `http://localhost:8000/api/notices/${id}`,
+      await API.put(
+        `/api/notices/${id}`,
         { title: editTitle, message: editMessage },
         {
           headers: {
@@ -99,7 +99,7 @@ export default function AdminCreateNotice() {
   const deleteNotice = async (id) => {
     if (!window.confirm("Are you sure you want to delete this notice?")) return;
     try {
-      await axios.delete(`http://localhost:8000/api/notices/${id}`, {
+      await API.delete(`/api/notices/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       notify.success("Notice deleted!");

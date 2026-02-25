@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { notify } from "../../../utils/toast";
-import axios from "axios";
+import API from '../../../apis/axios.js';
 import { FaUser, FaWallet, FaCalendarCheck, FaHourglassEnd, FaCheckCircle, FaTimesCircle, FaReceipt } from "react-icons/fa";
 
 export default function PaidLoanPopup({ isOpen, onClose, member, onUpdateLoan }) {
@@ -79,8 +79,8 @@ export default function PaidLoanPopup({ isOpen, onClose, member, onUpdateLoan })
       const nextDue = new Date(createdAt.getTime() + paymentsCount * 3 * 60 * 1000);
       const formattedNextDue = nextDue.toISOString();
 
-      const res = await axios.post(
-        "http://localhost:8000/api/loans/payment",
+      const res = await API.post(
+        "/api/loans/payment",
         {
           memberId: member.id,
           loanId: member.loan.id,

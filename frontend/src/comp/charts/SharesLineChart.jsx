@@ -12,7 +12,7 @@ import {
   Legend,
   Filler,
 } from "chart.js";
-import axios from "axios";
+import API from '../../apis/axios.js';
 
 ChartJS.register(LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Legend, Filler);
 
@@ -39,9 +39,8 @@ export default function SharesLineChart({ members = [], dataPoints = null }) {
       setLoadingApi(true);
       try {
         const token = (localStorage.getItem("token") || "").trim();
-        const base = "http://localhost:8000";
-        const url = `${base}/api/shares/by-year/${year}`;
-        const res = await axios.get(url, { headers: token ? { Authorization: `Bearer ${token}` } : undefined });
+        const url = `/api/shares/by-year/${year}`;
+        const res = await API.get(url, { headers: token ? { Authorization: `Bearer ${token}` } : undefined });
 
         let monthly = Array(12).fill(0);
         if (res?.data?.monthly && Array.isArray(res.data.monthly)) {

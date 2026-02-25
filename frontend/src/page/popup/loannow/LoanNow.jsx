@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { notify } from "../../../utils/toast";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import API from '../../../apis/axios.js';
 import MemberInfoSection from "./MemberInfoSection";
 import PurposeSection from "./PurposeSection";
 import LoanAgreementSection from "./LoanAgreementSection";
@@ -80,7 +80,7 @@ export default function Loannow({ isOpen, onClose }) {
   const fetchMemberProfile = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await axios.get("http://localhost:8000/api/members/profile", {
+      const res = await API.get("/api/members/profile", {
         headers: { Authorization: `Bearer ${token}` },
       });
       const user = res.data;
@@ -166,8 +166,8 @@ export default function Loannow({ isOpen, onClose }) {
     e.preventDefault();
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.post(
-        "http://localhost:8000/api/loans/apply",
+      const response = await API.post(
+        "/api/loans/apply",
         {
           memberName,
           address,

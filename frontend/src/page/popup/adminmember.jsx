@@ -28,7 +28,6 @@ import LoanApplication from "../popup/Loanappli.jsx";
 import Sharehistory from "../popup/Sharehistory.jsx";
 import AddDividendPopup from "../popup/AddDividendPopup.jsx";
 import AddDividendHistoryPopup from "../popup/AddDividendHistoryPopup.jsx";
-import axios from "axios";
 import { Bar, Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -332,7 +331,7 @@ useEffect(() => {
     setLoadingShares(true);
     try {
       const token = localStorage.getItem("token");
-      const res = await axios.get(`/api/shares/member/${encodeURIComponent(member.id)}`, {
+      const res = await API.get(`/api/shares/member/${encodeURIComponent(member.id)}`, {
         headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       });
       const rows = res.data ?? [];
@@ -357,7 +356,7 @@ useEffect(() => {
     try {
       const token = localStorage.getItem("token");
       const id = encodeURIComponent(member.id);
-      const res = await axios.get(`/api/purchases/member/${id}`, {
+      const res = await API.get(`/api/purchases/member/${id}`, {
         headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       });
 
@@ -408,7 +407,9 @@ useEffect(() => {
     try {
       const token = localStorage.getItem("token");
       const id = encodeURIComponent(member.id);
-      const res = await axios.get(`/api/bills/member/${id}`, { headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
+      const res = await API.get(`/api/bills/member/${id}`, {
+        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      });
 
       const raw = Array.isArray(res.data) ? res.data : res.data.bills ?? res.data.payments ?? [];
 
@@ -437,7 +438,7 @@ useEffect(() => {
     try {
       const token = localStorage.getItem("token");
       const id = encodeURIComponent(member.id);
-      const res = await axios.get(`/api/dividends/member/${id}`, {
+      const res = await API.get(`/api/dividends/member/${id}`, {
         headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         validateStatus: null,
       });
@@ -475,7 +476,7 @@ useEffect(() => {
     const fetchLoans = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await axios.get(`/api/loans/member/${encodeURIComponent(member.id)}`, {
+        const res = await API.get(`/api/loans/member/${encodeURIComponent(member.id)}`, {
           headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
           validateStatus: null,
         });
@@ -503,7 +504,7 @@ useEffect(() => {
     const fetchTotalLoans = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await axios.get(`/api/loans/member/${encodeURIComponent(member.id)}/loan-count`, {
+        const res = await API.get(`/api/loans/member/${encodeURIComponent(member.id)}/loan-count`, {
           headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
           validateStatus: null,
         });
@@ -572,7 +573,7 @@ useEffect(() => {
     try {
       const token = localStorage.getItem("token");
       const payload = { userId: member.id, shareamount: amt, date: new Date().toISOString(), paymentMethod };
-      const res = await axios.post("/api/shares/add", payload, {
+      const res = await API.post("/api/shares/add", payload, {
         headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       });
       notify.success(res.data.message || "Shares added!");
@@ -595,7 +596,7 @@ useEffect(() => {
     setProcessingPayId(purchaseId);
     try {
       const token = localStorage.getItem("token");
-      const res = await axios.post(`/api/purchases/${purchaseId}/pay`, {}, { headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
+      const res = await API.post(`/api/purchases/${purchaseId}/pay`, {}, { headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
       notify.success(res.data?.message || "Purchase marked as paid");
       await fetchMemberPurchases();
       setSelectedPurchase1(null);
@@ -1418,7 +1419,7 @@ useEffect(() => {
       setPayModal({ open: false, row: null });
       // Refresh schedule after payment
       setLoadingSchedule(true);
-      const res = await axios.get(`/api/loans/${loanHistory[0].id}/amortization`, {
+      const res = await API.get(`/api/loans/${loanHistory[0].id}/amortization`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setSchedule(Array.isArray(res.data) ? res.data : []);

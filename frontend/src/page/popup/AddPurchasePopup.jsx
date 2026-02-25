@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { notify } from "../../utils/toast";
-import axios from "axios";
+import API from '../../apis/axios.js';
 import { FaPlus, FaTrash, FaShoppingCart, FaWallet, FaReceipt, FaCalendarCheck, FaTimes } from 'react-icons/fa';
 
 export default function AddPurchasePopup({ isOpen, onClose, memberId, memberName = null, onSaved }) {
@@ -158,7 +158,7 @@ const total = Number(subtotal.toFixed(2));
         cost: Number(totalCost.toFixed(2)),
       };
 
-      const res = await axios.post("/api/purchases/add", body, {
+      const res = await API.post("/api/purchases/add", body, {
         headers: {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
