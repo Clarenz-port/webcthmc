@@ -55,7 +55,7 @@ ApproveLoan.getScheduleByLoanId = async function(loanId) {
   return await this.findAll({
     where: { loanId },
     order: [['month', 'ASC']],
-    attributes: ['month', 'interest', 'penalty', 'balance', 'amortization', 'dueDate', 'status']
+    attributes: ['month', 'interest', 'penalty', 'balance', 'amortization', 'dueDate', 'status', 'paidDate']
   });
 };
 

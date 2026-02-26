@@ -347,134 +347,129 @@ export default function Duedate({ onBack, onView }) {
 
   return (
     <div>
-  
-  {/* HEADER SECTION */}
-  <div >
-    <div className="flex items-center mb-2 gap-6">
-      <button
-        onClick={onBack}
-        className="p-3 bg-white border border-gray-100 text-gray-500 hover:text-[#7e9e6c] hover:border-[#7e9e6c] rounded-xl transition-all shadow-sm active:scale-95 group"
-        title="Go Back"
-      >
-        <FiArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
-      </button>
+      {/* HEADER SECTION */}
       <div>
-        <h2 className="text-3xl font-black text-gray-800 tracking-tight">Due Dates</h2>
+        <div className="flex items-center mb-2 gap-6">
+          <button
+            onClick={onBack}
+            className="p-3 bg-white border border-gray-100 text-gray-500 hover:text-[#7e9e6c] hover:border-[#7e9e6c] rounded-xl transition-all shadow-sm active:scale-95 group"
+            title="Go Back"
+          >
+            <FiArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
+          </button>
+          <div>
+            <h2 className="text-3xl font-black text-gray-800 tracking-tight">Due Dates</h2>
+          </div>
+        </div>
       </div>
-    </div>
-  </div>
 
-  {/* CONTENT AREA */}
-  <div >
-    {loading ? (
-      <div className="flex flex-col items-center justify-center py-20 gap-4">
-        <div className="w-10 h-10 border-4 border-gray-100 border-t-[#7e9e6c] rounded-full animate-spin" />
-        <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Fetching payment records...</p>
-      </div>
-    ) : error ? (
-      <div className="flex flex-col items-center justify-center py-20 text-red-500 bg-red-50 rounded-[2rem] border border-red-100">
-        <FiAlertCircle size={48} className="mb-4" />
-        <p className="font-bold">{error}</p>
-      </div>
-    ) : loanRecords.length === 0 ? (
-      <div className="flex flex-col items-center bg-white rounded-t-[2rem] justify-center py-20 text-gray-300">
-        <FiCalendar size={64} className="mb-4 opacity-20" />
-        <p className="font-bold uppercase tracking-widest text-xs italic text-gray-400">No upcoming due dates found</p>
-      </div>
-    ) : (
-      <div className="bg-gray-50 rounded-t-[2rem] overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="text-gray-400">
-              <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-left"><div className="flex items-center gap-2"><FiUser /> Member</div></th>
-              <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-left"><div className="flex items-center gap-2"><FiActivity /> Type</div></th>
-              <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-left">Due Status</th>
-              <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-center">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loanRecords.map((record, index) => {
-              const isOverdue = record.daysRemaining < 0;
-
-              return (
-                <tr 
-                  key={record.id || index}
-                  
-                >
-                  {/* Member Column */}
-                  <td className={`px-6 py-4 bg-white`}>
-                    <p className="text-sm font-black text-gray-800 uppercase tracking-tight">{record.memberName}</p>
-                  </td>
-
-                  {/* Type Column */}
-                  <td className={`px-6 py-4 bg-white`}>
-                    <span className={`text-[11px] font-black px-2 py-1 rounded-md uppercase tracking-tighter ${record.type === 'Purchase' ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'}`}>
-                      {record.type}
-                    </span>
-                    <div className="text-[10px] font-bold text-gray-400 mt-1 italic">
-                      {record.type === "Purchase"}
-                    </div>
-                  </td>
-
-                  {/* Next Due Column */}
-                  <td className={`px-6 py-4 bg-white`}>
-                    {loadingNextDue ? (
-                      <span className="text-[10px] font-bold text-gray-300 animate-pulse">Calculating...</span>
-                    ) : record.nextDueDate ? (
-                      <div className="flex flex-col">
-                        <span className="text-xs font-bold text-gray-600">
-                          {new Date(record.nextDueDate).toLocaleDateString("en-PH", { month: 'short', day: 'numeric', year: 'numeric' })}
-                        </span>
-                        <span className={`text-[10px] font-black uppercase mt-1 ${isOverdue ? 'text-red-500' : 'text-[#7e9e6c]'}`}>
-                          {isOverdue 
-                            ? `${Math.abs(record.daysRemaining)} day(s) overdue` 
-                            : `${record.daysRemaining} days remaining`}
-                        </span>
-                      </div>
-                    ) : (
-                      <span className="text-gray-300">—</span>
-                    )}
-                  </td>
-
-                  {/* Action Column */}
-                  <td className={`px-6 py-4 bg-white  text-center`}>
-                    <button
-                      onClick={async () => {
-                        if (typeof onView === "function") {
-                          onView(record);
-                          return;
-                        }
-                        await openMemberDetailsForRecord(record);
-                      }}
-                      className="p-3 bg-white border  border-gray-100 text-[#7e9e6c] rounded-xl hover:bg-[#7e9e6c] hover:text-white hover:border-[#7e9e6c] transition-all shadow-sm active:scale-90"
-                      title="View Member Details"
-                    >
-                      <FiEye size={18} />
-                    </button>
-                  </td>
+      {/* CONTENT AREA */}
+      <div>
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-20 gap-4">
+            <div className="w-10 h-10 border-4 border-gray-100 border-t-[#7e9e6c] rounded-full animate-spin" />
+            <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Fetching payment records...</p>
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center py-20 text-red-500 bg-red-50 rounded-[2rem] border border-red-100">
+            <FiAlertCircle size={48} className="mb-4" />
+            <p className="font-bold">{error}</p>
+          </div>
+        ) : loanRecords.filter(r => r.type === 'Loan').length === 0 ? (
+          <div className="flex flex-col items-center bg-white rounded-t-[2rem] justify-center py-20 text-gray-300">
+            <FiCalendar size={64} className="mb-4 opacity-20" />
+            <p className="font-bold uppercase tracking-widest text-xs italic text-gray-400">No upcoming loan due dates found</p>
+          </div>
+        ) : (
+          <div className="bg-gray-50 rounded-t-[2rem] overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="text-gray-400">
+                  <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-left"><div className="flex items-center gap-2"><FiUser /> Member</div></th>
+                  <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-left"><div className="flex items-center gap-2"><FiActivity /> Type</div></th>
+                  <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-left">Due Status</th>
+                  <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-center">Action</th>
                 </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    )}
-  </div>
+              </thead>
+              <tbody>
+                {loanRecords.filter(record => record.type === 'Loan').map((record, index) => {
+                  const isOverdue = record.daysRemaining < 0;
 
-  {/* FOOTER LEGEND */}
-  <div className="p-5 bg-gray-50 rounded-b-[2rem] border-t border-gray-50 flex justify-between items-center">
-    <div className="flex gap-4">
-      <div className="flex items-center gap-2">
-        <span className="w-2 h-2 rounded-full bg-red-500"></span>
-        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Overdue</span>
-      </div>
-      <div className="flex items-center gap-2">
-        <span className="w-2 h-2 rounded-full bg-[#7e9e6c]"></span>
-        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Active</span>
-      </div>
-    </div>
-  </div>
+                  return (
+                    <tr key={record.id || index}>
+                      {/* Member Column */}
+                      <td className={`px-6 py-4 bg-white`}>
+                        <p className="text-sm font-black text-gray-800 uppercase tracking-tight">{record.memberName}</p>
+                      </td>
 
+                      {/* Type Column */}
+                      <td className={`px-6 py-4 bg-white`}>
+                        <span className={`text-[11px] font-black px-2 py-1 rounded-md uppercase tracking-tighter bg-purple-100 text-purple-600`}>
+                          {record.type}
+                        </span>
+                        <div className="text-[10px] font-bold text-gray-400 mt-1 italic">
+                          {/* Only show for loan */}
+                        </div>
+                      </td>
+
+                      {/* Next Due Column */}
+                      <td className={`px-6 py-4 bg-white`}>
+                        {loadingNextDue ? (
+                          <span className="text-[10px] font-bold text-gray-300 animate-pulse">Calculating...</span>
+                        ) : record.nextDueDate ? (
+                          <div className="flex flex-col">
+                            <span className="text-xs font-bold text-gray-600">
+                              {new Date(record.nextDueDate).toLocaleDateString("en-PH", { month: 'short', day: 'numeric', year: 'numeric' })}
+                            </span>
+                            <span className={`text-[10px] font-black uppercase mt-1 ${isOverdue ? 'text-red-500' : 'text-[#7e9e6c]'}`}>
+                              {isOverdue 
+                                ? `${Math.abs(record.daysRemaining)} day(s) overdue` 
+                                : `${record.daysRemaining} days remaining`}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-gray-300">—</span>
+                        )}
+                      </td>
+
+                      {/* Action Column */}
+                      <td className={`px-6 py-4 bg-white  text-center`}>
+                        <button
+                          onClick={async () => {
+                            if (typeof onView === "function") {
+                              onView(record);
+                              return;
+                            }
+                            await openMemberDetailsForRecord(record);
+                          }}
+                          className="p-3 bg-white border  border-gray-100 text-[#7e9e6c] rounded-xl hover:bg-[#7e9e6c] hover:text-white hover:border-[#7e9e6c] transition-all shadow-sm active:scale-90"
+                          title="View Member Details"
+                        >
+                          <FiEye size={18} />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* FOOTER LEGEND */}
+      <div className="p-5 bg-gray-50 rounded-b-[2rem] border-t border-gray-50 flex justify-between items-center">
+        <div className="flex gap-4">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-red-500"></span>
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Overdue</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[#7e9e6c]"></span>
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Active</span>
+          </div>
+        </div>
+      </div>
 
       {/* MemberDetails modal shown when View clicked (only if parent didn't handle onView) */}
       {showMemberDetails && memberForDetails && (

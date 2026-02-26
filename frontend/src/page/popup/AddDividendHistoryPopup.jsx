@@ -49,36 +49,28 @@ export default function AddDividendHistoryPopup({ isOpen, onClose, rows = [], lo
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50/80 border-b border-gray-100">
-                              <th className="px-4 py-3.5 font-bold text-gray-500 w-16">
-                                <div className="flex items-center gap-1.5"><FiHash size={14}/></div>
-                              </th>
-                              <th className="px-4 py-3.5 font-bold text-gray-500">
-                                <div className="flex items-center gap-1.5"><FiCalendar size={14}/> Date</div>
-                              </th>
-                              <th className="px-6 py-3.5 font-bold text-gray-500 text-right">
-                                <div className="flex items-center  justify-end gap-1.5"> Amount</div>
-                              </th>
-                            </tr>
+                <th className="px-4 py-3.5 font-bold text-gray-500">
+                  <div className="flex items-center gap-1.5"><FiCalendar size={14}/> Date</div>
+                </th>
+                <th className="px-6 py-3.5 font-bold text-gray-500 text-right">
+                  <div className="flex items-center  justify-end gap-1.5"> Amount</div>
+                </th>
+              </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {sorted.map((r, idx) => (
+              {sorted.map((r) => (
                 <tr 
                   key={r.id ?? r._id ?? `${r.memberId}-${r.date || r.createdAt}-${Math.random()}`} 
                   className="group hover:bg-[#d6ead8]/10 transition-colors"
                 >
-                  <td className="px-4 py-4 text-gray-400 font-medium">
-                    {String(idx + 1).padStart(2, '0')}
-                  </td>
                   {/* Date Column */}
                   <td className="px-5 py-4 text-gray-700 font-semibold whitespace-nowrap">
-                    {r.date 
-                      ? new Date(r.date).toLocaleDateString("en-PH") 
-                      : r.createdAt 
-                        ? new Date(r.createdAt).toLocaleDateString("en-PH") 
-                        : "-"
-                    }
+                    {(() => {
+                      const d = r.date ? new Date(r.date) : r.createdAt ? new Date(r.createdAt) : null;
+                      if (!d) return "-";
+                      return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+                    })()}
                   </td>
-                
                   {/* Amount Column */}
                   <td className="px-5 py-4 text-right">
                     <span className="text-[#7e9e6c] font-bold text-base bg-[#d6ead8]/20 px-2 py-1 rounded-md">

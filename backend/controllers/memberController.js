@@ -1,3 +1,40 @@
+// DELETE /api/members/:id/avatar
+// Remove avatar file and clear avatarUrl in DB
+const fs = require("fs");
+exports.deleteMemberAvatar = async (req, res) => {
+  try {
+    const id = req.params.id;
+    if (!id) return res.status(400).json({ message: "Missing member id" });
+
+    const user = await User.findOne({ where: { id } });
+    if (!user) return res.status(404).json({ message: "Member not found" });
+
+    if (!req.user) return res.status(401).json({ message: "Unauthorized" });
+    if (String(req.user.id) !== String(id) && req.user.role !== "admin") {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+
+    // Remove avatar file if exists
+    if (user.avatarUrl) {
+      // Only delete if file is local (not external URL)
+      const localPrefix = `${req.protocol}://${req.get("host")}/uploads/avatars/`;
+      if (user.avatarUrl.startsWith(localPrefix)) {
+        const filename = user.avatarUrl.replace(localPrefix, "");
+        const filePath = path.join(__dirname, "..", "uploads", "avatars", filename);
+        if (fs.existsSync(filePath)) {
+          try { fs.unlinkSync(filePath); } catch (e) { /* ignore */ }
+        }
+      }
+    }
+
+    await User.update({ avatarUrl: null }, { where: { id } });
+    const updated = await User.findOne({ where: { id } });
+    return res.json({ message: "Avatar deleted", member: safeUser(updated) });
+  } catch (err) {
+    console.error("Error in deleteMemberAvatar:", err);
+    return res.status(500).json({ message: "Failed to delete avatar" });
+  }
+};
 // controllers/memberController.js
 const bcrypt = require("bcryptjs");
 const { Op } = require("sequelize");

@@ -46,9 +46,6 @@ export default function Dividendhistory({ isOpen, onClose, rows = [], loading = 
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50/80 border-b border-gray-100">
-                <th className="px-4 py-3.5 font-bold text-gray-500 w-16">
-                  <div className="flex items-center gap-1.5"><FiHash size={14}/></div>
-                </th>
                 <th className="px-4 py-3.5 font-bold text-gray-500">
                   <div className="flex items-center gap-1.5"><FiCalendar size={14}/> Date</div>
                 </th>
@@ -63,9 +60,6 @@ export default function Dividendhistory({ isOpen, onClose, rows = [], loading = 
                   key={r.id ?? idx} 
                   className="group hover:bg-[#d6ead8]/10 transition-colors"
                 >
-                  <td className="px-4 py-4 text-gray-400 font-medium">
-                    {String(idx + 1).padStart(2, '0')}
-                  </td>
                   <td className="px-4 py-4 text-gray-700 font-semibold">
                     {r.date ? new Date(r.date).toLocaleDateString('en-US', {
                       month: 'short',

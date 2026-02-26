@@ -3,7 +3,7 @@
     if (!date) return "-";
     const d = new Date(date);
     if (isNaN(d)) return "-";
-    return d.toLocaleDateString();
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   };
 import React, { useState, useEffect } from "react";
 import jsPDF from "jspdf";
@@ -965,7 +965,7 @@ useEffect(() => {
               <div className="flex items-center justify-between text-xs text-gray-500 bg-white p-3 rounded-lg border border-gray-100">
                  <div className="flex items-center gap-2">
                    <FiCalendar className="text-[#7e9e6c]" />
-                   <span>Due: {selectedPurchase1.dueDate ? new Date(selectedPurchase1.dueDate).toLocaleDateString() : "-"}</span>
+                   <span>Due: {selectedPurchase1.dueDate ? new Date(selectedPurchase1.dueDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "-"}</span>
                  </div>
                  <div className="flex items-center gap-2">
                     <span className={`w-2 h-2 rounded-full ${String(selectedPurchase1.status).toLowerCase() === 'paid' ? 'bg-green-500' : 'bg-orange-500'}`}></span>
@@ -1027,7 +1027,7 @@ useEffect(() => {
                                 return (
                                   <tr key={pid} className="group hover:bg-[#d6ead8]/10 transition-colors">
                                     <td className="px-4 py-4 text-gray-600 font-medium whitespace-nowrap">
-                                      {formatDate(p.createdAt || p.created_at || p.date)}
+                                      {(p.createdAt || p.created_at || p.date) ? new Date(p.createdAt || p.created_at || p.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "-"}
                                     </td>
                                     <td className="px-4 py-4">
                                       <p className="text-gray-800 font-semibold line-clamp-1 truncate max-w-[190px]">
@@ -1188,7 +1188,7 @@ useEffect(() => {
                 >
                   {/* Date */}
                   <td className="px-4 py-4 text-gray-600 font-medium whitespace-nowrap">
-                    {b.date ? new Date(b.date).toLocaleDateString() : "-"}
+                    {b.date ? new Date(b.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "-"}
                   </td>
 
                   {/* Bill Name */}
@@ -1274,11 +1274,11 @@ useEffect(() => {
 
       {isPaidPopupOpen && (
         <div className="fixed inset-0 bg-black/45 flex items-center justify-center z-[900] p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl flex flex-col max-h-[85vh] overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl flex flex-col max-h-[85vh] overflow-hidden">
             {/* Header */}
             <div className="px-6 py-5 bg-[#7e9e6c] text-white flex justify-between items-start">
               <div>
-                <h4 className="text-xl font-bold">Paid Loan History</h4>
+                <h4 className="text-xl font-bold">Pay Loan</h4>
               </div>
               <button 
                 onClick={() => setIsPaidPopupOpen(false)} 
@@ -1294,9 +1294,10 @@ useEffect(() => {
                   <tr>
                     <th className="text-left px-6 py-3 font-semibold text-xs uppercase">Month</th>
                     <th className="text-right px-6 py-3 font-semibold text-xs uppercase">Due Date</th>
-                      <th className="text-right px-6 py-3 font-semibold text-xs uppercase">Amortization</th>
+                    <th className="text-right px-6 py-3 font-semibold text-xs uppercase">Amortization</th>
                     <th className="text-center px-6 py-3 font-semibold text-xs uppercase">Status</th>
                     <th className="text-center px-6 py-3 font-semibold text-xs uppercase">Penalty</th>
+                    <th className="text-center px-6 py-3 font-semibold text-xs uppercase">Paid Date</th>
                     <th className="text-center px-6 py-3 font-semibold text-xs uppercase">Action</th>
                   </tr>
                 </thead>
@@ -1310,34 +1311,42 @@ useEffect(() => {
       <td colSpan={6} className="text-center py-8 text-gray-400">No schedule found.</td>
     </tr>
   ) : (
-    schedule.map((row, idx) => (
-      <tr key={idx}>
-        <td className="px-6 py-3 text-gray-700 font-medium">{row.month}</td>
-        <td className="px-6 py-3 text-right text-gray-500">{row.dueDate ? new Date(row.dueDate).toLocaleString() : "-"}</td>
-        <td className="px-6 py-3 text-right font-semibold text-gray-800">{fmtMoney(row.amortization)}</td>
-        <td className="px-6 py-3 text-center">
-          <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
-            row.status === "Paid"
-              ? "bg-green-100 text-green-700"
-              : row.status === "Late"
-              ? "bg-red-100 text-red-700"
-              : "bg-gray-100 text-gray-600"
-          }`}>{row.status}</span>
-        </td>
-        <td className="px-6 py-3 text-center text-orange-600">{fmtMoney(row.penalty)}</td>
-        <td className="px-6 py-3 text-center">
-  {row.status !== "Paid" && (
-    <button
-      className="px-3 py-1 bg-[#7e9e6c] text-white rounded-lg text-center text-xs font-bold shadow-sm hover:bg-[#6a865a] transition-all"
-      onClick={() => setPayModal({ open: true, row })}
-      title="Mark as Paid"
-    >
-      Paid
-    </button>
-  )}
-</td>
-      </tr>
-    ))
+    (() => {
+      // Find the first unpaid row (not Paid)
+      const firstUnpaidIdx = schedule.findIndex(r => r.status !== "Paid");
+      return schedule.map((row, idx) => (
+        <tr key={idx}>
+          <td className="px-6 py-3 text-gray-700 font-medium">{row.month}</td>
+          <td className="px-6 py-3 text-right text-gray-500">{row.dueDate ? formatDate(row.dueDate) : "-"}</td>
+          <td className="px-6 py-3 text-right font-semibold text-gray-800">{fmtMoney(row.amortization)}</td>
+          <td className="px-6 py-3 text-center">
+            <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
+              row.status === "Paid"
+                ? "bg-green-100 text-green-700"
+                : row.status === "Late"
+                ? "bg-red-100 text-red-700"
+                : "bg-gray-100 text-gray-600"
+            }`}>{row.status}</span>
+          </td>
+          <td className="px-6 py-3 text-center text-orange-600">{fmtMoney(row.penalty)}</td>
+          <td className="px-6 py-3 text-center">
+            {row.paidDate ? formatDate(row.paidDate) : (row.status === "Paid" ? "—" : "")}
+          </td>
+          <td className="px-6 py-3 text-center">
+            {/* Only show Paid button for the first unpaid row */}
+            {row.status !== "Paid" && idx === firstUnpaidIdx && (
+              <button
+                className="px-3 py-1 bg-[#7e9e6c] text-white rounded-lg text-center text-xs font-bold shadow-sm hover:bg-[#6a865a] transition-all"
+                onClick={() => setPayModal({ open: true, row })}
+                title="Mark as Paid"
+              >
+                Paid
+              </button>
+            )}
+          </td>
+        </tr>
+      ));
+    })()
   )}
 </tbody>
               </table>

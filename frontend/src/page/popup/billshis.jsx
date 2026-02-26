@@ -32,7 +32,7 @@ export default function BillsHistory({
     try {
       const dt = new Date(d);
       if (isNaN(dt.getTime())) return String(d);
-      return dt.toLocaleDateString("en-PH");
+      return dt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
     } catch {
       return String(d);
     }

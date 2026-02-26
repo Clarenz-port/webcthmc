@@ -60,6 +60,7 @@ export default function Signup() {
     e.preventDefault();
 
     if (form.password !== form.confirmPassword) {
+      notify.error("Passwords do not match.");
       setError("Passwords do not match.");
       return;
     }
@@ -83,7 +84,9 @@ export default function Signup() {
       notify.success("Registration successful!");
       navigate("/login");
     } catch (err) {
-      setError(err.response?.data?.message || "Registration failed.");
+      const msg = err.response?.data?.message || "Registration failed.";
+      setError(msg);
+      notify.error(msg);
     }
   };
 
@@ -240,8 +243,7 @@ export default function Signup() {
             </label>
           </div>
 
-          {/* Error */}
-          {error && <p className="text-red-500 text-center text-sm">{error}</p>}
+          {/* Error (toast only, no inline) */}
 
           {/* Submit */}
           <button

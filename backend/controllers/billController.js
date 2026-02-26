@@ -1,5 +1,6 @@
 const BillPayment = require("../models/billPayment");
 const { logActivity } = require("../utils/activityLogger");
+const { User } = require("../models");
 
 exports.addBillPayment = async (req, res) => {
   try {
@@ -13,11 +14,22 @@ exports.addBillPayment = async (req, res) => {
       paymentMethod: paymentMethod || "cash",
     });
 
+    // Get user info for activity log
+    let userName = "System";
+    let userRole = req.user?.role || null;
+    if (req.user?.id) {
+      const user = await User.findByPk(req.user.id);
+      if (user) {
+        userName = `${user.firstName || ""} ${user.lastName || ""}`.trim();
+        userRole = user.role;
+      }
+    }
+
     await logActivity({
       userId: req.user?.id,
-      role: req.user?.role,
+      role: userRole,
       action: "Recorded Bill Payment",
-      details: { billId: bill.id, memberId: bill.memberId, amount: bill.amount, billName: bill.billName },
+      details: { billId: bill.id, memberId: bill.memberId, amount: bill.amount, billName: bill.billName, userName, userRole },
       ip: req.ip,
     });
 

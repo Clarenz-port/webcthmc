@@ -697,7 +697,20 @@ const UsersActivityView = () => {
             </thead>
             <tbody className="divide-y divide-gray-50">
               {logs.map((r) => {
-                const isSystem = !r.User;
+                // Try to parse details for userName/userRole if present
+                let parsedDetails = {};
+                if (typeof r.details === 'string') {
+                  try {
+                    parsedDetails = JSON.parse(r.details);
+                  } catch (e) {
+                    parsedDetails = {};
+                  }
+                } else if (typeof r.details === 'object' && r.details !== null) {
+                  parsedDetails = r.details;
+                }
+                const showName = parsedDetails.userName || (r.User ? `${r.User.firstName || ''} ${r.User.lastName || ''}`.trim() : 'System');
+                const showRole = parsedDetails.userRole || r.userRole || '—';
+                const isSystem = !showName || showName === 'System';
                 return (
                   <tr key={r.id}>
                     <td className="px-6 py-4">
@@ -710,11 +723,11 @@ const UsersActivityView = () => {
                     </td>
                     <td className="px-6 py-4">
                       <div className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold ${isSystem ? 'bg-gray-100 text-gray-500' : 'bg-[#d6ead8] text-[#7e9e6c]'}`}>
-                        {r.User ? `${r.User.firstName || ""} ${r.User.lastName || ""}`.trim() : "System"}
+                        {showName}
                       </div>
                     </td>
                     <td className="px-6 py-4 text-xs font-semibold text-gray-500 capitalize">
-                      {r.userRole || "—"}
+                      {showRole}
                     </td>
                     <td className="px-6 py-4">
                       <span className="text-xs font-black text-gray-800 uppercase tracking-tight">
@@ -723,7 +736,13 @@ const UsersActivityView = () => {
                     </td>
                     <td className="px-6 py-4">
                       <div className="max-w-xs truncate text-xs text-gray-500 group-hover:text-gray-700 transition-colors" title={typeof r.details === "string" ? r.details : JSON.stringify(r.details)}>
-                        {r.details }
+                        {/* Show a summary of details, but not userName/userRole */}
+                        {(() => {
+                          // Remove userName/userRole from details for display
+                          const { userName, userRole, ...rest } = parsedDetails;
+                          const summary = Object.entries(rest).map(([k, v]) => `${k}: ${v}`).join(", ");
+                          return summary || (typeof r.details === 'string' ? r.details : JSON.stringify(r.details));
+                        })()}
                       </div>
                     </td>
                   </tr>
@@ -906,7 +925,7 @@ const UsersActivityView = () => {
         {loadingCounts ? (
           <span className="animate-pulse text-gray-300">...</span>
         ) : (
-          loanCounts.total
+          loanCounts.approvedOrPaid // This should be set to only approved loans
         )}
       </p>
     </div>

@@ -11,7 +11,7 @@ export default function LoanAgreementSection({
   months,
 }) {
   return (
-    <div className="bg-[#f4f9f4] mt-6 border border-[#b8d8ba] rounded-2xl p-8 text-gray-700 text-justify">
+    <div className="bg-[#f4f9f4] mt-6 border border-[#b8d8ba] rounded-2xl p-6 text-gray-700 text-justify">
       <p className="leading-relaxed">
         I hereby promise to pay{" "}
         <span className="font-semibold text-[#7e9e6c]">
@@ -58,6 +58,9 @@ export default function LoanAgreementSection({
           className="border-b border-gray-400 bg-transparent text-center outline-none px-1 cursor-not-allowed"
         />
         .
+      </p>
+      <p className="mt-4 text-xs text-gray-500 italic text-center">
+        Note: The starting and ending month may be changed depending on when the admin approves the loan.
       </p>
     </div>
   );

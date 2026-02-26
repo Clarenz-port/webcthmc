@@ -204,91 +204,86 @@ export default function AdminCreateNotice() {
         <p className="text-gray-400 font-medium">No active notices found.</p>
       </div>
     ) : (
-      <div className="space-y-4">
-        {notices.map((notice) => (
-          <div 
-            key={notice.id} 
-            className={`group relative bg-white p-6 rounded-2xl border transition-all duration-200 ${
-              editingId === notice.id 
-                ? "border-indigo-200 bg-indigo-50/30 ring-4 ring-indigo-50" 
-                : "border-gray-100 hover:border-gray-200 hover:shadow-md"
-            }`}
-          >
-            {/* Accent vertical bar */}
-            <div className={`absolute left-0 top-6 bottom-6 w-1 rounded-r-full ${editingId === notice.id ? "bg-indigo-500" : "bg-gray-200 group-hover:bg-indigo-300"}`} />
-
-            {editingId === notice.id ? (
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 text-indigo-600 font-bold text-sm uppercase tracking-wider mb-2">
-                  <FaEdit size={12} /> Editing Notice
-                </div>
-                <input
-                  type="text"
-                  value={editTitle}
-                  onChange={(e) => setEditTitle(e.target.value)}
-                  className="w-full p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-semibold"
-                  placeholder="Notice Title"
-                />
-                <textarea
-                  value={editMessage}
-                  onChange={(e) => setEditMessage(e.target.value)}
-                  className="w-full p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-                  rows="4"
-                  placeholder="Your message here..."
-                />
-                <div className="flex gap-3 pt-2">
-                  <button
-                    onClick={() => saveEdit(notice.id)}
-                    className="flex-1 flex items-center justify-center gap-2 bg-indigo-600 text-white px-4 py-2.5 rounded-xl hover:bg-indigo-700 transition-colors font-bold"
-                  >
-                    <FaSave /> Save Changes
-                  </button>
-                  <button
-                    onClick={cancelEdit}
-                    className="flex items-center justify-center gap-2 bg-white text-gray-600 border border-gray-200 px-4 py-2.5 rounded-xl hover:bg-gray-50 transition-colors font-bold"
-                  >
-                    <FaTimes /> Cancel
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="pl-2">
-                <div className="flex justify-between items-start gap-4">
-                  <h4 className="font-bold text-lg text-gray-800 leading-tight">{notice.title}</h4>
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                      onClick={() => startEdit(notice)}
-                      className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
-                      title="Edit Notice"
-                    >
-                      <FaEdit size={16} />
-                    </button>
-                    <button
-                      onClick={() => deleteNotice(notice.id)}
-                      className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                      title="Delete Notice"
-                    >
-                      <FaTrash size={16} />
-                    </button>
-                  </div>
-                </div>
-                
-                <p className="text-gray-600 mt-2 text-sm leading-relaxed">{notice.message}</p>
-                
-                <div className="flex items-center gap-4 mt-4 pt-4 border-t border-gray-50">
-                  <span className="flex items-center gap-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wide">
-                    <FaCalendarAlt className="text-indigo-300" />
-                    {new Date(notice.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
-                  </span>
-                  <span className="flex items-center gap-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wide">
-                    <FaHistory className="text-indigo-300" />
-                    Active
-                  </span>
-                </div>
-              </div>
-            )}
-          </div>
-        ))}
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm border border-gray-100 rounded-xl overflow-hidden">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-4 py-3 text-left font-bold text-gray-500">Title</th>
+              <th className="px-4 py-3 text-left font-bold text-gray-500">Message</th>
+              <th className="px-4 py-3 text-left font-bold text-gray-500">Date</th>
+              <th className="px-4 py-3 text-center font-bold text-gray-500">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {notices.map((notice) => (
+              <tr key={notice.id} className="border-b border-gray-50 hover:bg-indigo-50/20 transition-colors">
+                {editingId === notice.id ? (
+                  <>
+                    <td className="px-4 py-2">
+                      <input
+                        type="text"
+                        value={editTitle}
+                        onChange={(e) => setEditTitle(e.target.value)}
+                        className="w-full p-2 bg-white border border-gray-200 rounded focus:ring-2 focus:ring-indigo-500 outline-none font-semibold"
+                        placeholder="Notice Title"
+                      />
+                    </td>
+                    <td className="px-4 py-2">
+                      <textarea
+                        value={editMessage}
+                        onChange={(e) => setEditMessage(e.target.value)}
+                        className="w-full p-2 bg-white border border-gray-200 rounded focus:ring-2 focus:ring-indigo-500 outline-none"
+                        rows="2"
+                        placeholder="Your message here..."
+                      />
+                    </td>
+                    <td className="px-4 py-2 text-gray-500 text-xs">
+                      {new Date(notice.createdAt).toLocaleDateString("en-US", { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </td>
+                    <td className="px-4 py-2 text-center flex gap-2 justify-center">
+                      <button
+                        onClick={() => saveEdit(notice.id)}
+                        className="flex items-center gap-1 bg-indigo-600 text-white px-3 py-1.5 rounded hover:bg-indigo-700 text-xs font-bold"
+                      >
+                        <FaSave /> Save
+                      </button>
+                      <button
+                        onClick={cancelEdit}
+                        className="flex items-center gap-1 bg-white text-gray-600 border border-gray-200 px-3 py-1.5 rounded hover:bg-gray-50 text-xs font-bold"
+                      >
+                        <FaTimes /> Cancel
+                      </button>
+                    </td>
+                  </>
+                ) : (
+                  <>
+                    <td className="px-4 py-2 font-bold text-gray-800">{notice.title}</td>
+                    <td className="px-4 py-2 text-gray-600">{notice.message}</td>
+                    <td className="px-4 py-2 text-gray-500 text-xs">
+                      {new Date(notice.createdAt).toLocaleDateString("en-US", { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </td>
+                    <td className="px-4 py-2 text-center flex gap-2 justify-center">
+                      <button
+                        onClick={() => startEdit(notice)}
+                        className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-all"
+                        title="Edit Notice"
+                      >
+                        <FaEdit size={16} />
+                      </button>
+                      <button
+                        onClick={() => deleteNotice(notice.id)}
+                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-all"
+                        title="Delete Notice"
+                      >
+                        <FaTrash size={16} />
+                      </button>
+                    </td>
+                  </>
+                )}
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     )}
   </div>

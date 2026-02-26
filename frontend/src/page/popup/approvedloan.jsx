@@ -404,13 +404,14 @@ export default function Approvedloan({ onBack }) {
                 <th className="py-3 px-4 text-right font-semibold text-gray-800">Balance</th>
                 <th className="py-3 px-4 text-right font-bold text-green-700 bg-green-50/50">Amortization</th>
                 <th className="py-3 px-4 text-center font-semibold">Due Date</th>
+                <th className="py-3 px-4 text-center font-semibold">Paid Date</th>
                 <th className="py-3 px-4 text-center font-semibold">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 bg-white">
               {schedule.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-6 text-gray-400 italic">No amortization schedule found for this loan.</td>
+                  <td colSpan={8} className="text-center py-6 text-gray-400 italic">No amortization schedule found for this loan.</td>
                 </tr>
               ) : (
                 schedule.map((row) => (
@@ -421,7 +422,10 @@ export default function Approvedloan({ onBack }) {
                     <td className="py-3 px-4 text-right text-gray-700 font-medium">{formatCurrency(row.balance)}</td>
                     <td className="py-3 px-4 text-right font-bold text-green-700 bg-green-50/30">{formatCurrency(row.amortization)}</td>
                     <td className="py-3 px-4 text-center text-gray-500 text-xs">
-                      {row.dueDate ? new Date(row.dueDate).toLocaleDateString("en-PH") : "N/A"}
+                      {row.dueDate ? new Date(row.dueDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "N/A"}
+                    </td>
+                    <td className="py-3 px-4 text-center text-gray-500 text-xs">
+                      {row.paidDate || row.paid_date ? new Date(row.paidDate || row.paid_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—"}
                     </td>
                     <td className="py-3 px-4 text-center">
                       {row.status === "Paid" ? (

@@ -9,7 +9,7 @@ export default function PurchaseHistory({ onBack, rows = [], loading = false }) 
   const formatDate = (d) => {
     if (!d) return "-";
     const dt = new Date(d);
-    return isNaN(dt.getTime()) ? String(d) : dt.toLocaleDateString("en-PH");
+    return isNaN(dt.getTime()) ? String(d) : dt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   };
 
   const fmtMoney = (val) =>

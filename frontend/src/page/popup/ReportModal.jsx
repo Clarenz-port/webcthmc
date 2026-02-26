@@ -6,11 +6,10 @@ import { FaFileAlt, FaCalendarAlt, FaDownload, FaTimes, FaChartLine, FaLayerGrou
 export default function ReportModal({ isOpen, onClose }) {
   if (!isOpen) return null;
 
-  const [reportType, setReportType] = useState("all");
-  const [period, setPeriod] = useState("all");
+  const [reportType, setReportType] = useState("balance");
+  const [period, setPeriod] = useState("monthly");
   const [year, setYear] = useState(new Date().getFullYear());
   const [month, setMonth] = useState(new Date().getMonth() + 1);
-  const [mode, setMode] = useState("summary");
   const [loading, setLoading] = useState(false);
   const [members, setMembers] = useState([]);
   const [selectedMember, setSelectedMember] = useState("");
@@ -20,11 +19,8 @@ export default function ReportModal({ isOpen, onClose }) {
       setLoading(true);
       const token = localStorage.getItem("token");
 
-      const body = { reportType, period, year, month };
-if (!["income", "cashflow", "balance"].includes(reportType)) {
-  body.mode = mode;
-}
-const res = await API.post("/api/reports/generate", body, {
+      const body = { reportType, period, year, month, mode: "summary" };
+      const res = await API.post("/api/reports/generate", body, {
   headers: { Authorization: `Bearer ${token}` },
   responseType: "blob",
 });
@@ -42,12 +38,7 @@ const res = await API.post("/api/reports/generate", body, {
     }
   };
 
-  useEffect(() => {
-    if (reportType === "ledger") {
-      setPeriod("yearly");
-      setMode("detailed");
-    }
-  }, [reportType]);
+  // Removed ledger-specific effect
   
   return (
     <div className="fixed inset-0 bg-black/45 flex items-center justify-center z-50 p-4">
@@ -75,7 +66,6 @@ const res = await API.post("/api/reports/generate", body, {
           <option value="balance">Balance Sheet</option>
           <option value="income">Income Statement</option>
           <option value="cashflow">Cash Flow</option>
-          <option value="ledger">General Ledger (Per Account)</option>
         </select>
       </div>
 
@@ -87,8 +77,7 @@ const res = await API.post("/api/reports/generate", body, {
         </label>
         <select 
           className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-gray-700 outline-none focus:ring-2 focus:ring-[#7e9e6c]/20 focus:border-[#7e9e6c] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-          onChange={e => setPeriod(e.target.value)} 
-          disabled={reportType === "ledger"}
+          onChange={e => setPeriod(e.target.value)}
         >
           <option value="monthly">Monthly</option>
           <option value="yearly">Yearly</option>
@@ -132,39 +121,7 @@ const res = await API.post("/api/reports/generate", body, {
         </div>
       )}
 
-      {/* MODE SELECTOR */}
-      {!["income", "cashflow", "balance"].includes(reportType) && (
-        <div className="mb-8">
-          <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
-            <FaLayerGroup className="text-[#7e9e6c]" />
-            Report Mode
-          </label>
-          <div className="grid grid-cols-2 gap-2 bg-gray-100 p-1 rounded-xl">
-            <button 
-              onClick={() => setMode('summary')}
-              className={`py-2 text-xs font-bold rounded-lg transition-all ${mode === 'summary' ? 'bg-white text-[#7e9e6c] shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-            >
-              Summary
-            </button>
-            <button 
-              onClick={() => setMode('detailed')}
-              className={`py-2 text-xs font-bold rounded-lg transition-all ${mode === 'detailed' ? 'bg-white text-[#7e9e6c] shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-            >
-              Detailed
-            </button>
-          </div>
-          {/* Hidden select to maintain backend compatibility if needed, 
-              though the buttons above should update the same 'mode' state */}
-          <select
-            className="hidden"
-            value={mode}
-            onChange={e => setMode(e.target.value)}
-          >
-            <option value="summary">Summary</option>
-            <option value="detailed">Detailed</option>
-          </select>
-        </div>
-      )}
+      {/* MODE SELECTOR REMOVED: Always summary mode */}
 
       {/* FOOTER ACTIONS */}
       <div className="flex flex-col gap-3">

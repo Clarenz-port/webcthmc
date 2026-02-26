@@ -388,34 +388,38 @@ export default function LoanApplication({ onBack, memberId = null, memberName = 
                 <th className="py-3 px-4 text-right font-semibold text-gray-800">Balance</th>
                 <th className="py-3 px-4 text-right font-bold text-green-700 bg-green-50/50">Amortization</th>
                 <th className="py-3 px-4 text-center font-semibold">Due Date</th>
+                <th className="py-3 px-4 text-center font-semibold">Paid Date</th>
                 <th className="py-3 px-4 text-center font-semibold">Status</th>
               </tr>
             </thead>
-           <tbody className="divide-y divide-gray-100 bg-white">
-  {schedule.map((row, idx) => (
-    <tr key={row.month || idx} className="hover:bg-green-50/30 transition-colors">
-      <td className="py-3 px-4 font-medium text-gray-900">{row.month}</td>
-      <td className="py-3 px-4 text-right text-gray-600">{formatCurrency(row.interest ?? row.interestPayment)}</td>
-      <td className="py-3 px-4 text-right text-red-500">{formatCurrency(row.penalty ?? 0)}</td>
-      <td className="py-3 px-4 text-right text-gray-700 font-medium">{formatCurrency(row.balance ?? row.remainingBalance)}</td>
-      <td className="py-3 px-4 text-right font-bold text-green-700 bg-green-50/30">{formatCurrency(row.amortization ?? row.totalPayment)}</td>
-      <td className="py-3 px-4 text-center text-gray-500 text-xs">
-        {row.dueDate ? new Date(row.dueDate).toLocaleDateString("en-PH") : "N/A"}
-      </td>
-      <td className="py-3 px-4 text-center">
-        {row.status === "Paid" ? (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
-            Paid
-          </span>
-        ) : (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200">
-            {row.status}
-          </span>
-        )}
-      </td>
-    </tr>
-  ))}
-</tbody>
+            <tbody className="divide-y divide-gray-100 bg-white">
+              {schedule.map((row, idx) => (
+                <tr key={row.month || idx} className="hover:bg-green-50/30 transition-colors">
+                  <td className="py-3 px-4 font-medium text-gray-900">{row.month}</td>
+                  <td className="py-3 px-4 text-right text-gray-600">{formatCurrency(row.interest ?? row.interestPayment)}</td>
+                  <td className="py-3 px-4 text-right text-red-500">{formatCurrency(row.penalty ?? 0)}</td>
+                  <td className="py-3 px-4 text-right text-gray-700 font-medium">{formatCurrency(row.balance ?? row.remainingBalance)}</td>
+                  <td className="py-3 px-4 text-right font-bold text-green-700 bg-green-50/30">{formatCurrency(row.amortization ?? row.totalPayment)}</td>
+                  <td className="py-3 px-4 text-center text-gray-500 text-xs">
+                    {row.dueDate ? new Date(row.dueDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "N/A"}
+                  </td>
+                  <td className="py-3 px-4 text-center text-gray-500 text-xs">
+                    {row.paidDate || row.paid_date ? new Date(row.paidDate || row.paid_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—"}
+                  </td>
+                  <td className="py-3 px-4 text-center">
+                    {row.status === "Paid" ? (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
+                        Paid
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200">
+                        {row.status}
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
           </table>
         </div>
       </div> 

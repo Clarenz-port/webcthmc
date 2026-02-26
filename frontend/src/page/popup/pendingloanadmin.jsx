@@ -116,20 +116,25 @@ export default function PendingLoanApplications({ onBack }) {
   const handleApprove = async (loanId) => {
     try {
       // require check number
-      if (!checkNumber || String(checkNumber).trim() === "") {
-        notify.success("Please enter check number before approving.");
+      const trimmedCheck = String(checkNumber).trim();
+      if (!trimmedCheck) {
+        notify.error("Please enter check number before approving.");
+        return;
+      }
+      if (!/^[0-9]{10}$/.test(trimmedCheck)) {
+        notify.error("Check number must be exactly 10 digits.");
         return;
       }
       const token = localStorage.getItem("token");
       if (!token) {
-        notify.success("Not authenticated.");
+        notify.error("Not authenticated.");
         return;
       }
 
       const endpoint = `/api/loans/loan/${loanId}/approve`;
       const res = await API.post(
         endpoint,
-        { checkNumber: String(checkNumber).trim() },
+        { checkNumber: trimmedCheck },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -139,7 +144,7 @@ export default function PendingLoanApplications({ onBack }) {
       setCheckNumber("");
     } catch (err) {
       console.error("❌ Approve failed:", err);
-      notify.success(err.response?.data?.message || "Approve failed");
+      notify.error(err.response?.data?.message || "Approve failed");
     }
   };
 

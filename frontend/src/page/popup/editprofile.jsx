@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
+import notify from '../../utils/toast.js';
 import { FaUser, FaPhone, FaEnvelope, FaBirthdayCake, FaEdit, FaCamera, FaTimes, FaLock, FaCheckCircle, FaMapMarkerAlt } from 'react-icons/fa';
 import API from '../../apis/axios.js';
 
@@ -36,6 +37,7 @@ export default function EditProfilePopup({ isOpen, onClose, member, onSave }) {
 
   const [imagePreviewUrl, setImagePreviewUrl] = useState(DEFAULT_PLACEHOLDER);
   const [imageFile, setImageFile] = useState(null);
+  const [removeAvatar, setRemoveAvatar] = useState(false);
   const fileInputRef = useRef(null);
 
   // Defensive: handle member loading and show loading state
@@ -71,6 +73,7 @@ export default function EditProfilePopup({ isOpen, onClose, member, onSave }) {
     });
     setImagePreviewUrl(preview);
     setImageFile(null);
+    setRemoveAvatar(false);
 
     setPwError("");
     setPwSuccess("");
@@ -125,11 +128,11 @@ export default function EditProfilePopup({ isOpen, onClose, member, onSave }) {
     const f = e.target.files?.[0];
     if (!f) return;
     if (!f.type.startsWith("image/")) {
-      setError("Selected file must be an image.");
+      notify.error("Selected file must be an image.");
       return;
     }
     if (f.size > 5 * 1024 * 1024) {
-      setError("Image must be smaller than 5MB.");
+      notify.error("Image must be smaller than 5MB.");
       return;
     }
     setError("");
@@ -144,52 +147,11 @@ export default function EditProfilePopup({ isOpen, onClose, member, onSave }) {
   const openFileDialog = () => fileInputRef.current?.click();
 
   // Remove picture handler
-  const handleRemovePicture = async () => {
-    if (!window.confirm("Remove profile picture? This will delete the avatar from your account.")) return;
-    setError("");
-    setSaving(true);
-    const id = profile.id;
-    if (!id) {
-      setError("Member id not available.");
-      setSaving(false);
-      return;
-    }
-    const token = (localStorage.getItem("token") || "").trim();
-    const authHeader = token ? { Authorization: `Bearer ${token}` } : {};
-    try {
-      try {
-        const delRes = await API.delete(`/api/members/${id}/avatar`, { headers: { ...authHeader } });
-        const updatedMember = delRes.data?.member ?? delRes.data ?? null;
-        setProfile((prev) => ({ ...prev, avatarUrl: null }));
-        setImageFile(null);
-        setImagePreviewUrl(DEFAULT_PLACEHOLDER);
-        if (typeof onSave === "function") onSave(updatedMember ?? { ...profile, avatarUrl: null });
-        setError("");
-        setPwError("");
-        setPwSuccess("");
-        setSaving(false);
-        return;
-      } catch (errDel) {
-        // fallback to PUT
-      }
-      try {
-        const payload = { avatarUrl: null };
-        const putRes = await API.put(`/api/members/${id}`, payload, {
-          headers: { "Content-Type": "application/json", ...authHeader },
-        });
-        const updated = putRes.data?.member ?? putRes.data ?? { ...profile, avatarUrl: null };
-        setProfile((prev) => ({ ...prev, avatarUrl: null }));
-        setImageFile(null);
-        setImagePreviewUrl(DEFAULT_PLACEHOLDER);
-        if (typeof onSave === "function") onSave(updated);
-      } catch (errPut) {
-        setError("Failed to remove avatar on server.");
-      }
-    } catch (err) {
-      setError("Failed to remove avatar. Check console.");
-    } finally {
-      setSaving(false);
-    }
+  const handleRemovePicture = () => {
+    setRemoveAvatar(true);
+    setImageFile(null);
+    setImagePreviewUrl(DEFAULT_PLACEHOLDER);
+    setProfile((prev) => ({ ...prev, avatarUrl: null }));
   };
 
   // Core save handler: uploads avatar (if any) then updates profile (and password if requested)
@@ -198,11 +160,13 @@ export default function EditProfilePopup({ isOpen, onClose, member, onSave }) {
     setPwError("");
     setPwSuccess("");
     if (!profile.firstName || !profile.lastName || !profile.username) {
+      notify.error("First name, last name and username are required.");
       setError("First name, last name and username are required.");
       return;
     }
     const id = profile.id;
     if (!id) {
+      notify.error("Member id not available.");
       setError("Member id not available.");
       return;
     }
@@ -245,7 +209,19 @@ export default function EditProfilePopup({ isOpen, onClose, member, onSave }) {
         ...(wantsPasswordChange ? { oldPassword, password: newPassword } : {}),
       };
       let uploadedAvatarUrl = null;
-      if (imageFile) {
+      if (removeAvatar) {
+        try {
+          await API.delete(`/api/members/${id}/avatar`, { headers: { ...authHeader } });
+        } catch {
+          // fallback to PUT
+          try {
+            const payloadRemove = { avatarUrl: null };
+            await API.put(`/api/members/${id}`, payloadRemove, {
+              headers: { "Content-Type": "application/json", ...authHeader },
+            });
+          } catch {}
+        }
+      } else if (imageFile) {
         try {
           const form = new FormData();
           form.append("avatar", imageFile);
@@ -328,6 +304,7 @@ export default function EditProfilePopup({ isOpen, onClose, member, onSave }) {
         setImagePreviewUrl(returnedAvatar);
       }
       if (typeof onSave === "function") onSave(updated);
+      notify.success("Profile saved successfully!");
       setProfile((prev) => ({ ...prev, ...updated }));
       setIsEditing({ name: false, phone: false, email: false, birthdate: false, username: false, address: false });
       setPwSuccess(wantsPasswordChange ? "Password changed + profile updated." : "");
@@ -339,12 +316,9 @@ export default function EditProfilePopup({ isOpen, onClose, member, onSave }) {
       setConfirmNewPassword("");
       setImageFile(null);
     } catch (err) {
-      setError(
-        err?.response?.data?.message ||
-        err?.response?.data?.error ||
-        err?.message ||
-        "Failed to save changes. Check server logs."
-      );
+      const msg = err?.response?.data?.message || err?.response?.data?.error || err?.message || "Failed to save changes. Check server logs.";
+      setError(msg);
+      notify.error(msg);
     } finally {
       setSaving(false);
     }
