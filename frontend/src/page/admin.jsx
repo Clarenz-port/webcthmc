@@ -1,5 +1,6 @@
 // src/page/Admin.jsx
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { 
   FaClipboardList, 
   FaCheckCircle, 
@@ -51,6 +52,14 @@ export default function Admin({ onBack }) {
   const [loadingCounts, setLoadingCounts] = useState(true);
   const [purchaseDueCount, setPurchaseDueCount] = useState(0);
 
+  const [loggedIn, setLoggedIn] = useState(!!localStorage.getItem("token"));
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!loggedIn) {
+      navigate("/login", { replace: true });
+    }
+  }, [loggedIn, navigate]);
   // TOTAL SHARES
   const [sharesTotal, setSharesTotal] = useState(0);
   const [loadingSharesTotal, setLoadingSharesTotal] = useState(false);
@@ -91,24 +100,6 @@ const handlePayBills = (m) => { setSelectedMember(m); setMemberDetailsAction("pa
       setPendingCount(0);
     }
   };
-
-  // Handle approve
-  const handleApprove = async (id) => {
-    try {
-      const token = localStorage.getItem("token");
-      await API.put(`/api/admin/approve/${id}`, {}, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      // Remove from pending list
-      setPendingMembers(prev => prev.filter(m => m.id !== id));
-      setPendingCount(prev => prev - 1);
-      // Update members list if needed
-      setMembers(prev => prev.map(m => m.id === id ? { ...m, status: 'approved' } : m));
-    } catch (err) {
-      console.error("Failed to approve member:", err);
-    }
-  };
-
   // Handle reject
   const handleReject = async (id) => {
     try {

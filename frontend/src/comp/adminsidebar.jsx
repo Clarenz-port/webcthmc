@@ -27,7 +27,10 @@ export default function Sidebar({ onNavigate = () => {} }) {
     localStorage.removeItem("token");
     localStorage.removeItem("role");
     localStorage.removeItem("username");
+    // Replace history so back button won't return to admin
     navigate("/login", { replace: true });
+    // Push login state to history to block back navigation
+    window.history.pushState(null, "", "/login");
   };
 
   // CLICKABLE MENU ITEM
