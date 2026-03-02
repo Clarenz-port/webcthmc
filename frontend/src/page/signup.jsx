@@ -128,14 +128,15 @@ export default function Signup() {
         <FaLeaf size={48} className="text-emerald-100" />
       )}
     </div>
-    <h2 className="text-5xl font-black tracking-widest opacity-90 drop-shadow-sm">
-      {siteName || 'LOGO'}
+    <h2 className="text-5xl font-extrabold text-center text-white">
+      {siteName || 'CTHMC'}<br></br>
+      <p className="text-[10px] mt-2">Carmona Townhomes Homeowners Multipurpose Cooperative</p>
     </h2>
   </div>
 
   {/* TEXT SECTION */}
-  <div className="text-center mb-16 z-10">
-    <h2 className="text-6xl font-extrabold mb-4 drop-shadow-md tracking-tight">
+  <div className="text-center mb-14 z-10">
+    <h2 className="text-6xl font-extrabold mb-4 text-white">
       Welcome
     </h2>
     <p className="text-emerald-100/80 font-medium text-lg">

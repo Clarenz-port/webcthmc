@@ -16,7 +16,7 @@ import {
   FaTimes,
   FaArrowRight
 } from "react-icons/fa";
-
+import MemberNavbar from "../comp/membernavbar";
 
 import Wallet from "../design/wallet.png";
 import ShareHistoryPopup from "../page/popup/Sharehistory.jsx";
@@ -41,6 +41,7 @@ export default function Member() {
   const [showBillHistory, setShowBillHistory] = useState(false);
   const [showLoanHistory, setShowLoanHistory] = useState(false);
 
+  const [selectedNotice, setSelectedNotice] = useState(null);
   // data states
   const [user, setUser] = useState(null);
   const [hasActiveLoan, setHasActiveLoan] = useState(false);
@@ -401,7 +402,8 @@ export default function Member() {
   }, [handleKeyDown]);
 
   return (
-    <div className="min-h-screen pr-2 bg-[#f3f3f3] font-sans pt-4">
+    
+    <div className="min-h-screen pr-2 bg-[#f3f3f3] font-sans pt-4"><MemberNavbar onNoticeClick={setSelectedNotice} />
       <div className="pt-20 mx-auto space-y-5">
         {/* Top responsive layout */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-8 gap-6 items-stretch auto-rows-fr">
@@ -897,7 +899,53 @@ export default function Member() {
           </div>
         </div>
       )}
+{selectedNotice && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center px-40">
+          {/* Backdrop Overlay */}
+          <div 
+            className="absolute inset-0 bg-black/45  transition-opacity"
+            onClick={() => setSelectedNotice(null)}
+          ></div>
 
+          {/* Modal Content */}
+          <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl relative z-10 overflow-hidden animate-in zoom-in-95 duration-300 ring-1 ring-white/20">
+            
+            {/* Modal Header */}
+            <div className="bg-gradient-to-br from-emerald-900 to-emerald-800 p-6 flex justify-between items-start">
+              <div className="pr-6">
+                <span className="inline-block px-2 py-1 bg-white/10 text-emerald-100 text-[10px] font-bold rounded mb-3 backdrop-blur-md border border-white/10 uppercase tracking-wider">
+                  Notification
+                </span>
+                <h3 className="text-white text-2xl font-bold tracking-tight leading-snug">
+                  {selectedNotice.title}
+                </h3>
+              </div>
+              <button 
+                onClick={() => setSelectedNotice(null)}
+                className="text-white/50 hover:text-white hover:bg-white/10 p-2 rounded-xl transition-all"
+              >
+                <FaTimes size={20} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-8 max-h-[60vh] overflow-y-auto custom-scrollbar">
+              <div className="prose prose-sm prose-emerald max-w-none">
+                <p className="text-gray-600 leading-relaxed text-[15px] whitespace-pre-wrap">
+                  {selectedNotice.message}
+                </p>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="bg-gray-50 p-4 border-t border-gray-200 flex justify-end">
+                <p className="text-gray-600 text-xs font-medium flex items-center gap-1">
+                  Received on {new Date(selectedNotice.createdAt).toLocaleString()}
+                </p>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Bills Payment Modal */}
       {showBillHistory && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">

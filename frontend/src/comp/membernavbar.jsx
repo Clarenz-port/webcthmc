@@ -7,7 +7,7 @@ import { useNavigate } from "react-router-dom";
 import EditProfilePopup from "../page/popup/editprofile.jsx";
 import API from "../apis/axios";
 
-export default function MemberNavbar() {
+export default function MemberNavbar({ onNoticeClick }) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showNotifPopup, setShowNotifPopup] = useState(false);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
@@ -20,6 +20,8 @@ export default function MemberNavbar() {
   const [notices, setNotices] = useState([]);
   const [readIds, setReadIds] = useState([]); // local per-user read tracking
   const [unreadCount, setUnreadCount] = useState(0);
+
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   // utility to scope read state per username
   const username = localStorage.getItem("username") || "guest";
@@ -226,12 +228,12 @@ useEffect(() => {
               <div className="divide-y divide-gray-50">
                 {notices.map((notice) => (
                   <div
-                    key={notice.id}
-                    onClick={() => {
-                      setSelectedNotice(notice);
-                      setShowNotifPopup(false);
-                      markAsRead(notice.id);
-                    }}
+    key={notice.id}
+    onClick={() => {
+      if (onNoticeClick) onNoticeClick(notice); // <-- open modal in member.jsx
+      setShowNotifPopup(false);
+      markAsRead(notice.id);
+    }}
                     className={`group p-4 transition-all cursor-pointer hover:bg-gray-50 relative flex gap-3 ${!readIds.includes(notice.id) ? 'bg-emerald-50/30' : ''}`}
                   >
                     {/* Status Indicator */}
@@ -263,59 +265,7 @@ useEffect(() => {
       {/* ========================================== */}
       {/* 🟢 MODAL FOR SPECIFIC NOTIFICATION 🟢 */}
       {/* ========================================== */}
-      {selectedNotice && (
-        <div className="fixed inset-0 z-[100] fle items-center justify-center px-40">
-          {/* Backdrop Overlay */}
-          <div 
-            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
-            onClick={() => setSelectedNotice(null)}
-          ></div>
-
-          {/* Modal Content */}
-          <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl relative z-10 overflow-hidden animate-in zoom-in-95 duration-300 ring-1 ring-white/20">
-            
-            {/* Modal Header */}
-            <div className="bg-gradient-to-br from-emerald-900 to-emerald-800 p-8 flex justify-between items-start">
-              <div className="pr-6">
-                <span className="inline-block px-2 py-1 bg-white/10 text-emerald-100 text-[10px] font-bold rounded mb-3 backdrop-blur-md border border-white/10 uppercase tracking-wider">
-                  Notification
-                </span>
-                <h3 className="text-white text-2xl font-bold tracking-tight leading-snug">
-                  {selectedNotice.title}
-                </h3>
-                <p className="text-emerald-200/70 text-xs mt-2 font-medium flex items-center gap-1">
-                  Received on {new Date(selectedNotice.createdAt).toLocaleString()}
-                </p>
-              </div>
-              <button 
-                onClick={() => setSelectedNotice(null)}
-                className="text-white/50 hover:text-white hover:bg-white/10 p-2 rounded-xl transition-all"
-              >
-                <FaTimes size={20} />
-              </button>
-            </div>
-
-            {/* Modal Body */}
-            <div className="p-8 max-h-[60vh] overflow-y-auto custom-scrollbar">
-              <div className="prose prose-sm prose-emerald max-w-none">
-                <p className="text-gray-600 leading-relaxed text-[15px] whitespace-pre-wrap">
-                  {selectedNotice.message}
-                </p>
-              </div>
-            </div>
-
-            {/* Modal Footer */}
-            <div className="bg-gray-50 p-5 border-t border-gray-100 flex justify-end">
-              <button
-                onClick={() => setSelectedNotice(null)}
-                className="px-6 py-2.5 bg-white border border-gray-200 text-gray-600 font-bold text-sm rounded-xl hover:bg-gray-50 hover:text-gray-900 hover:border-gray-300 transition-all shadow-sm active:scale-95"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      
     </div>
 
     {/* ⚙️ SETTINGS SECTION */}
@@ -349,14 +299,14 @@ useEffect(() => {
             <div className="h-px bg-gray-50 mx-2 my-1"></div>
 
             <div
-              onClick={handleLogout}
-              className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-red-500 hover:bg-red-50 hover:text-red-600 rounded-xl cursor-pointer transition-colors group"
-            >
-               <div className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center group-hover:bg-white group-hover:shadow-sm transition-all text-red-400 group-hover:text-red-500">
-                 <FaSignOutAlt />
-              </div>
-              <span>Logout</span>
-            </div>
+  onClick={() => setShowLogoutModal(true)}
+  className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-red-500 hover:bg-red-50 hover:text-red-600 rounded-xl cursor-pointer transition-colors group"
+>
+  <div className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center group-hover:bg-white group-hover:shadow-sm transition-all text-red-400 group-hover:text-red-500">
+    <FaSignOutAlt />
+  </div>
+  <span>Logout</span>
+</div>
           </div>
         </div>
       )}
@@ -376,6 +326,32 @@ useEffect(() => {
           setIsEditProfileOpen(false);
         }}
       />
+      {showLogoutModal && (
+  <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40">
+    <div className="absolute inset-0" onClick={() => setShowLogoutModal(false)}></div>
+    <div className="relative bg-white rounded-2xl shadow-2xl max-w-xs w-full p-8 z-10 flex flex-col items-center">
+      <FaSignOutAlt className="text-red-500 text-3xl mb-2" />
+      <h2 className="text-lg font-bold mb-2 text-gray-800">Do you want to log out?</h2>
+      <div className="flex gap-4 mt-4">
+        <button
+          className="px-5 py-2 rounded-xl bg-red-500 text-white font-bold hover:bg-red-600 transition"
+          onClick={() => {
+            setShowLogoutModal(false);
+            handleLogout();
+          }}
+        >
+          Yes
+        </button>
+        <button
+          className="px-5 py-2 rounded-xl bg-gray-200 text-gray-700 font-bold hover:bg-gray-300 transition"
+          onClick={() => setShowLogoutModal(false)}
+        >
+          No
+        </button>
+      </div>
+    </div>
+  </div>
+)}
     </>
   );
 }

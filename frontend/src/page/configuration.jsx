@@ -1,8 +1,8 @@
 
 import React, { useEffect, useState } from "react";
-import { FiArrowLeft } from "react-icons/fi";
 import notify from "../utils/toast";
 import API from "../apis/axios";
+import { FiArrowLeft, FiSave, FiUpload, FiTrash2, FiGlobe, FiImage, FiCheckCircle } from 'react-icons/fi';
 
 export default function Configuration({ onBack }) {
   const [logoPreview, setLogoPreview] = useState(null);
@@ -127,62 +127,130 @@ export default function Configuration({ onBack }) {
   };
 
 
-  const handleClearLogo = async () => {
+  const handleClearLogo = () => {
     setLogoPreview(null);
-    try {
-      const token = localStorage.getItem("token");
-      await API.put(
-        "/api/config",
-        { siteName, logo: null },
-        token ? { headers: { Authorization: `Bearer ${token}` } } : undefined
-      );
-      notify.success("Logo removed");
-    } catch {
-      notify.error("Failed to remove logo");
-    }
+    // Do not call API here; only clear preview. Save will persist the removal.
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button onClick={onBack} className="p-3 bg-white border border-gray-100 text-gray-500 hover:text-[#7e9e6c] hover:border-[#7e9e6c] rounded-xl transition-all shadow-sm active:scale-95">
-            <FiArrowLeft />
-          </button>
-          <h2 className="text-3xl font-black text-gray-800 tracking-tight">Configuration</h2>
-        </div>
+    <div className=" mx-auto">
+  {/* Header Section */}
+  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-100 pb-6">
+    <div className="flex items-center gap-4">
+      <button 
+        onClick={onBack} 
+        className="group p-3 bg-white border border-gray-200 text-gray-400 hover:text-[#7e9e6c] hover:border-[#7e9e6c] rounded-xl transition-all shadow-sm active:scale-95"
+        title="Go Back"
+      >
+        <FiArrowLeft className="text-xl group-hover:-translate-x-1 transition-transform" />
+      </button>
+      <div>
+        <h2 className="text-3xl font-black text-gray-900 tracking-tight">Configuration</h2>
+      </div>
+    </div>
+    
+    <button 
+      onClick={handleSave} 
+      disabled={saving} 
+      className={`flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold transition-all shadow-lg active:scale-95 ${
+        saving 
+        ? "bg-gray-100 text-gray-400 cursor-not-allowed" 
+        : "bg-[#7e9e6c] text-white hover:bg-[#6a8b5a] shadow-[#7e9e6c]/20"
+      }`}
+    >
+      {saving ? (
         <div className="flex items-center gap-2">
-          <button onClick={handleSave} disabled={saving} className="px-4 py-2 bg-[#7e9e6c] text-white rounded-xl font-bold hover:bg-[#6a8b5a] transition-all">
-            {saving ? "Saving..." : "Save Changes"}
-          </button>
+          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          <span>Saving...</span>
+        </div>
+      ) : (
+        <>
+          <FiSave className="text-lg" />
+          <span>Save Changes</span>
+        </>
+      )}
+    </button>
+  </div>
+
+  <div>
+
+    {/* Right Column: Cards */}
+    <div className="space-y-6">
+      
+      {/* Company Name Card */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 hover:shadow-md transition-shadow">
+        <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-3">
+          <FiGlobe className="text-[#7e9e6c]" />
+          Company Name
+        </label>
+        <div className="relative">
+          <input 
+            value={siteName} 
+            onChange={(e) => setSiteName(e.target.value)} 
+            placeholder="e.g. Acme Corp"
+            className="w-full bg-gray-50 border border-gray-200 px-4 py-3 rounded-xl focus:ring-4 focus:ring-[#7e9e6c]/10 focus:border-[#7e9e6c] outline-none transition-all font-medium"
+          />
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-xl p-6">
-        <h3 className="text-lg font-bold mb-3">company Name</h3>
-        <input value={siteName} onChange={(e) => setSiteName(e.target.value)} className="w-full border px-4 py-3 rounded-xl mb-4" />
-      </div>
-
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-xl p-6">
-        <h3 className="text-lg font-bold mb-3">company Logo</h3>
-        <div className="flex items-center gap-4">
-          <div className="w-28 h-28 rounded-lg bg-gray-50 border flex items-center justify-center overflow-hidden">
-            {logoPreview ? (
-              <img src={logoPreview} alt="Site Logo" className="object-contain h-full w-full" />
-            ) : (
-              <div className="text-gray-300">No logo</div>
-            )}
-          </div>
-          <div className="flex flex-col gap-2">
-            <input type="file" accept="image/*" onChange={handleLogoChange} />
+      {/* Company Logo Card */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 hover:shadow-md transition-shadow">
+        <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-4">
+          <FiImage className="text-[#7e9e6c]" />
+          Company Logo
+        </label>
+        
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
+          {/* Logo Preview Wrapper */}
+          <div className="relative group">
+            <div className="w-32 h-32 rounded-2xl bg-gray-50 border-2 border-dashed border-gray-200 flex items-center justify-center overflow-hidden transition-colors group-hover:border-[#7e9e6c]/50">
+              {logoPreview ? (
+                <img src={logoPreview} alt="Site Logo" className="object-contain h-full w-full p-2" />
+              ) : (
+                <div className="flex flex-col items-center text-gray-300">
+                  <FiImage size={32} />
+                  <span className="text-[10px] uppercase font-bold mt-1">No Logo</span>
+                </div>
+              )}
+            </div>
             {logoPreview && (
-              <button onClick={handleClearLogo} className="px-3 py-1 bg-red-50 text-red-600 rounded-lg font-semibold">Remove Logo</button>
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-2xl">
+                <FiCheckCircle className="text-white text-3xl" />
+              </div>
             )}
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex flex-col gap-3 w-full sm:w-auto">
+            <label className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl font-bold cursor-pointer hover:bg-gray-50 transition-all active:scale-95 shadow-sm">
+              <FiUpload />
+              <span>{logoPreview ? "Change Logo" : "Upload Logo"}</span>
+              <input 
+                type="file" 
+                accept="image/*" 
+                onChange={handleLogoChange} 
+                className="hidden" 
+              />
+            </label>
+
+            {logoPreview && (
+              <button
+                onClick={handleClearLogo}
+                className="flex items-center justify-center gap-2 px-4 py-2.5 bg-red-50 text-red-600 rounded-xl font-bold hover:bg-red-100 transition-all active:scale-95"
+              >
+                <FiTrash2 />
+                <span>Remove Logo</span>
+              </button>
+            )}
+            <p className="text-[11px] text-gray-400 px-1">
+              Recommended: Square PNG or SVG, max 2MB.
+            </p>
           </div>
         </div>
       </div>
-
 
     </div>
+  </div>
+</div>
   );
 }

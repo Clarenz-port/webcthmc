@@ -188,7 +188,7 @@ export default function Loannow({ isOpen, onClose }) {
       notify.success(response.data.message);
       onClose();
     } catch (error) {
-      notify.success(error.response?.data?.message || "Error submitting loan");
+      notify.error(error.response?.data?.message || "Error submitting loan");
     }
   };
 

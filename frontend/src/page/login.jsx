@@ -142,9 +142,11 @@ export default function Login() {
 </div>
 
         {/* RIGHT */}
-        <div className="rounded-3xl p-8 w-[430px] bg-emerald-50/90 backdrop-blur-sm shadow-2xl space-y-5 border border-white/50">
+        <div className="rounded-3xl p-8 w-[430px] bg-emerald-50/90 backdrop-blur-sm shadow-2xl space-y- border border-white/50">
           <h2 className="text-5xl font-extrabold text-center mt-5 mb-8 text-emerald-800">
-            {siteName || 'CTHMC'}
+            {siteName || 'CTHMC'}<br></br>
+            <p className="text-[10px] mt-2">Carmona Townhomes Homeowners Multipurpose Cooperative</p>
+            
           </h2>
           <h2 className="text-xl font-bold text-center mb-8 text-emerald-800">
             Login
