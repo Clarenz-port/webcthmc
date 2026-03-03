@@ -82,21 +82,25 @@ const total = Number(subtotal.toFixed(2));
 
   const validateBeforeSubmit = () => {
     if (!memberId) {
-      notify.success("Member not specified.");
+      notify.error("Member not specified.");
       return false;
     }
     for (let i = 0; i < lines.length; i++) {
       const l = lines[i];
       if (!String(l.name || "").trim()) {
-        notify.success(`Please enter item name for row ${i + 1}.`);
+        notify.error(`Please fill up item name.`);
         return false;
       }
-      if (l.qty && toQty(l.qty) < 1) {
-        notify.success(`Quantity must be >= 1 for row ${i + 1}.`);
+      if (!String(l.qty || "").trim() || toQty(l.qty) < 1) {
+        notify.error(`Please fill up quantity.`);
         return false;
       }
-      if (l.unitPrice && toPrice(l.unitPrice) < 0) {
-        notify.success(`Unit price must be >= 0 for row ${i + 1}.`);
+      if (!String(l.unitPrice || "").trim() || toPrice(l.unitPrice) < 0) {
+        notify.error(`Please fill up unit price.`);
+        return false;
+      }
+      if (!String(l.costOfSale || "").trim() || toPrice(l.costOfSale) < 0) {
+        notify.error(`Please fill up cost of items.`);
         return false;
       }
     }
@@ -203,7 +207,7 @@ const total = Number(subtotal.toFixed(2));
     <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-[#f8faf7]">
       <div className="flex items-center gap-4">
         <div>
-          <h3 className="text-2xl font-black text-gray-800 tracking-tight">Record Purchase</h3>
+          <h3 className="text-2xl font-black text-[#2f5134] tracking-tight">Record Purchase</h3>
         </div>
       </div>
     </div>
@@ -212,7 +216,7 @@ const total = Number(subtotal.toFixed(2));
     <div className="p-8 overflow-y-auto flex-1">
       {/* COLUMN HEADERS */}
       <div className="grid grid-cols-16 gap-4 px-2 mb-4">
-        <div className="col-span-5 text-[11px] font-black text-gray-400 uppercase tracking-wider">Item Description</div>
+        <div className="col-span-5 text-[11px] font-black text-gray-400 uppercase tracking-wider">Item</div>
         <div className="col-span-2 text-right text-[11px] font-black text-gray-400 uppercase tracking-wider">Qty</div>
         <div className="col-span-2 text-right text-[11px] font-black text-gray-400 uppercase tracking-wider">Unit Price</div>
         <div className="col-span-2 text-right text-[11px] font-black text-gray-400 uppercase tracking-wider">Cost of Sale</div>

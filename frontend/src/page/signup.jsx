@@ -174,16 +174,23 @@ export default function Signup() {
           {/* Birthdate (added) */}
           <input
             name="birthdate"
-            ttype="text" // Start as text to show placeholder
-          placeholder="Birthdate"
-          onFocus={(e) => (e.target.type = "date")} // Switch to date picker on focus
-          onBlur={(e) => {
-            if (!e.target.value) e.target.type = "text"; // Switch back if empty
-          }}
+            type="date"
+            placeholder="Birthdate"
             required
             value={form.birthdate}
             onChange={handleChange}
             className="form-input"
+            max={new Date().toISOString().split('T')[0]}
+            onKeyDown={e => {
+              // Allow Tab, Arrow keys, Home, End, Delete, Backspace
+              const allowed = [
+                'Tab', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown',
+                'Home', 'End', 'Delete', 'Backspace'
+              ];
+              if (!allowed.includes(e.key)) {
+                e.preventDefault();
+              }
+            }}
           />
 
           {/* Email (added) */}
@@ -201,8 +208,30 @@ export default function Signup() {
           <input name="address" placeholder="Address" value={form.address} onChange={handleChange} className="form-input" />
 
           {/* Account Info */}
-          <input name="phone_number" placeholder="Phone Number" type="tel" required value={form.phone_number} onChange={handleChange} className="form-input" />
-          <input name="username" placeholder="Username" required value={form.username} onChange={handleChange} className="form-input" />
+          <input
+            name="phone_number"
+            placeholder="Phone Number"
+            type="tel"
+            required
+            value={form.phone_number}
+            onChange={handleChange}
+            className="form-input"
+            pattern="[0-9]{11}"
+            maxLength={11}
+            minLength={11}
+            title="Phone number must be exactly 11 digits"
+            inputMode="numeric"
+          />
+          <input
+            name="username"
+            placeholder="Username"
+            required
+            value={form.username}
+            onChange={handleChange}
+            className="form-input"
+            minLength={7}
+            title="Username must be at least 7 characters"
+          />
           
 
           {/* Password */}
@@ -215,6 +244,9 @@ export default function Signup() {
               value={form.password}
               onChange={handleChange}
               className="form-input pr-16"
+              minLength={7}
+              maxLength={14}
+              title="Password must be 7-14 characters"
             />
             <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-2 top-2 text-sm text-emerald-800">
               {showPassword ? "Hide" : "Show"}
@@ -230,6 +262,9 @@ export default function Signup() {
               value={form.confirmPassword}
               onChange={handleChange}
               className="form-input pr-16"
+              minLength={7}
+              maxLength={14}
+              title="Password must be 7-14 characters"
             />
             <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-2 top-2 text-sm text-emerald-800">
               {showConfirmPassword ? "Hide" : "Show"}

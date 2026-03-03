@@ -100,6 +100,23 @@ const handlePayBills = (m) => { setSelectedMember(m); setMemberDetailsAction("pa
       setPendingCount(0);
     }
   };
+
+  const handleApprove = async (id) => {
+    try {
+      const token = localStorage.getItem("token");
+      await API.put(`/api/admin/approve/${id}`, {}, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      // Remove from pending list
+      setPendingMembers(prev => prev.filter(m => m.id !== id));
+      setPendingCount(prev => prev - 1);
+      // Update members list if needed
+      setMembers(prev => prev.map(m => m.id === id ? { ...m, status: 'approved' } : m));
+    } catch (err) {
+      console.error("Failed to approve member:", err);
+    }
+  };
+
   // Handle reject
   const handleReject = async (id) => {
     try {
@@ -414,16 +431,15 @@ const handlePayBills = (m) => { setSelectedMember(m); setMemberDetailsAction("pa
   ------------------------------------------------------------------------- */
   const UsersMembersView = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const approvedMembers = React.useMemo(() => members.filter(m => String(m.status).toLowerCase() === "approved"), [members]);
   const filteredMembers = React.useMemo(() => {
     const q = (searchTerm || "").trim().toLowerCase();
-    // Only show approved members
-    const approvedMembers = members.filter(m => String(m.status).toLowerCase() === "approved");
     if (!q) return approvedMembers;
     return approvedMembers.filter((m) => {
       const name = `${m.firstName || ""} ${m.middleName || ""} ${m.lastName || ""} ${m.memberName || ""} ${m.name || ""}`.toLowerCase();
       return name.includes(q);
     });
-  }, [members, searchTerm]);
+  }, [approvedMembers, searchTerm]);
 
   return (
     <div>
@@ -444,7 +460,7 @@ const handlePayBills = (m) => { setSelectedMember(m); setMemberDetailsAction("pa
             <div className="flex items-center gap-2 mt-1">
               <span className="flex h-2 w-2 rounded-full bg-[#7e9e6c]"></span>
               <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
-                {members.length} Total Registered Members
+                {approvedMembers.length} Approved Members
               </p>
             </div>
           </div>

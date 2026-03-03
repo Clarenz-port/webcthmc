@@ -25,7 +25,6 @@ import LoanApplication from "../page/popup/Loanappli.jsx";
 import Loannow from "../page/popup/loannow/LoanNow.jsx";
 import PurchaseHistory from "../page/popup/Purchasehis.jsx";
 import BillHistory from "../page/popup/billshis.jsx";
-import LoanHistory from "../page/popup/loanhis.jsx";
 
 export default function Member() {
   const navigate = useNavigate();
@@ -963,22 +962,6 @@ export default function Member() {
         </div>
       )}
 
-      {/* Loan History Modal */}
-      {showLoanHistory && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-          <div className="relative w-full max-w-4xl p-6">
-            <button
-              aria-label="Close loan history"
-              onClick={() => setShowLoanHistory(false)}
-              className="absolute right-4 top-4 text-gray-600 hover:text-gray-800"
-            >
-              <FaTimes size={18} />
-            </button>
-
-            <LoanHistory onBack={() => setShowLoanHistory(false)} />
-          </div>
-        </div>
-      )}
     </div>
   );
 }

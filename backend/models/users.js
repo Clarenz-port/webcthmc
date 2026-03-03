@@ -58,4 +58,17 @@
 },
   });
 
-  module.exports = User;
+
+// Helper function to capitalize first letter of each word
+function capitalizeWords(str) {
+  if (!str) return str;
+  return str.replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+User.beforeSave((user) => {
+  if (user.firstName) user.firstName = capitalizeWords(user.firstName.trim());
+  if (user.middleName) user.middleName = capitalizeWords(user.middleName.trim());
+  if (user.lastName) user.lastName = capitalizeWords(user.lastName.trim());
+});
+
+module.exports = User;

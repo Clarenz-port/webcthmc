@@ -159,16 +159,10 @@ export default function AddBillPaymentPopup({ isOpen, onClose, memberId, onSaved
     {/* HEADER SECTION */}
     <div className="bg-[#f8faf7] px-8 py-6 border-b border-[#dce9dd] flex justify-between items-center">
       <div className="flex items-center gap-4">
-        <div className="w-12 h-12 bg-[#7e9e6c]/10 text-[#246033] rounded-2xl flex items-center justify-center">
-          <FaFileInvoice size={24} />
-        </div>
         <div>
-          <h2 id="bill-popup-title" className="text-xl font-black text-[#246033] tracking-tight">
+          <h2 id="bill-popup-title" className="text-2xl font-black text-[#2f5134] tracking-tight">
             {isEditing ? "Edit Payment" : "Record Payment"}
           </h2>
-          <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">
-            {isEditing ? "Modify Transaction" : "New Bill Entry"}
-          </p>
         </div>
       </div>
     </div>

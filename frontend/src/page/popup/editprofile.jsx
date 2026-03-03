@@ -164,6 +164,11 @@ export default function EditProfilePopup({ isOpen, onClose, member, onSave }) {
       setError("First name, last name and username are required.");
       return;
     }
+    if (profile.email && !profile.email.includes("@")) {
+      notify.error("Email must contain an '@' symbol.");
+      setError("Email must contain an '@' symbol.");
+      return;
+    }
     const id = profile.id;
     if (!id) {
       notify.error("Member id not available.");
@@ -329,7 +334,7 @@ export default function EditProfilePopup({ isOpen, onClose, member, onSave }) {
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-[550px] max-h-[90vh] overflow-hidden relative animate-in fade-in zoom-in duration-300">
         {/* HEADER */}
         <div className="bg-[#f8faf8] border-b border-gray-100 px-8 py-6 flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-gray-800">Edit Profile</h2>
+          <h2 className="text-2xl font-bold text-[#2f5134]">Edit Profile</h2>
           <button
             onClick={onClose}
             className="p-2 rounded-full hover:bg-gray-200 text-gray-400 hover:text-gray-600 transition-colors"
@@ -429,7 +434,18 @@ export default function EditProfilePopup({ isOpen, onClose, member, onSave }) {
                     <input
                       className="bg-white border border-gray-200 p-2 rounded-lg w-full text-sm focus:ring-2 focus:ring-[#b8d8ba] outline-none"
                       value={profile.phoneNumber}
-                      onChange={(e) => handleChange(e, "phoneNumber")}
+                      onChange={(e) => {
+                        // Only allow digits
+                        const val = e.target.value.replace(/[^0-9]/g, "");
+                        if (val.length <= 11) {
+                          handleChange({ target: { value: val } }, "phoneNumber");
+                        }
+                      }}
+                      maxLength={11}
+                      minLength={11}
+                      pattern="\\d{11}"
+                      title="Phone number must be exactly 11 digits"
+                      required
                     />
                   ) : (
                     <div>
@@ -477,6 +493,9 @@ export default function EditProfilePopup({ isOpen, onClose, member, onSave }) {
                       className="bg-white border border-gray-200 p-2 rounded-lg w-full text-sm focus:ring-2 focus:ring-[#b8d8ba] outline-none"
                       value={profile.email}
                       onChange={(e) => handleChange(e, "email")}
+                      pattern="[^@\s]+@[^@\s]+"
+                      title="Email must contain an @"
+                      required
                     />
                   ) : (
                     <div>
@@ -501,6 +520,17 @@ export default function EditProfilePopup({ isOpen, onClose, member, onSave }) {
                       className="bg-white border border-gray-200 p-2 rounded-lg w-full text-sm focus:ring-2 focus:ring-[#b8d8ba] outline-none"
                       value={profile.birthdate ? profile.birthdate.split("T")[0] : ""}
                       onChange={(e) => handleChange(e, "birthdate")}
+                      max={new Date().toISOString().split('T')[0]}
+                      onKeyDown={e => {
+                        // Allow Tab, Arrow keys, Home, End, Delete, Backspace
+                        const allowed = [
+                          'Tab', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown',
+                          'Home', 'End', 'Delete', 'Backspace'
+                        ];
+                        if (!allowed.includes(e.key)) {
+                          e.preventDefault();
+                        }
+                      }}
                     />
                   ) : (
                     <div>
@@ -528,6 +558,8 @@ export default function EditProfilePopup({ isOpen, onClose, member, onSave }) {
                         className="bg-white border border-gray-200 p-2 rounded-lg w-full text-sm focus:ring-2 focus:ring-[#b8d8ba] outline-none"
                         value={profile.username}
                         onChange={(e) => handleChange(e, "username")}
+                        minLength={7}
+                        title="Username must be at least 7 characters"
                       />
                     ) : (
                       <div>
@@ -569,6 +601,9 @@ export default function EditProfilePopup({ isOpen, onClose, member, onSave }) {
                   className="bg-white border border-gray-200 w-full p-3 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#b8d8ba]"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
+                  minLength={7}
+                  maxLength={14}
+                  title="Password must be 7-14 characters"
                 />
                 <input
                   type={showPasswords ? "text" : "password"}
@@ -576,6 +611,9 @@ export default function EditProfilePopup({ isOpen, onClose, member, onSave }) {
                   className="bg-white border border-gray-200 w-full p-3 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#b8d8ba]"
                   value={confirmNewPassword}
                   onChange={(e) => setConfirmNewPassword(e.target.value)}
+                  minLength={7}
+                  maxLength={14}
+                  title="Password must be 7-14 characters"
                 />
                 <label className="flex items-center gap-2 text-xs font-semibold text-gray-500 cursor-pointer">
                   <input

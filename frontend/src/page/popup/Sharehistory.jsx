@@ -36,7 +36,7 @@ export default function Sharehistory({ isOpen, onClose, rows = [], loading = fal
     <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-white">
       <div className="flex items-center gap-3">
         <div>
-          <h3 className="text-xl font-bold text-[#56794a]">Shares History</h3>
+          <h3 className="text-2xl font-extrabold text-[#56794a]">Shares History</h3>
         </div>
         
       </div><div className="h-1 w-20 bg-[#7e9e6c] rounded-full"></div>
