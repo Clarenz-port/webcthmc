@@ -93,14 +93,14 @@ export default function Sidebar({ onNavigate = () => {} }) {
             {headerItem("Financial Records", <FaHandHoldingUsd />)}
             <div className="ml-2 mt-1 font-semibold space-y-1 text-[15px]">
               {subItem("Pending Loans", "pendingLoans")}
-              {subItem("Approved Loans", "approvedLoan")}
+              {subItem("Total Loans", "approvedLoan")}
               {subItem("Due Dates", "totalloan")}
               {subItem("Savings", "shares")}
             </div>
 
             {headerItem("Users", <FaUsers />)}
             <div className="ml-2 mt-1 font-semibold space-y-1 text-[15px]">
-              {subItem("Member", "users:members")}
+              {subItem("Members", "users:members")}
               {role === "superadmin" && subItem("Admin", "users:admins")}
               {subItem("Activity Logs", "users:activity")}
             </div>
@@ -108,7 +108,7 @@ export default function Sidebar({ onNavigate = () => {} }) {
             {headerItem("Settings", <FaCog />)}
             <div className="ml-2 mt-1 font-semibold space-y-1 text-[15px]">
 
-              {subItem("Manage Notice", "notice")}
+              {subItem("Manage Notices", "notice")}
               {subItem("Configuration", "configuration")}
             </div>
           </nav>

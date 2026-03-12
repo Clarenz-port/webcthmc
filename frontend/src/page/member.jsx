@@ -502,22 +502,20 @@ export default function Member() {
 
           {/* SHARES CARD */}
           <Card className="col-span-3 overflow-hidden rounded-2xl border-none shadow-lg bg-white">
+            <div className="flex items-center pt-10 pl-5 gap-2 mb-1">
+          <h3 className="text-2xl font-bold text-gray-800">Contribution and Savings</h3>
+        </div>
+
   <div className="flex flex-col md:flex-row items-stretch min-h-[350px]">
     
     {/* Left Content Section */}
     <div className="flex-1 p-6 flex flex-col justify-between">
-      <div>
-        <div className="flex items-center gap-2 mb-1">
-          <h3 className="text-2xl font-bold text-gray-800">Shares</h3>
-        </div>
-        <p className="text-sm text-gray-500">Manage your investment overview and history</p>
-      </div>
 
       {/* Balance Display */}
       <div className="mt-8 mb-8 relative group">
         <div className="absolute -inset-1 bg-gradient-to-r from-green-100 to-[#d6ead8] rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
         <div className="relative bg-[#f0f9f1] border border-green-100 p-6 rounded-xl shadow-sm">
-          <span className="text-xs font-bold text-green-700 uppercase tracking-wider">Your Total Shares</span>
+          <span className="text-xs font-bold text-green-700 uppercase tracking-wider">Total Contribution and Savings</span>
           <div className="flex items-baseline gap-1 mt-1">
             <span className="text-2xl font-bold text-green-800">₱</span>
             <span className="text-4xl font-black text-green-900 tracking-tight">
@@ -595,6 +593,7 @@ export default function Member() {
                   {hasActiveLoan ? "Active Loan Exists" : "Loan Now"}
                  {hasActiveLoan ? "" : <FaArrowRight className="text-sm opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />} 
                 </button>
+
               </div>
             </div>
 
@@ -604,10 +603,14 @@ export default function Member() {
                   <FaRegCalendarAlt />
                 </span>
                 <div>
-                  <div className="text-xs font-medium text-gray-600">Active Loan</div>
-                  <div className="text-sm font-bold">
-                    {activeLoan ? activeLoan.status : "No active loan"}
-                  </div>
+                  <div className="text-xs font-medium text-gray-600">Loan</div>
+                    <div className="text-sm font-bold">
+                      {activeLoan
+                        ? activeLoan.status === "Approved"
+                          ? "Active"
+                          : activeLoan.status
+                        : "No active loan"}
+                    </div>
                   {activeLoan && (
                     <div className="text-xs font-medium text-gray-500 mt-1">
                       Next payment:{" "}
@@ -687,7 +690,7 @@ export default function Member() {
                 }`}
               >
                 <FaUserCircle className="text-sm" /> 
-                {activeLoan.status}
+                {activeLoan.status === "Approved" ? "Active" : activeLoan.status}
               </span>
             </div>
           </div>
@@ -718,15 +721,6 @@ export default function Member() {
       <h3 className="text-xl font-bold text-gray-800">Loans Breakdown</h3>
       <p className="text-sm text-gray-500">Available loan tiers and interest rates</p>
     </div>
-    
-    <button
-      onClick={() => setShowLoanApplication(true)}
-      className=" inline-flex items-center justify-center group gap-3 px-5 py-2  rounded-xl bg-white border-2 border-green-600 text-green-700 font-bold shadow-sm transition-all hover:bg-green-600 hover:text-white active:scale-95"
-    >
-      <FaHistory  className="group-hover:rotate-[-45deg] transition-transform"/>
-      Loan History
-      <FaArrowRight className="text-sm opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
-    </button>
   </div>
 
   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -793,10 +787,17 @@ export default function Member() {
     
     {/* Header Section */}
     <div className="bg-gray-50 p-6 border-b border-gray-100 flex justify-between items-center">
-      <div>
+      <div className="flex-1">
         <h2 className="text-xl font-bold text-gray-800">Payment History</h2>
         <p className="text-xs text-gray-500 mt-1">Select a category to view details</p>
       </div>
+      <button
+        onClick={() => setIsPaymentPopupOpen(false)}
+        className="ml-4 rounded-full p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700"
+        title="Close"
+      >
+        <FaTimes className="text-xl" />
+      </button>
     </div>
 
     {/* Body Section */}
@@ -853,18 +854,26 @@ export default function Member() {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
         </svg>
       </button>
-
+<button
+  onClick={() => {
+    setIsPaymentPopupOpen(false);
+    setShowLoanApplication(true); // or setShowLoanHistory(true) if you have a dedicated loan history modal
+  }}
+  className="group w-full flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md hover:border-yellow-500 hover:bg-yellow-50 transition-all duration-200"
+>
+  <div className="flex items-center gap-4">
+    <div className="p-3 bg-yellow-100 text-yellow-700 rounded-full group-hover:bg-yellow-600 group-hover:text-white transition-colors">
+      <FaHistory className="text-lg" />
+    </div>
+    <div className="text-left">
+      <h3 className="font-bold text-gray-800 group-hover:text-yellow-800">Loan History</h3>
+      <p className="text-xs text-gray-400 group-hover:text-yellow-600">View your loan records</p>
+    </div>
+  </div>
+  <FaArrowRight className="text-sm opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
+</button>
     </div>
 
-    {/* Footer Section */}
-    <div className="p-4 bg-gray-50 border-t border-gray-100 flex justify-center">
-      <button
-        onClick={() => setIsPaymentPopupOpen(false)}
-        className="bg-[#b8d8ba] text-white px-6 py-2 rounded-lg hover:bg-[#8fa182] hover:shadow-lg transition-all active:scale-95"
-      >
-        Close
-      </button>
-    </div>
 
   </div>
 </div>

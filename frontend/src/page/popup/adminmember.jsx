@@ -17,8 +17,11 @@ import {
 import { 
   FiShoppingCart, FiFileText, 
   FiPrinter, FiClock, FiAlertCircle, 
-  FiX, FiCheckCircle, FiPackage, FiEye 
+  FiX, FiCheckCircle, FiPackage, FiEye
 } from "react-icons/fi";
+import { 
+ FaTimes 
+} from "react-icons/fa";
 import { FiTag,  } from "react-icons/fi";
 import PaidLoanPopup from "./adminmem/paidloan.jsx";
 import AddSharesPopup from "../popup/AddSharesPopup.jsx";
@@ -692,7 +695,7 @@ useEffect(() => {
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-[#d6ead8] text-[#7e9e6c] rounded-lg"><FiPieChart /></div>
-          <h4 className="font-bold text-gray-800">Total Shares</h4>
+          <h4 className="font-bold text-gray-800">Contribution and Savings</h4>
         </div>
       </div>
       {(() => {
@@ -800,7 +803,7 @@ useEffect(() => {
         { label: "Loan History", onClick: () => setIsLoanHistoryOpen(true) },
         { label: "Purchase History", onClick: () => setIsPurchaseHistoryOpen(true) },
         { label: "Bill History", onClick: () => setIsBillHistoryOpen(true) },
-        { label: "Shares History", onClick: () => setIsShareHistoryOpen(true) },
+        { label: "Contribution and Savings History", onClick: () => setIsShareHistoryOpen(true) },
         { label: "Dividend History", onClick: () => setIsDividendHistoryOpen(true) },
       ].map((btn, idx) => (
         <button 
@@ -817,7 +820,7 @@ useEffect(() => {
     <div className="mt-8">
   <div className="flex items-center justify-between mb-6">
     <h2 className="text-2xl font-extrabold tracking-tight text-[#5a7a4a]">
-      Approved Loans
+      Active Loans
     </h2>
   </div>
 
@@ -834,7 +837,7 @@ useEffect(() => {
             <th className="px-6 py-4 text-sm font-semibold text-gray-600 uppercase tracking-wider">Purpose</th>
             <th className="px-6 py-4 text-sm font-semibold text-gray-600 uppercase tracking-wider">Amount</th>
             <th className="px-6 py-4 text-sm font-semibold text-gray-600 uppercase tracking-wider text-center">Term</th>
-            <th className="px-6 py-4 text-sm font-semibold text-gray-600 uppercase tracking-wider text-center">Status</th>
+            
             <th className="px-6 py-4 text-sm font-semibold text-gray-600 uppercase tracking-wider text-center">Action</th>
           </tr>
         </thead>
@@ -851,15 +854,6 @@ useEffect(() => {
               <td className="px-6 py-5 text-center">
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700">
                   {l.duration ?? "0"} Months
-                </span>
-              </td>
-              <td className="px-6 py-5 text-center">
-                <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                  l.status?.toLowerCase() === 'active' 
-                  ? 'bg-green-100 text-green-700' 
-                  : 'bg-gray-100 text-gray-600'
-                }`}>
-                  {l.status?.toUpperCase() ?? "N/A"}
                 </span>
               </td>
               <td className="px-6 py-5 text-center">
@@ -891,7 +885,7 @@ useEffect(() => {
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 mt-8">
         {[
           { label: "Purchase", icon: <FiShoppingCart size={24} />, action: () => setIsPurchaseOpen(true) },
-          { label: "Add Shares", icon: <FiPieChart size={24} />, action: () => setIsSharePopupOpen(true) },
+          { label: "Add Contribution and Savings", icon: <FiPieChart size={24} />, action: () => setIsSharePopupOpen(true) },
           { label: "Pay Bills", icon: <FiFileText size={24} />, action: () => setIsBillOpen(true) },
           { label: "Add Dividend", icon: <FiTrendingUp size={24} />, action: () => setIsDividendOpen(true) },
           { label: "Member Report", icon: <FiPrinter size={24} />, action: downloadMemberReport, disabled: loadingReport || !allLoaded, loadingText: "Generating..." }
@@ -988,7 +982,15 @@ useEffect(() => {
                 <div>
                   <h2 className="text-2xl font-extrabold text-[#56794a]">Purchase History</h2> 
                 </div>
-              </div><div className="h-1 w-20 bg-[#7e9e6c] rounded-full"></div>
+              </div>
+              <button
+                onClick={() => setIsPurchaseHistoryOpen(false)}
+                className="p-2 ml-4 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-500 hover:text-[#7e9e6c] transition-colors"
+                title="Close"
+                aria-label="Close"
+              >
+                <FaTimes className="text-xl" />
+              </button>
             </div>
 
             {/* LIST CONTENT */}
@@ -1070,16 +1072,6 @@ useEffect(() => {
                         </div>
               )}
             </div>
-            
-            {/* FOOTER */}
-            <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end">
-              <button
-                onClick={() => setIsPurchaseHistoryOpen(false)}
-                className="bg-[#b8d8ba] text-white px-6 py-2 rounded-lg hover:bg-[#8fa182] hover:shadow-lg transition-all active:scale-95"
-              >
-                Close
-              </button>
-            </div>
             {/* PURCHASE DETAILS MODAL (selectedPurchase) */}
             {selectedPurchase && (
               <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/40">
@@ -1144,7 +1136,14 @@ useEffect(() => {
           <h3 className="text-2xl font-extrabold text-[#56794a]">Bills History</h3>
         </div>
       </div>
-      <div className="h-1 w-20 bg-[#7e9e6c] rounded-full hidden sm:block"></div>
+      <button
+        onClick={() => setIsBillHistoryOpen(false)}
+        className="p-2 ml-4 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-500 hover:text-[#7e9e6c] transition-colors"
+        title="Close"
+        aria-label="Close"
+      >
+        <FaTimes className="text-xl" />
+      </button>
     </div>
 
     {/* CONTENT AREA */}
@@ -1215,16 +1214,6 @@ useEffect(() => {
           </table>
         </div>
       )}
-    </div>
-
-    {/* MODAL FOOTER */}
-    <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end items-center shrink-0">
-      <button
-        onClick={() => setIsBillHistoryOpen(false)}
-        className="bg-[#b8d8ba] text-white px-6 py-2.5 rounded-xl font-bold shadow-md hover:bg-[#8fa182] hover:shadow-lg transition-all active:scale-95 text-sm"
-      >
-        Close
-      </button>
     </div>
 
   </div>

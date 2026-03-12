@@ -163,7 +163,7 @@ export default function AddDividendPopup({ isOpen, onClose, memberId, memberName
             ) : (
               <FaSave />
             )}
-            {saving ? "Processing..." : "Confirm & Save"}
+            {saving ? "Processing..." : "Confirm  "}
           </button>
 
           <button 
@@ -171,7 +171,7 @@ export default function AddDividendPopup({ isOpen, onClose, memberId, memberName
             disabled={saving} 
             className="w-full py-3 bg-white text-gray-400 font-bold rounded-xl hover:text-red-500 transition-colors disabled:opacity-30"
           >
-            Cancel Transaction
+            Cancel
           </button>
         </div>
       </div>

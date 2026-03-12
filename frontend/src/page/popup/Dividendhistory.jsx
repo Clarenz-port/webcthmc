@@ -1,7 +1,7 @@
 // src/page/popup/Dividendhistory.jsx
 import React from "react";
 import { FiGift, FiX, FiClock, FiDollarSign, FiCalendar, FiHash } from "react-icons/fi";
-
+import { FaTimes } from "react-icons/fa";
 export default function Dividendhistory({ isOpen, onClose, rows = [], loading = false }) {
   if (!isOpen) return null;
 
@@ -17,11 +17,16 @@ export default function Dividendhistory({ isOpen, onClose, rows = [], loading = 
     
     {/* Header Section */}
     <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between bg-white">
-      <div className="flex items-center gap-3">
-        <div>
-          <h3 className="text-2xl font-extrabold text-[#56794a]">Dividend History</h3>
-        </div>
-      </div><div className="h-1 w-20 bg-[#7e9e6c] rounded-full"></div>
+      <div className="flex-1 flex items-center gap-3">
+        <h3 className="text-2xl font-extrabold text-[#56794a]">Dividend History</h3>
+      </div>
+      <button
+        onClick={onClose}
+        className="ml-4 rounded-full p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700"
+        title="Close"
+      >
+        <FaTimes className="text-xl" />
+      </button>
     </div>
 
     {/* Table/Content Area */}
@@ -78,18 +83,6 @@ export default function Dividendhistory({ isOpen, onClose, rows = [], loading = 
           </table>
         </div>
       )}
-    </div>
-
-    {/* Footer Section */}
-    <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-between items-center">
-      <span>
-      </span>
-      <button
-        onClick={onClose}
-        className="bg-[#b8d8ba] text-white px-6 py-2 rounded-lg hover:bg-[#8fa182] hover:shadow-lg transition-all active:scale-95"
-      >
-        Close
-      </button>
     </div>
   </div>
 </div>

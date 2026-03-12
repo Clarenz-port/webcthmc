@@ -76,7 +76,7 @@ export default function AddSharesPopup({
     <div className="bg-[#f8faf7] px-6 py-5 border-b border-[#dce9dd] flex items-center justify-between">
       <div className="flex items-center gap-3">
         <div>
-          <h3 className="text-2xl font-black text-[#2f5134] tracking-tight">Add Shares</h3>
+          <h3 className="text-2xl font-black text-[#2f5134] tracking-tight">Add Contributions and Savings</h3>
         </div>
       </div>
     </div>
@@ -191,8 +191,7 @@ export default function AddSharesPopup({
           onClick={handleConfirm}
           className="w-full flex items-center justify-center gap-2 bg-[#7e9e6c] text-white py-4 rounded-2xl font-black text-lg shadow-lg shadow-[#7e9e6c]/20 hover:bg-[#6a8b5a] hover:-translate-y-0.5 active:scale-95 transition-all"
         >
-          <FaCheckCircle />
-          Confirm Shares
+          Confirm
         </button>
         <button
           onClick={onClose}

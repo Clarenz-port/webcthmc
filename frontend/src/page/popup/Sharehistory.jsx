@@ -1,5 +1,6 @@
 import React from "react";
-import { FiX, FiTrendingUp, FiCalendar, FiCreditCard, FiDollarSign } from "react-icons/fi";
+import { FiX, FiTrendingUp, FiCalendar, FiCreditCard, FiDollarSign} from "react-icons/fi";
+import { FaTimes } from "react-icons/fa";
 
 function fmtMoney(val) {
   const n = Number(val) || 0;
@@ -34,12 +35,16 @@ export default function Sharehistory({ isOpen, onClose, rows = [], loading = fal
     
     {/* Modal Header */}
     <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-white">
-      <div className="flex items-center gap-3">
-        <div>
-          <h3 className="text-2xl font-extrabold text-[#56794a]">Shares History</h3>
-        </div>
-        
-      </div><div className="h-1 w-20 bg-[#7e9e6c] rounded-full"></div>
+      <div className="flex-1 flex items-center gap-3">
+        <h3 className="text-2xl font-extrabold text-[#56794a]">Contribution and Savings History</h3>
+      </div>
+      <button
+        onClick={onClose}
+        className="ml-4 rounded-full p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700"
+        title="Close"
+      >
+        <FaTimes className="text-xl" />
+      </button>
     </div>
 
     {/* Content Area */}
@@ -118,15 +123,6 @@ export default function Sharehistory({ isOpen, onClose, rows = [], loading = fal
       )}
     </div>
 
-    {/* Modal Footer */}
-    <div className="p-6 border-t border-gray-100 bg-gray-50/50 flex justify-end">
-      <button
-        onClick={onClose}
-        className="bg-[#b8d8ba] text-white px-6 py-2 rounded-lg hover:bg-[#8fa182] hover:shadow-lg transition-all active:scale-95"
-      >
-        Close
-      </button>
-    </div>
   </div>
 </div>
   );

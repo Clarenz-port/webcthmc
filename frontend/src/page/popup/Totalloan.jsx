@@ -12,7 +12,7 @@ import {
 import API from '../../apis/axios.js';
 import MemberDetails from "../popup/adminmember.jsx";
 
-export default function Duedate({ onBack, onView }) {
+export default function Duedate({ onBack, onView, onDueDateCountChange }) {
   const [loanRecords, setLoanRecords] = useState([]);
   const [selectedLoan, setSelectedLoan] = useState(null);
   const [schedule, setSchedule] = useState([]);
@@ -97,7 +97,12 @@ export default function Duedate({ onBack, onView }) {
     if (!sched || sched.length === 0) return null;
     return sched.find((s) => s.status !== "Paid") || null;
   };
-
+useEffect(() => {
+    if (typeof onDueDateCountChange === "function") {
+      const count = loanRecords.filter(record => record.type === 'Loan' && record.daysRemaining <= 5).length;
+      onDueDateCountChange(count);
+    }
+  }, [loanRecords, onDueDateCountChange]);
   useEffect(() => {
     let mounted = true;
 
@@ -375,7 +380,7 @@ export default function Duedate({ onBack, onView }) {
             <FiAlertCircle size={48} className="mb-4" />
             <p className="font-bold">{error}</p>
           </div>
-        ) : loanRecords.filter(r => r.type === 'Loan').length === 0 ? (
+        ) : loanRecords.filter(r => r.type === 'Loan' && r.daysRemaining <= 5).length === 0 ? (
           <div className="flex flex-col items-center bg-white rounded-t-[2rem] justify-center py-20 text-gray-300">
             <FiCalendar size={64} className="mb-4 opacity-20" />
             <p className="font-bold uppercase tracking-widest text-xs italic text-gray-400">No upcoming loan due dates found</p>
@@ -392,9 +397,8 @@ export default function Duedate({ onBack, onView }) {
                 </tr>
               </thead>
               <tbody>
-                {loanRecords.filter(record => record.type === 'Loan').map((record, index) => {
+                {loanRecords.filter(record => record.type === 'Loan' && record.daysRemaining <= 5).map((record, index) => {
                   const isOverdue = record.daysRemaining < 0;
-
                   return (
                     <tr key={record.id || index}>
                       {/* Member Column */}

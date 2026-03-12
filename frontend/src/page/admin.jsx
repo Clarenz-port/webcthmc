@@ -49,8 +49,11 @@ export default function Admin({ onBack }) {
   const [activeSection, setActiveSection] = useState("dashboard");
   const [members, setMembers] = useState([]);
   const [loanCounts, setLoanCounts] = useState({ pending: 0, approvedOrPaid: 0, total: 0 });
+  
   const [loadingCounts, setLoadingCounts] = useState(true);
   const [purchaseDueCount, setPurchaseDueCount] = useState(0);
+
+  const [dueDateCount, setDueDateCount] = useState(0);
 
   const [loggedIn, setLoggedIn] = useState(!!localStorage.getItem("token"));
   const navigate = useNavigate();
@@ -155,6 +158,7 @@ const handlePayBills = (m) => { setSelectedMember(m); setMemberDetailsAction("pa
     };
   }, []);
 
+
   /* -------------------------------------------------------------------------
      FETCH MEMBERS
   ------------------------------------------------------------------------- */
@@ -170,10 +174,9 @@ const handlePayBills = (m) => { setSelectedMember(m); setMemberDetailsAction("pa
         console.error("❌ Error fetching members:", err);
         setMembers([]);
       }
-    };
-    fetchMembers();
-    fetchPendingMembers(); // Also fetch pending count
-  }, []);
+      };
+      fetchMembers();
+    }, []);
 
   useEffect(() => {
   let mounted = true;
@@ -285,11 +288,60 @@ const handlePayBills = (m) => { setSelectedMember(m); setMemberDetailsAction("pa
 
       setLoanCounts({
         pending: pendingCount || 0,
-        approvedOrPaid: filteredApprovedLoans.length, // Updated to use filtered count
+        approvedOrPaid: filteredApprovedLoans.length, 
+        approvedOrPaid1: approvedLoans.length,// Updated to use filtered count
         total: filteredApprovedLoans.length + purchaseDue.length, // MERGED COUNT with filtered loans
       });
 
       setPurchaseDueCount(purchaseDue.length);
+
+      let dueDateCount = 0;
+const today = new Date();
+
+for (const loan of filteredApprovedLoans) {
+  // Build the payment schedule
+  const principal = parseFloat(loan.loanAmount) || 0;
+  const months = parseInt(loan.duration, 10) || 0;
+  const approvalDate = loan.approvalDate ? new Date(loan.approvalDate) : new Date(loan.createdAt || Date.now());
+  const monthlyPrincipal = months > 0 ? principal / months : principal;
+  const monthlyRate = 0.02;
+  let remainingBalance = principal;
+  let payments = [];
+  try {
+    const res = await API.get(`/api/loans/${loan.id}/payments`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    payments = res.data || [];
+  } catch {}
+  const paymentsSum = payments.reduce(
+    (acc, p) => acc + (parseFloat(p.amountPaid || p.amount || 0) || 0),
+    0
+  );
+
+  let paidSoFar = 0;
+  let foundNextDue = false;
+  for (let i = 1; i <= Math.max(1, months); i++) {
+    const interestPayment = remainingBalance * monthlyRate;
+    let principalPayment = monthlyPrincipal;
+    let totalPayment = principalPayment + interestPayment;
+    if (i === months) {
+      totalPayment = remainingBalance + interestPayment;
+      principalPayment = remainingBalance;
+    }
+    paidSoFar += totalPayment;
+    if (!foundNextDue && paymentsSum < paidSoFar) {
+      // This is the next unpaid due date
+      const dueDate = new Date(approvalDate.getFullYear(), approvalDate.getMonth() + i, approvalDate.getDate());
+      const t = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
+      const d = Date.UTC(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+      const daysRemaining = Math.round((d - t) / (1000 * 60 * 60 * 24));
+      if (daysRemaining <= 5) dueDateCount++;
+      foundNextDue = true;
+    }
+    remainingBalance -= principalPayment;
+  }
+}
+setDueDateCount(dueDateCount);
 
     } catch (err) {
       console.error("❌ Error fetching counts:", err);
@@ -303,6 +355,8 @@ const handlePayBills = (m) => { setSelectedMember(m); setMemberDetailsAction("pa
   fetchCounts();
   return () => (mounted = false);
 }, []);
+
+
   /* -------------------------------------------------------------------------
      FETCH LOAN COUNTS
   ------------------------------------------------------------------------- */
@@ -339,7 +393,7 @@ const handlePayBills = (m) => { setSelectedMember(m); setMemberDetailsAction("pa
               headers: { Authorization: `Bearer ${token}` },
             });
             const allLoans = Array.isArray(resAll.data) ? resAll.data : resAll.data?.loans ?? [];
-            approvedLoans = allLoans.filter((l) => ["approved"].includes(String(l.status).toLowerCase()));
+            approvedLoans = allLoans.filter((l) => ["Approved", "Paid"].includes(String(l.status).toLowerCase()));
           } catch (err2) {
             console.error("Failed to fetch approved loans fallback:", err2);
             approvedLoans = [];
@@ -882,6 +936,18 @@ const UsersActivityView = () => {
 
   {/* CARDS GRID */}
   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+
+    {/* Pending Member Card */}
+    <div 
+      onClick={() => { fetchPendingMembers(); setShowPendingMembersModal(true); }}
+      className="group bg-white p-6 rounded-2xl border border-gray-100 shadow-sm cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all border-b-4 hover:border-b-purple-400"
+    >
+      <div className="w-12 h-12 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">
+        <FaUserClock />
+      </div>
+      <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Pending Members</p>
+      <p className="text-4xl font-black text-gray-800 mt-1">{pendingCount}</p>
+    </div>
     
     {/* Pending Loan Card */}
     <div
@@ -901,24 +967,6 @@ const UsersActivityView = () => {
       </p>
     </div>
 
-    {/* Approved Loan Card */}
-    <div
-      onClick={() => setActiveSection("approvedLoan")}
-      className="group bg-white p-6 rounded-2xl border border-gray-100 shadow-sm cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all border-b-4 hover:border-b-green-400"
-    >
-      <div className="w-12 h-12 bg-green-100 text-green-600 rounded-xl flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">
-        <FaCheckCircle />
-      </div>
-      <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Approved loans</p>
-      <p className="text-4xl font-black text-gray-800 mt-1">
-        {loadingCounts ? (
-          <span className="animate-pulse text-gray-300">...</span>
-        ) : (
-          loanCounts.approvedOrPaid
-        )}
-      </p>
-    </div>
-
     {/* Due Date Card */}
     <div
       onClick={() => setActiveSection("totalloan")}
@@ -932,7 +980,25 @@ const UsersActivityView = () => {
         {loadingCounts ? (
           <span className="animate-pulse text-gray-300">...</span>
         ) : (
-          loanCounts.approvedOrPaid // This should be set to only approved loans
+          dueDateCount
+        )}
+      </p>
+    </div>
+
+ {/* Approved Loan Card */}
+    <div
+      onClick={() => setActiveSection("approvedLoan")}
+      className="group bg-white p-6 rounded-2xl border border-gray-100 shadow-sm cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all border-b-4 hover:border-b-green-400"
+    >
+      <div className="w-12 h-12 bg-green-100 text-green-600 rounded-xl flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">
+        <FaCheckCircle />
+      </div>
+      <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Total loans</p>
+      <p className="text-4xl font-black text-gray-800 mt-1">
+        {loadingCounts ? (
+          <span className="animate-pulse text-gray-300">...</span>
+        ) : (
+          loanCounts.approvedOrPaid1
         )}
       </p>
     </div>
@@ -945,7 +1011,7 @@ const UsersActivityView = () => {
       <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">
         <FaChartBar />
       </div>
-      <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Total Shares</p>
+      <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Contribution and Savings</p>
       <p className="text-2xl font-black text-gray-800 mt-2 truncate">
         {loadingSharesTotal ? (
           <span className="animate-pulse text-gray-300">...</span>
@@ -953,18 +1019,6 @@ const UsersActivityView = () => {
           formatCurrency(sharesTotal)
         )}
       </p>
-    </div>
-
-    {/* Pending Member Card */}
-    <div 
-      onClick={() => { fetchPendingMembers(); setShowPendingMembersModal(true); }}
-      className="group bg-white p-6 rounded-2xl border border-gray-100 shadow-sm cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all border-b-4 hover:border-b-purple-400"
-    >
-      <div className="w-12 h-12 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">
-        <FaUserClock />
-      </div>
-      <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Pending Members</p>
-      <p className="text-4xl font-black text-gray-800 mt-1">{pendingCount}</p>
     </div>
 
   </div>
@@ -976,6 +1030,7 @@ const UsersActivityView = () => {
                   pending={loanCounts.pending}
                   active={loanCounts.approvedOrPaid}
                   duedate={loanCounts.total}
+                  dueSoon5={dueDateCount}
                 />
 
 

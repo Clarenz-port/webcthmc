@@ -198,7 +198,7 @@ const options = {
           <FaChartLine size={24} />
         </div>
         <div>
-          <h3 className="text-xl font-bold text-gray-800 tracking-tight">Total Contribution and Savings</h3>
+          <h3 className="text-xl font-bold text-gray-800 tracking-tight">Contribution and Savings</h3>
           <div className="flex items-center gap-2 mt-1">
             <span className="flex items-center gap-1 text-xs font-medium text-gray-400 uppercase tracking-wider">
               <FaCalendarAlt /> Year {year}

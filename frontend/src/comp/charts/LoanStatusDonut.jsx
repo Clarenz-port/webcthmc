@@ -9,22 +9,22 @@ import {
 } from "chart.js";
 ChartJS.register(ArcElement, Tooltip, Legend);
 
-export default function LoanStatusDonut({ pending = 0, active = 0, duedate = 0 }) {
-  const total = pending + active + duedate;
-  const totalLoans = pending + active + duedate;
+export default function LoanStatusDonut({ pending = 0, active = 0, duedate = 0, dueSoon5 = 0 }) {
+  const total = pending + active + dueSoon5;
+  const totalLoans = pending + active + dueSoon5;
   const pct = v => (total === 0 ? "0%" : `${Math.round((v/total) * 100)}%`);
 
 const data = useMemo(() => ({
   labels: ["Pending", "Active", "Duedate"],
   datasets: [{
-    data: [pending, active, duedate],
+    data: [pending, active, dueSoon5],
     backgroundColor: ["#f59e0b", "#10b981", "#ef4444"], // Modern Amber, Emerald, Red
     hoverBackgroundColor: ["#fbbf24", "#34d399", "#f87171"],
     borderColor: "#ffffff",
     borderWidth: 4, // Thicker border for a "segmented" look
     hoverOffset: 10
   }]
-}), [pending, active, duedate]);
+}), [pending, active, dueSoon5]);
 
 const options = {
   responsive: true,
@@ -89,8 +89,8 @@ return (
           color="#ef4444" 
           bgColor="bg-red-50"
           label="Overdue / Duedate" 
-          value={duedate} 
-          pct={pct(duedate)} 
+          value={dueSoon5} 
+          pct={pct(dueSoon5)} 
         />
       </div>
     </div>

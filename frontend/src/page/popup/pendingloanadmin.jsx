@@ -280,10 +280,10 @@ export default function PendingLoanApplications({ onBack }) {
                       setCheckNumber("");
                       computeSchedule(loan);
                     }}
-                    className="p-3 bg-white border border-gray-100 text-[#7e9e6c] rounded-xl hover:bg-[#7e9e6c] hover:text-white hover:border-[#7e9e6c] transition-all shadow-sm active:scale-90"
+                    className="p-2 bg-white border font-bold border-gray-100 text-[#7e9e6c] rounded-xl hover:bg-[#7e9e6c] hover:text-white hover:border-[#7e9e6c] transition-all shadow-sm active:scale-90"
                     title="Review Application"
                   >
-                    <FiEye size={18} />
+                    view
                   </button>
                 </td>
               </tr>

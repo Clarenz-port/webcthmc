@@ -16,6 +16,7 @@ const {
   getApprovedLoans,
   getApproveLoanSchedule,
   addLoanPayment,
+  getTotalPaidAmortization,
 } = require("../controllers/loanController");
 // Amortization schedule for a loan (ApproveLoan model)
 router.get("/:loanId/amortization", verifyToken, getApproveLoanSchedule);
@@ -34,6 +35,8 @@ router.post("/payment", verifyToken, recordPayment);
 // Admin routes
 // protect pending loans: admins and superadmins can view
 router.get("/pending-loans", verifyToken, allowRoles("admin", "superadmin"), getPendingLoans);
+
+router.get('/loans/:loanId/total-paid', verifyToken, getTotalPaidAmortization);
 
 // Approve/Reject: only superadmin
 router.post("/loan/:id/approve", verifyToken, allowRoles("superadmin"), approveLoan);

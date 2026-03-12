@@ -45,20 +45,54 @@ exports.generateReport = async (req, res) => {
     const { reportType, mode, period = "all", year = new Date().getFullYear(), month } = req.body;
 
     await logActivity({
-    userId: req.user?.id,
-    role: req.user?.role,
-    action: "Generate Report",
-    details: { reportType, mode, period, year, month },
-    ip: req.ip,
-  });
+      userId: req.user?.id,
+      role: req.user?.role,
+      action: "Generate Report",
+      details: { reportType, mode, period, year, month },
+      ip: req.ip,
+    });
 
     const doc = new PDFDocument({ margin: 20, size: "A4" });
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", "attachment; filename=report.pdf");
     doc.pipe(res);
 
-    doc.fontSize(18).text("COOPERATIVE REPORT", { align: "center" });
-    doc.moveDown();
+    // --- HEADER WITH LOGO AND CTHMC ---
+    let headerBottomY = 30;
+    try {
+      const SiteConfig = require("../models/siteConfig");
+      const config = await SiteConfig.findOne();
+      if (config && config.logo) {
+        let logoBuffer;
+        if (config.logo.startsWith("data:image")) {
+          const base64 = config.logo.split(",")[1];
+          logoBuffer = Buffer.from(base64, "base64");
+        } else if (/^[A-Za-z0-9+/=]+$/.test(config.logo.trim())) {
+          logoBuffer = Buffer.from(config.logo, "base64");
+        } else {
+          logoBuffer = null;
+        }
+        if (logoBuffer) {
+          const imgWidth = 40;
+          const imgHeight = 40;
+          const pageWidth = doc.page.width;
+          const x = (pageWidth - imgWidth) / 2;
+          doc.image(logoBuffer, x, 30, { width: imgWidth, height: imgHeight });
+          headerBottomY = 30 + imgHeight;
+        }
+      }
+    } catch (e) {
+      // ignore logo errors
+    }
+    // CTHMC below logo, centered
+    doc.fontSize(10);
+    doc.text("   Carmona Townhomes Homeowners", 0, headerBottomY + 8, { align: "center" });
+    doc.fontSize(10).text("   Multipurpose Cooperative", { align: "center" });
+    headerBottomY += 28; // 8px gap + 30px text height
+    // Divider line
+    doc.moveTo(40, headerBottomY + 8).lineTo(doc.page.width - 40, headerBottomY + 8).stroke();
+    doc.y = headerBottomY + 18;
+    doc.moveDown(0.5);
     
 function getDateRange(period, year, month) {
   if (!period || period === "all") return null;
@@ -388,7 +422,7 @@ if (reportType === "bills") {
 }
 
 if (reportType === "income") {
-  doc.fontSize(10).text("INCOME STATEMENT (SUMMARY)");
+  doc.fontSize(10).text("    INCOME STATEMENT (SUMMARY)");
   doc.moveDown(1);
 
   // Revenues
@@ -486,7 +520,7 @@ if (reportType === "income") {
      BALANCE SHEET SUMMARY
   ===================================================== */
   if (reportType === "balance") {
-  doc.fontSize(10).text("BALANCE SHEET (SUMMARY)");
+  doc.fontSize(10).text("    BALANCE SHEET (SUMMARY)");
   doc.moveDown(1);
 
   const totalShares = Number((await Shares.sum("shareamount", { where: { ...dateWhere } })) || 0);
@@ -585,7 +619,7 @@ if (reportType === "income") {
 }
 
   if (reportType === "cashflow") {
-  doc.fontSize(10).text("CASH FLOW (SUMMARY)");
+  doc.fontSize(10).text("    CASH FLOW (SUMMARY)");
   doc.moveDown(1);
 
   // compute values

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { FiShoppingBag, FiEye, FiX, FiCalendar, FiClock, FiPackage, FiCheckCircle, FiInfo } from "react-icons/fi";
-
+import { FaTimes } from "react-icons/fa";
 export default function PurchaseHistory({ onBack, rows = [], loading = false }) {
   const [selectedPurchase, setSelectedPurchase] = useState(null);
 
@@ -65,11 +65,16 @@ export default function PurchaseHistory({ onBack, rows = [], loading = false }) 
     
     {/* HEADER */}
     <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between bg-white">
-      <div className="flex items-center gap-3">
-        <div>
-          <h2 className="text-xl font-extrabold text-[#56794a]">Purchase History</h2>
-        </div>
-      </div><div className="h-1 w-20 bg-[#7e9e6c] rounded-full"></div>
+      <div className="flex-1 flex items-center gap-3">
+        <h2 className="text-xl font-extrabold text-[#56794a]">Purchase History</h2>
+      </div>
+      <button
+        onClick={onBack}
+        className="ml-4 rounded-full p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700"
+        title="Close"
+      >
+        <FaTimes className="text-xl" />
+      </button>
     </div>
 
     {/* MAIN CONTENT AREA */}
@@ -135,10 +140,10 @@ export default function PurchaseHistory({ onBack, rows = [], loading = false }) 
                     <td className="px-4 py-4 text-center">
                       <button
                         onClick={() => setSelectedPurchase(p)}
-                        className="p-2 text-gray-400 hover:text-[#7e9e6c] hover:bg-white rounded-lg shadow-sm border border-transparent hover:border-gray-100 transition-all"
+                        className="p-1 text-white font-semibold  bg-[#7e9e6c] hover:text-[#7e9e6c] hover:bg-white rounded-lg shadow-sm border border-transparent hover:border-gray-100 transition-all"
                         title="View Details"
                       >
-                        <FiEye size={18} />
+                        view details
                       </button>
                     </td>
                   </tr>
@@ -149,17 +154,6 @@ export default function PurchaseHistory({ onBack, rows = [], loading = false }) 
         </div>
       )}
     </div>
-
-    {/* FOOTER */}
-    <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end">
-      <button
-        onClick={onBack}
-        className="bg-[#b8d8ba] text-white px-6 py-2 rounded-lg hover:bg-[#8fa182] hover:shadow-lg transition-all active:scale-95"
-      >
-        Close
-      </button>
-    </div>
-
     {/* VIEW MODAL (DETAILS) */}
     {selectedPurchase && (
       <div className="fixed inset-0 bg-black/35 flex items-center justify-center z-[70] p-4">

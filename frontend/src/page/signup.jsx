@@ -81,8 +81,7 @@ export default function Signup() {
         confirmPassword: form.confirmPassword,
       });
 
-      notify.success("Registration successful!");
-      navigate("/login");
+      notify.success("Registration successful, Please wait for an admin to approve your account before you can log in.");
     } catch (err) {
       const msg = err.response?.data?.message || "Registration failed.";
       setError(msg);

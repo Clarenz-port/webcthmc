@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { FiEye} from "react-icons/fi";
-import { FaArrowLeft } from "react-icons/fa";
+import { FaArrowLeft,FaTimes } from "react-icons/fa";
 import API from '../../apis/axios.js';
 
 export default function LoanApplication({ onBack, memberId = null, memberName = null, onLoanUpdated = null }) {
@@ -209,10 +209,16 @@ export default function LoanApplication({ onBack, memberId = null, memberName = 
       <div className="max-w-6xl mx-auto rounded-xl bg-white shadow-sm border border-gray-100 p-8">
   {/* Header Section */}
   <div className="flex items-center justify-between mb-8">
-    <div>
+    <div className="flex items-center justify-between w-full">
       <h3 className="text-2xl font-extrabold text-[#56794a] tracking-tight">Loan History</h3>
+      <button
+        onClick={onBack}
+        className="ml-4 rounded-full p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700"
+        title="Close"
+      >
+        <FaTimes className="text-xl" />
+      </button>
     </div>
-    <div className="h-1 w-20 bg-[#7e9e6c] rounded-full"></div>
   </div>
 <div>
   {loading ? (
@@ -244,8 +250,8 @@ export default function LoanApplication({ onBack, memberId = null, memberName = 
           {loanRecords.map((record, index) => {
             const status = (record.status || "").toLowerCase();
             const statusStyles = {
-              paid: "bg-blue-50 text-blue-700 border-blue-100",
-              approved: "bg-green-50 text-green-700 border-green-100",
+              paid: "bg-green-50 text-green-700 border-green-100",
+              approved: "bg-blue-50 text-blue-700 border-blue-100",
               pending: "bg-yellow-50 text-yellow-700 border-yellow-100",
               rejected: "bg-red-50 text-red-700 border-red-100",
             };
@@ -262,21 +268,25 @@ export default function LoanApplication({ onBack, memberId = null, memberName = 
                   {record.duration ? `${record.duration} Months` : "N/A"}
                 </td>
                 <td className="py-4 px-6">
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border ${statusStyles[status] || "bg-gray-50 text-gray-600"}`}>
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border ${statusStyles[status] || "bg-gray-50 text-gray-6d00"}`}>
                     <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${
-                      status === 'approved' ? 'bg-green-500' : status === 'pending' ? 'bg-yellow-500' : status === 'paid' ? 'bg-blue-500' : 'bg-red-500'
+                      status === 'approved' ? 'bg-blue-500' : status === 'pending' ? 'bg-yellow-500' : status === 'paid' ? 'bg-green-500' : 'bg-red-500'
                     }`}></span>
-                    {(record.status || "N/A").toUpperCase()}
+                    {status === 'approved'
+                      ? 'Ongoing'
+                      : status === 'paid'
+                        ? 'Fully Paid'
+                        : (record.status || 'N/A').toUpperCase()}
                   </span>
                 </td>
                 <td className="py-4 px-6 text-center">
              
                   <button
                     onClick={() => computeSchedule(record)}
-                    className="p-2 text-gray-400 hover:text-[#7e9e6c] hover:bg-white rounded-lg shadow-sm border border-transparent hover:border-gray-100 transition-all"
+                    className="p-2 text-[#7e9e6c] hover:text-white font-bold hover:bg-[#7e9e6c] rounded-lg shadow-sm border border-transparent hover:border-gray-100 transition-all"
                     title="View Details"
                   >
-                    <FiEye size={18} />
+                    view
                   </button>
                 </td>
               </tr>
@@ -287,15 +297,6 @@ export default function LoanApplication({ onBack, memberId = null, memberName = 
     </div>
   )}
 </div>
-  {/* Footer / Close Action */}
-  <div className="mt-8 flex justify-end ">
-    <button
-      onClick={onBack}
-      className="bg-[#b8d8ba] text-white px-6 py-2 rounded-lg hover:bg-[#8fa182] hover:shadow-lg transition-all active:scale-95"
-      >
-      Close
-    </button>
-  </div>
 </div>
 
       {/* Loan Details Modal */}

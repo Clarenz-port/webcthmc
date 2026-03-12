@@ -9,7 +9,8 @@ import {
   FiClock, 
   FiEye,
   FiFileText,
-  FiActivity
+  FiActivity,
+  FiChevronDown
 } from "react-icons/fi";
 import API from '../../apis/axios.js';
 
@@ -19,6 +20,8 @@ export default function Approvedloan({ onBack }) {
   const [schedule, setSchedule] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [statusFilter, setStatusFilter] = useState("All");
+  const [showStatusDropdown, setShowStatusDropdown] = useState(false);
 
   // Helper: format currency (PHP)
   const formatCurrency = (num) =>
@@ -28,48 +31,91 @@ export default function Approvedloan({ onBack }) {
       ? Number(num).toLocaleString("en-PH", { style: "currency", currency: "PHP" })
       : "₱0.00";
 
-  useEffect(() => {
-    const fetchApprovedLoans = async () => {
+useEffect(() => {
+  const fetchApprovedLoans = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const token = (localStorage.getItem("token") || "").trim();
+
+      // Try explicit endpoint first
+      let loans = [];
       try {
-        setLoading(true);
-        setError(null);
-        const token = (localStorage.getItem("token") || "").trim();
-
-        // Primary: try an explicit endpoint for approved loans (create it in backend if you want)
-        try {
-          const res = await API.get("/api/loans/approved-loans", {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          if (Array.isArray(res.data)) {
-            setLoanRecords(res.data);
-            return;
-          }
-        } catch (err) {
-          // ignore and fallback to fetching all or pending endpoint
-          // console.warn("approved-loans endpoint failed:", err?.response?.status);
+        const res = await API.get("/api/loans/approved-loans", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (Array.isArray(res.data)) {
+          loans = res.data;
         }
+      } catch (err) {
+        // fallback
+      }
 
-        // Fallback: fetch all loans and filter locally (adjust endpoint if you have an admin list)
+      if (loans.length === 0) {
+        // Fallback: fetch all loans and filter locally
         const resAll = await API.get("/api/loans/members", {
           headers: { Authorization: `Bearer ${token}` },
         });
         const allLoans = Array.isArray(resAll.data) ? resAll.data : resAll.data.loans || [];
-        const approved = allLoans.filter((l) =>
-  ["approved"].includes(String(l.status).toLowerCase())
-);
-        setLoanRecords(approved);
-      } catch (err) {
-        console.error("❌ Error fetching approved loans:", err);
-        setError("Failed to load approved loans.");
-      } finally {
-        setLoading(false);
+        loans = allLoans;
       }
-    };
 
-    fetchApprovedLoans();
-  }, []);
+      // Filter for Approved or Paid
+      const filtered = loans.filter(l =>
+        ["approved", "paid"].includes(String(l.status).toLowerCase())
+      );
 
+      // Fetch user info for each loan
+      const loansWithUser = await Promise.all(filtered.map(async (loan) => {
+  let memberName = "N/A";
+  if (loan.userId) {
+    try {
+      const userRes = await API.get(`/api/members/${loan.userId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const user = userRes.data;
+      memberName = [user.firstName, user.middleName, user.lastName].filter(Boolean).join(' ');
+    } catch {
+      // ignore
+    }
+  }
 
+  // Compute total paid
+  let totalPaid = 0;
+  let paidCount = 0;
+try {
+  const scheduleRes = await API.get(`/api/loans/${loan.id}/amortization`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const schedule = Array.isArray(scheduleRes.data) ? scheduleRes.data : [];
+  totalPaid = schedule
+    .filter(row => row.status === "Paid")
+    .reduce((sum, row) => sum + (parseFloat(row.amortization) || 0), 0);
+  paidCount = schedule.filter(row => row.status === "Paid" || row.status === "Late").length;
+} catch {
+    // ignore
+  }
+
+ return {
+  ...loan,
+  memberName,
+  totalPaid,
+  balance: (parseFloat(loan.loanAmount) + parseFloat(loan.interest || 0)) - totalPaid,
+  paidCount,
+};
+      }));
+
+      setLoanRecords(loansWithUser);
+    } catch (err) {
+      console.error("❌ Error fetching approved/paid loans:", err);
+      setError("Failed to load approved/paid loans.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchApprovedLoans();
+}, []);
   // Fetch amortization schedule from ApproveLoan model (backend endpoint)
   const fetchApproveLoanSchedule = async (loanId, token) => {
     try {
@@ -206,9 +252,10 @@ export default function Approvedloan({ onBack }) {
           <FiArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
         </button>
         <div>
-          <h2 className="text-3xl font-black text-gray-800 tracking-tight">Approved Loans</h2>
+          <h2 className="text-3xl font-black text-gray-800 tracking-tight">Total Loans</h2>
         </div>
       </div>
+      {/* Status Filter Dropdown removed from here, now shown in table header */}
     </div>
   </div>
 
@@ -224,28 +271,78 @@ export default function Approvedloan({ onBack }) {
         <FiFileText size={48} className="mb-4 opacity-20" />
         <p className="font-bold tracking-tight">{error}</p>
       </div>
-    ) : loanRecords.filter(record => record.status === "Approved").length === 0 ? (
-      <div className="flex flex-col items-center bg-white rounded-t-[2rem] justify-center py-24 text-gray-300">
-        <FiFileText size={64} className="mb-4 opacity-10" />
-        <p className="font-bold uppercase tracking-widest text-xs italic text-gray-400">No approved loan applications found</p>
-      </div>
-    ) : (
-      <div className="bg-gray-50 rounded-t-[2rem] overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="text-gray-400">
-              <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-left"><div className="flex items-center gap-2"><FiCalendar /> Approval Date</div></th>
-              <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-left"><div className="flex items-center gap-2"><FiUser /> Member</div></th>
-              <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-left"><div className="flex items-center gap-2"><FiDollarSign /> Principal</div></th>
-              <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-left"><div className="flex items-center gap-2"><FiClock /> Term</div></th>
-              <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-left">Status</th>
-              <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-center">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loanRecords
-              .filter(record => record.status === "Approved")
-              .map((record, index) => (
+    ) : (() => {
+      // Filter records based on statusFilter
+      let filteredRecords = loanRecords.filter(record => ["Approved", "Paid"].includes(String(record.status)));
+      if (statusFilter === "Ongoing") {
+        filteredRecords = filteredRecords.filter(record => String(record.status) === "Approved");
+      } else if (statusFilter === "Fully Paid") {
+        filteredRecords = filteredRecords.filter(record => String(record.status) === "Paid");
+      }
+      if (filteredRecords.length === 0) {
+        return (
+          <div className="flex flex-col items-center bg-white rounded-t-[2rem] justify-center py-24 text-gray-300">
+            <FiFileText size={64} className="mb-4 opacity-10" />
+            <p className="font-bold uppercase tracking-widest text-xs italic text-gray-400">No loan applications found for selected status</p>
+          </div>
+        );
+      }
+      return (
+        <div className="bg-gray-50 rounded-t-[2rem] overflow-x-auto">
+          {/* Click outside handler for dropdown */}
+          {showStatusDropdown && (
+            <div
+              onClick={() => setShowStatusDropdown(false)}
+              style={{ position: 'fixed', inset: 0, zIndex: 40 }}
+            />
+          )}
+          <table className="w-full">
+            <thead>
+              <tr className="text-gray-400">
+                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-left"> Approval Date</th>
+                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-left"> Member</th>
+                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-left"> Loan Amount</th>
+                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-left">Total Paid</th>
+                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-left">Balance</th>
+                <th className="px-12 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-left"> Term</th>
+                <th className="px-10 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-left relative">
+                  <span
+                    className="cursor-pointer select-none flex items-center gap-1 group relative"
+                    onClick={e => {
+                      e.stopPropagation();
+                      setShowStatusDropdown(v => !v);
+                    }}
+                    title="Click to filter by status"
+                  >
+                    Status
+                    <FiChevronDown size={14} className="text-gray-500 group-hover:text-[#7e9e6c] transition-colors" />
+                    <span className="absolute left-1/2 -translate-x-1/2 top-full mt-1 bg-black text-white text-[9px] rounded px-2 py-1 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity" style={{zIndex: 60}}>Filter by status</span>
+                  </span>
+                  {showStatusDropdown && (
+                    <div
+                      className="absolute left-0 top-full mt-2 w-36 bg-white border border-gray-200 rounded-lg shadow-lg z-50"
+                      style={{ minWidth: '120px' }}
+                    >
+                      <button
+                        className={`w-full text-left px-4 py-2 text-xs font-bold ${statusFilter === 'All' ? 'bg-gray-100' : ''} hover:bg-gray-50`}
+                        onClick={() => { setStatusFilter('All'); setShowStatusDropdown(false); }}
+                      >All</button>
+                      <button
+                        className={`w-full text-left px-4 py-2 text-xs font-bold ${statusFilter === 'Ongoing' ? 'bg-gray-100' : ''} hover:bg-gray-50`}
+                        onClick={() => { setStatusFilter('Ongoing'); setShowStatusDropdown(false); }}
+                      >Ongoing</button>
+                      <button
+                        className={`w-full text-left px-4 py-2 text-xs font-bold ${statusFilter === 'Fully Paid' ? 'bg-gray-100' : ''} hover:bg-gray-50`}
+                        onClick={() => { setStatusFilter('Fully Paid'); setShowStatusDropdown(false); }}
+                      >Fully Paid</button>
+                    </div>
+                  )}
+                </th>
+                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-center">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredRecords.map((record, index) => (
                 <tr 
                   key={record.id || index}
                   className="group transition-all duration-300"
@@ -256,40 +353,53 @@ export default function Approvedloan({ onBack }) {
                       {record.approvalDate ? new Date(record.approvalDate).toLocaleDateString("en-PH", { month: 'short', day: 'numeric', year: 'numeric' }) : "—"}
                     </span>
                   </td>
-
                   {/* Member Column */}
                   <td className="px-6 py-5 bg-white">
                     <p className="text-sm font-black text-gray-800 uppercase tracking-tight">
-                      {record.memberName || record.name || record.firstName || "N/A"}
+                      {record.memberName || "N/A"}
                     </p>
                   </td>
-
                   {/* Amount Column */}
                   <td className="px-6 py-5 bg-white">
-                    <span className="text-sm font-black text-[#7e9e6c] font-mono">
+                    <span className="text-sm font-black text-gray-500 font-mono">
                       {formatCurrency(record.loanAmount)}
                     </span>
                   </td>
-
+                  <td className="px-6 py-5 bg-white">
+                    <span className="text-sm font-black text-gray-500 font-mono">
+                      {formatCurrency(record.totalPaid)}
+                    </span>
+                  </td>
+                  <td className="px-6 py-5 bg-white">
+                    <span className="text-sm font-black text-gray-500 font-mono">
+                      {formatCurrency(record.balance)}
+                    </span>
+                  </td>
                   {/* Repayment Column */}
                   <td className="px-6 py-5 bg-white">
                     <div className="flex items-center gap-2 text-xs font-bold text-gray-600">
                       <span className="px-2 py-1 bg-white border border-gray-100 rounded-lg shadow-sm">
-                        {record.duration ? `${record.duration} mos` : "N/A"}
+                        {record.duration ? `${record.duration}mos | ${record.paidCount} paid` : "N/A"}
                       </span>
                     </div>
                   </td>
-
                   {/* Status Column */}
                   <td className="px-6 py-5 bg-white">
-                    <div className="flex items-center gap-1.5 px-3 py-1 bg-[#d6ead8] text-[#7e9e6c] rounded-full w-fit">
+                    <div className={
+                      `flex items-center gap-1.5 px-3 py-1 rounded-full w-fit ${
+                        record.status === "Approved"
+                          ? "bg-blue-100 text-blue-700 border border-blue-200"
+                          : record.status === "Paid"
+                          ? "bg-green-100 text-green-700 border border-green-200"
+                          : "bg-[#d6ead8] text-[#7e9e6c] border border-[#d6ead8]"
+                      }`
+                    }>
                       <FiCheckCircle size={12} />
                       <span className="text-[10px] font-black uppercase tracking-tighter">
-                        {record.status}
+                        {record.status === "Approved" ? "Ongoing" : record.status === "Paid" ? "Fully Paid" : record.status}
                       </span>
                     </div>
                   </td>
-
                   {/* View Action Column */}
                   <td className="px-6 py-5 bg-white text-center">
                     <button
@@ -302,10 +412,11 @@ export default function Approvedloan({ onBack }) {
                   </td>
                 </tr>
               ))}
-          </tbody>
-        </table>
-      </div>
-    )}
+            </tbody>
+          </table>
+        </div>
+      );
+    })()}
   </div>
 
   {/* FOOTER METADATA */}

@@ -111,7 +111,7 @@ export default function ReportModal({ isOpen, onClose }) {
                   const monthName = new Date(0, i).toLocaleString('en', { month: 'long' });
                   return (
                     <option key={i + 1} value={i + 1}>
-                      {monthName} ({i + 1})
+                      {monthName}
                     </option>
                   );
                 })}

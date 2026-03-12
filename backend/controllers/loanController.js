@@ -1,4 +1,6 @@
 const PDFDocument = require('pdfkit');
+const User = require("../models/users");
+const { sendSMS } = require("../utils/sms");
 // Generate PDF for loan application form
 exports.generateLoanFormPDF = async (req, res) => {
   try {
@@ -37,6 +39,23 @@ exports.generateLoanFormPDF = async (req, res) => {
   } catch (err) {
     console.error('❌ Error generating loan form PDF:', err);
     res.status(500).json({ message: 'Error generating PDF' });
+  }
+};
+
+exports.getTotalPaidAmortization = async (req, res) => {
+  try {
+    const { loanId } = req.params;
+    const ApproveLoan = require('../models/approveloan');
+    // Get all schedule rows for this loan
+    const schedule = await ApproveLoan.findAll({
+      where: { loanId, status: 'Paid' }
+    });
+    // Sum all paid amortization
+    const totalPaid = schedule.reduce((sum, row) => sum + (parseFloat(row.amortization) || 0), 0);
+    res.json({ totalPaid });
+  } catch (err) {
+    console.error('❌ Error fetching total paid amortization:', err);
+    res.status(500).json({ message: 'Failed to fetch total paid amortization' });
   }
 };
 // Get amortization schedule for a loan from approve_loans
@@ -314,6 +333,34 @@ exports.approveLoan = async (req, res) => {
         ip: req.ip,
     });
 
+    // Fetch member info for notification
+    let member = null;
+    try {
+      member = await User.findByPk(loan.userId);
+    } catch (e) {
+      console.warn("Could not fetch member for SMS/notification");
+    }
+
+    // Send SMS if member has phone number
+    if (member && member.phoneNumber) {
+      const msg = `Your loan application has been APPROVED. Please check your account for details.`;
+      sendSMS([member.phoneNumber], msg);
+    }
+
+    // Create notification using Notice model
+    try {
+      const Notice = require('../models/Notice');
+      if (member) {
+        await Notice.create({
+          title: "Loan Approved",
+          message: `Congratulations! Your loan application for ₱${loan.loanAmount} has been approved.`,
+          userId: member.id,
+        });
+      }
+    } catch (notifErr) {
+      console.warn("Notice creation failed (approveLoan):", notifErr.message);
+    }
+
     console.log("Loan approved:", { id: loan.id, approvalDate, dueDate, approvedBy: req.user.id, checkNumber: loan.checkNumber });
 
     res.json({
@@ -353,6 +400,34 @@ exports.rejectLoan = async (req, res) => {
       details: { loanId: loan.id, memberId: loan.userId },
       ip: req.ip,
     });
+
+    // Fetch member info for notification
+    let member = null;
+    try {
+      member = await User.findByPk(loan.userId);
+    } catch (e) {
+      console.warn("Could not fetch member for SMS notification");
+    }
+
+    // Send SMS if member has phone number
+    if (member && member.phoneNumber) {
+      const msg = `Your loan application has been REJECTED. Please contact the office for details.`;
+      sendSMS([member.phoneNumber], msg);
+    }
+
+    // Create notification using Notice model
+    try {
+      const Notice = require('../models/Notice');
+      if (member) {
+        await Notice.create({
+          title: "Loan Rejected",
+          message: `We regret to inform you that your loan application for ₱${loan.loanAmount} was rejected.`,
+          userId: member.id,
+        });
+      }
+    } catch (notifErr) {
+      console.warn("Notice creation failed (rejectLoan):", notifErr.message);
+    }
 
     res.json({ message: "Loan rejected successfully", loan });
   } catch (error) {
@@ -541,13 +616,12 @@ exports.getLoanCounts = async (req, res) => {
     return res.status(500).json({ message: "Server error" });
   }
 };
-
 exports.getApprovedLoans = async (req, res) => {
   try {
     const approvedOrPaid = await Loan.findAll({
       where: {
         status: {
-          [Op.in]: ["Approved", "Paid"]   // <-- show both!
+          [Op.in]: ["Paid", "Approved"]   // <-- show both!
         }
       },
       order: [["createdAt", "DESC"]],

@@ -175,19 +175,43 @@ export default function AddBillPaymentPopup({ isOpen, onClose, memberId, onSaved
           <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2 ml-1">
             <FaFileInvoice className="text-[#7e9e6c]" /> Bill Name <span className="text-red-500">*</span>
           </label>
-          <input
+          <select
             ref={firstFieldRef}
-            type="text"
-            value={billName}
-            onChange={(e) => setBillName(e.target.value)}
-            placeholder="e.g., Electricity, Water, Rent"
-            className={`w-full bg-gray-50 border-2 rounded-2xl p-3.5 outline-none transition-all ${
+            value={billName.startsWith('Other:') ? 'Others' : billName}
+            onChange={e => {
+              if (e.target.value === 'Others') {
+                setBillName('Other:');
+              } else {
+                setBillName(e.target.value);
+              }
+            }}
+            className={`w-full bg-gray-50 border-2 rounded-2xl p-3.5 font-bold outline-none transition-all ${
               errors.billName 
                 ? "border-red-200 bg-red-50 focus:border-red-400" 
                 : "border-transparent focus:border-[#7e9e6c] focus:bg-white focus:shadow-lg focus:shadow-[#7e9e6c]/10"
             }`}
             aria-invalid={!!errors.billName}
-          />
+          >
+            <option value="">Select Bill</option>
+            <option value="Electricity Bill">Electricity Bill</option>
+            <option value="Water Bill">Water Bill</option>
+            <option value="Others">Others</option>
+          </select>
+          {/* Show custom input if 'Others' selected */}
+          {billName.startsWith('Other:') && (
+            <input
+              type="text"
+              value={billName.replace('Other:', '')}
+              onChange={e => setBillName('Other:' + e.target.value)}
+              placeholder="Enter custom bill name"
+              className={`w-full mt-2 bg-gray-50 border-2 rounded-2xl p-3.5 outline-none transition-all ${
+                errors.billName 
+                  ? "border-red-200 bg-red-50 focus:border-red-400" 
+                  : "border-transparent focus:border-[#7e9e6c] focus:bg-white focus:shadow-lg focus:shadow-[#7e9e6c]/10"
+              }`}
+              aria-invalid={!!errors.billName}
+            />
+          )}
           {errors.billName && <div className="text-red-500 text-xs font-bold mt-2 ml-2 flex items-center gap-1">⚠️ {errors.billName}</div>}
         </div>
 
@@ -287,7 +311,7 @@ export default function AddBillPaymentPopup({ isOpen, onClose, memberId, onSaved
             ) : (
               <FaSave />
             )}
-            {isEditing ? "Update Bill" : "Confirm Payment"}
+            {isEditing ? "Update Bill" : "Confirm"}
           </button>
         </div>
       </div>

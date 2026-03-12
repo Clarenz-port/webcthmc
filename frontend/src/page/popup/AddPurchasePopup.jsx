@@ -349,7 +349,7 @@ const total = Number(subtotal.toFixed(2));
         disabled={saving}
         className="px-8 py-3 bg-white text-gray-500 font-bold rounded-2xl hover:text-red-500 transition-all disabled:opacity-50"
       >
-        Discard
+        Cancel
       </button>
       <button
         onClick={handleSubmit}
@@ -362,7 +362,7 @@ const total = Number(subtotal.toFixed(2));
             <span>Saving...</span>
           </div>
         ) : (
-          "Save Purchase"
+          "Confirm"
         )}
       </button>
     </div>
