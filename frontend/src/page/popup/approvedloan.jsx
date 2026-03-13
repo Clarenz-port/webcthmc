@@ -404,10 +404,10 @@ try {
                   <td className="px-6 py-5 bg-white text-center">
                     <button
                       onClick={() => handleViewLoan(record)}
-                      className="p-3 bg-white border border-gray-100 text-[#7e9e6c] rounded-xl hover:bg-[#7e9e6c] hover:text-white hover:border-[#7e9e6c] transition-all shadow-sm active:scale-90"
+                      className="pl-3 pr-3 pt-1.5 pb-1.5 bg-white font-bold border border-gray-100 text-[#7e9e6c] rounded-xl hover:bg-[#7e9e6c] hover:text-white hover:border-[#7e9e6c] transition-all shadow-sm active:scale-90"
                       title="View Loan Schedule"
                     >
-                      <FiEye size={18} />
+                      view
                     </button>
                   </td>
                 </tr>

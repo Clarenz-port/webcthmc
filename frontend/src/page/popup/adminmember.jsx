@@ -108,11 +108,50 @@ const downloadMemberReport = async () => {
   setLoadingReport(true);
   try {
     const doc = new jsPDF();
-    let lastY = 25;
+    let y = 8;
+    // --- HEADER WITH LOGO AND CTHMC ---
+    // Try to get logo from site config API (if available)
+    let logoUrl = null;
+    try {
+      const configRes = await API.get("/api/config");
+      if (configRes?.data?.logo) logoUrl = configRes.data.logo;
+    } catch (e) {}
+    if (logoUrl) {
+      try {
+        // Only works for base64 or data:image
+        let imgData = logoUrl;
+        if (!imgData.startsWith("data:image")) {
+          imgData = `data:image/png;base64,${imgData}`;
+        }
+        // Centered, smaller size
+        const imgWidth = 15;
+        const imgHeight = 15;
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const x = (pageWidth - imgWidth) / 2;
+        doc.addImage(imgData, "PNG", x, y, imgWidth, imgHeight);
+        y += imgHeight;
+      } catch (e) {}
+    }
+    y += 5;
+    doc.setFontSize(10);
+    doc.text("Carmona Townhomes Homeowners", 105, y, { align: "center" });
+    y += 4;
+    doc.text("Multipurpose Cooperative", 105, y, { align: "center" });
+    y += 6;
+    // Divider line
+    doc.setLineWidth(0.5);
+    doc.line(20, y, 190, y);
+    y += 8;
+    // Title
+    doc.setFontSize(14);
+    doc.text("Member Ledger", 105, y,{ align: "center" });
+    y += 10;
+    let lastY = y;
     // Shares Table
-    doc.text("Shares", 14, 20);
+    doc.setFontSize(11);
+    doc.text("Contribution and Savings", 14, lastY);
     autoTable(doc, {
-      startY: lastY ,
+      startY: lastY + 5,
       head: [["Date", "Share Amount", "Payment Method", "Note"]],
       body: (shareRows || []).map(s => [
         s.date ? new Date(s.date).toLocaleDateString() : "-",
@@ -1429,7 +1468,7 @@ useEffect(() => {
     setProcessingPayment(false);
   }}
 >
-  {processingPayment ? "Processing..." : "Yes, Pay"}
+  {processingPayment ? "Processing..." : "Confirm"}
 </button>
         <button
           className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg font-bold hover:bg-gray-300 transition-all"

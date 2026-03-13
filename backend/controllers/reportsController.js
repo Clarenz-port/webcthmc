@@ -86,8 +86,8 @@ exports.generateReport = async (req, res) => {
     }
     // CTHMC below logo, centered
     doc.fontSize(10);
-    doc.text("   Carmona Townhomes Homeowners", 0, headerBottomY + 8, { align: "center" });
-    doc.fontSize(10).text("   Multipurpose Cooperative", { align: "center" });
+    doc.text("     Carmona Townhomes Homeowners", 0, headerBottomY + 8, { align: "center" });
+    doc.fontSize(10).text("     Multipurpose Cooperative", { align: "center" });
     headerBottomY += 28; // 8px gap + 30px text height
     // Divider line
     doc.moveTo(40, headerBottomY + 8).lineTo(doc.page.width - 40, headerBottomY + 8).stroke();
@@ -596,7 +596,7 @@ if (reportType === "income") {
   doc.font("Helvetica-Bold").fontSize(11).text("EQUITY", leftX, y);
   y += lineHeight;
   doc.font("Helvetica").fontSize(10);
-  doc.text("Share Capital", leftX, y, { width: amtX - leftX - 10 });
+  doc.text("Contribution and Savings Capital", leftX, y, { width: amtX - leftX - 10 });
   doc.text(fmt(totalShares), amtX, y, { width: amtWidth, align: "right" });
   y += lineHeight;
   doc.text("Retained Earnings", leftX, y, { width: amtX - leftX - 10 });

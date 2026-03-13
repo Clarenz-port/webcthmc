@@ -802,6 +802,25 @@ export default function Member() {
 
     {/* Body Section */}
     <div className="p-6 space-y-4">
+
+      <button
+  onClick={() => {
+    setIsPaymentPopupOpen(false);
+    setShowLoanApplication(true); // or setShowLoanHistory(true) if you have a dedicated loan history modal
+  }}
+  className="group w-full flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md hover:border-yellow-500 hover:bg-yellow-50 transition-all duration-200"
+>
+  <div className="flex items-center gap-4">
+    <div className="p-3 bg-yellow-100 text-yellow-700 rounded-full group-hover:bg-yellow-600 group-hover:text-white transition-colors">
+      <FaHistory className="text-lg" />
+    </div>
+    <div className="text-left">
+      <h3 className="font-bold text-gray-800 group-hover:text-yellow-800">Loan History</h3>
+      <p className="text-xs text-gray-400 group-hover:text-yellow-600">View your loan records</p>
+    </div>
+  </div>
+  <FaArrowRight className="text-sm opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
+</button>
       
       {/* PURCHASE HISTORY BUTTON */}
       <button
@@ -854,24 +873,6 @@ export default function Member() {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
         </svg>
       </button>
-<button
-  onClick={() => {
-    setIsPaymentPopupOpen(false);
-    setShowLoanApplication(true); // or setShowLoanHistory(true) if you have a dedicated loan history modal
-  }}
-  className="group w-full flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md hover:border-yellow-500 hover:bg-yellow-50 transition-all duration-200"
->
-  <div className="flex items-center gap-4">
-    <div className="p-3 bg-yellow-100 text-yellow-700 rounded-full group-hover:bg-yellow-600 group-hover:text-white transition-colors">
-      <FaHistory className="text-lg" />
-    </div>
-    <div className="text-left">
-      <h3 className="font-bold text-gray-800 group-hover:text-yellow-800">Loan History</h3>
-      <p className="text-xs text-gray-400 group-hover:text-yellow-600">View your loan records</p>
-    </div>
-  </div>
-  <FaArrowRight className="text-sm opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
-</button>
     </div>
 
 

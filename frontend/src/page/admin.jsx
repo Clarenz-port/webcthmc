@@ -8,7 +8,7 @@ import {
   FaChartBar,
   FaUserClock,
   FaFileAlt,
-  FaArrowLeft
+  FaArrowLeft,
 } from "react-icons/fa";
 import { 
   FiActivity, 
@@ -22,7 +22,7 @@ import {
   FiArrowLeft,
   FiInbox,FiSearch, FiX,
   FiMail, FiPhone, FiMapPin, 
-  FiChevronLeft, FiDollarSign, FiShoppingCart, FiTrendingUp, FiCreditCard, FiMoreHorizontal
+  FiChevronLeft, FiDollarSign, FiShoppingCart, FiTrendingUp, FiCreditCard, FiMoreHorizontal,FiChevronDown
 } from "react-icons/fi";
 
 import API from '../apis/axios.js';
@@ -485,15 +485,33 @@ setDueDateCount(dueDateCount);
   ------------------------------------------------------------------------- */
   const UsersMembersView = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [sortOrder, setSortOrder] = useState("az"); // "az" or "za"
+  const [showSortDropdown, setShowSortDropdown] = useState(false);
+  useEffect(() => {
+    if (!showSortDropdown) return;
+    const handler = () => setShowSortDropdown(false);
+    window.addEventListener("click", handler);
+    return () => window.removeEventListener("click", handler);
+  }, [showSortDropdown]);
   const approvedMembers = React.useMemo(() => members.filter(m => String(m.status).toLowerCase() === "approved"), [members]);
   const filteredMembers = React.useMemo(() => {
     const q = (searchTerm || "").trim().toLowerCase();
-    if (!q) return approvedMembers;
-    return approvedMembers.filter((m) => {
-      const name = `${m.firstName || ""} ${m.middleName || ""} ${m.lastName || ""} ${m.memberName || ""} ${m.name || ""}`.toLowerCase();
-      return name.includes(q);
+    let list = approvedMembers;
+    if (q) {
+      list = list.filter((m) => {
+        const name = `${m.firstName || ""} ${m.middleName || ""} ${m.lastName || ""} ${m.memberName || ""} ${m.name || ""}`.toLowerCase();
+        return name.includes(q);
+      });
+    }
+    // Sort by name
+    list = [...list].sort((a, b) => {
+      const nameA = `${a.firstName || ""} ${a.middleName || ""} ${a.lastName || ""}`.trim().toLowerCase();
+      const nameB = `${b.firstName || ""} ${b.middleName || ""} ${b.lastName || ""}`.trim().toLowerCase();
+      if (sortOrder === "az") return nameA.localeCompare(nameB);
+      else return nameB.localeCompare(nameA);
     });
-  }, [approvedMembers, searchTerm]);
+    return list;
+  }, [approvedMembers, searchTerm, sortOrder]);
 
   return (
     <div>
@@ -561,7 +579,30 @@ setDueDateCount(dueDateCount);
         <thead>
           <tr className="bg-gray-50/50 sticky top-0 z-10 backdrop-blur-md">
             <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-100">
-              <div className="flex items-center gap-2"><FiUser className="text-[#7e9e6c]" /> Member Identity</div>
+              <div 
+                className="flex items-center gap-2 relative cursor-pointer select-none"
+                onClick={e => {
+                  e.stopPropagation();
+                  setShowSortDropdown(v => !v);
+                }}
+              >
+                <FiUser className="text-[#7e9e6c]" /> Member<FiChevronDown size={14} className="text-gray-500 group-hover:text-[#7e9e6c] transition-colors" />
+                <div className="relative">
+                  {/* Dropdown */}
+                  {showSortDropdown && (
+                    <div className="absolute z-10 top-6 left-0 bg-white border border-gray-200 rounded shadow-md w-28">
+                      <button
+                        className={`w-full px-3 py-2 text-left text-xs hover:bg-gray-50 ${sortOrder === "az" ? "font-bold text-[#7e9e6c]" : ""}`}
+                        onClick={e => { e.stopPropagation(); setSortOrder("az"); setShowSortDropdown(false); }}
+                      >A - Z</button>
+                      <button
+                        className={`w-full px-3 py-2 text-left text-xs hover:bg-gray-50 ${sortOrder === "za" ? "font-bold text-[#7e9e6c]" : ""}`}
+                        onClick={e => { e.stopPropagation(); setSortOrder("za"); setShowSortDropdown(false); }}
+                      >Z - A</button>
+                    </div>
+                  )}
+                </div>
+              </div>
             </th>
             <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-100">
               <div className="flex items-center gap-2"><FiMail className="text-[#7e9e6c]" /> Contact Info</div>

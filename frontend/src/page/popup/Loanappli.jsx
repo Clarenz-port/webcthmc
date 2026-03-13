@@ -18,42 +18,116 @@ export default function LoanApplication({ onBack, memberId = null, memberName = 
   if (!selectedLoan) return;
 
   const doc = new jsPDF();
+  let y = 8;
+  // --- HEADER WITH LOGO AND CTHMC ---
+  // Try to get logo from site config API (if available)
+  let logoUrl = null;
+  try {
+    // Use synchronous XHR for logo fetch (since this is not async)
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', '/api/config', false);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    const token = localStorage.getItem('token');
+    if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+    xhr.send();
+    if (xhr.status === 200) {
+      const configRes = JSON.parse(xhr.responseText);
+      if (configRes?.logo) logoUrl = configRes.logo;
+    }
+  } catch (e) {}
+  if (logoUrl) {
+    try {
+      let imgData = logoUrl;
+      if (!imgData.startsWith('data:image')) {
+        imgData = `data:image/png;base64,${imgData}`;
+      }
+      const imgWidth = 15;
+      const imgHeight = 15;
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const x = (pageWidth - imgWidth) / 2;
+      doc.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
+      y += imgHeight;
+    } catch (e) {}
+  }
+  y += 5;
+  doc.setFontSize(10);
+  doc.text('Carmona Townhomes Homeowners', 105, y, { align: 'center' });
+  y += 4;
+  doc.text('Multipurpose Cooperative', 105, y, { align: 'center' });
+  y += 6;
+  // Divider line
+  doc.setLineWidth(0.5);
+  doc.line(20, y, 190, y);
+  y += 12;
 
   // Title
   doc.setFontSize(18);
-  doc.text("Loan Application Details", 14, 16);
+  doc.text('Loan Application Details', doc.internal.pageSize.getWidth() / 2, y, { align: 'center' });
+  y += 12;
 
   // Member Info
   doc.setFontSize(12);
-  doc.text(`Member Name: ${selectedLoan.memberName || "N/A"}`, 14, 28);
-  doc.text(`Address: ${selectedLoan.address || "N/A"}`, 14, 36);
+  doc.text(`Member Name: ${selectedLoan.memberName || 'N/A'}`, 14, y);
+  y += 8;
+  doc.text(`Address: ${selectedLoan.address || 'N/A'}`, 14, y);
+  y += 8;
 
   // Purpose
-  doc.text(`Purpose: ${selectedLoan.purpose || "N/A"}`, 14, 44);
-  doc.text(`Amount: ${selectedLoan.loanAmount || "N/A"}`, 14, 52);
+  doc.text(`Purpose: ${selectedLoan.purpose || 'N/A'}`, 14, y);
+  y += 8;
+  doc.text(`Amount: ${selectedLoan.loanAmount || 'N/A'}`, 14, y);
+  y += 10;
 
   // Agreement
   doc.setFontSize(14);
-  doc.text("Agreement:", 14, 62);
+  doc.text('Agreement:', 14, y);
+  y += 8;
   doc.setFontSize(12);
   doc.text(
-    `           I hereby promise to pay Carmona Townhomes Homeowners Multi-purpose Cooperative the sum of ${selectedLoan.loanAmount || "N/A"} pesos for ${selectedLoan.duration || "N/A"} month(s) starting next month ${selectedLoan.startMonth || "N/A"} to ${selectedLoan.endMonth || "N/A"}.`,
+    `           I hereby promise to pay Carmona Townhomes Homeowners Multi-purpose Cooperative the sum of ${selectedLoan.loanAmount || 'N/A'} pesos for ${selectedLoan.duration || 'N/A'} month(s) starting next month ${selectedLoan.startMonth || 'N/A'} to ${selectedLoan.endMonth || 'N/A'}.`,
     14,
-    72,
+    y,
     { maxWidth: 180 }
   );
+  y += 20;
 
   // Amortization Details
   doc.setFontSize(14);
-  doc.text("Amortization Details:", 14, 95);
+  doc.text('Amortization Details:', 14, y);
+  y += 10;
   doc.setFontSize(12);
-  doc.text(`2% Loan Interest: ${(selectedLoan.interest || 0)}`, 14, 114);
-  doc.text(`2% Service Charge: ${(selectedLoan.serviceCharge || 0)}`, 14, 122);
-  doc.text(`1% Filing Fee: ${(selectedLoan.filingFee || 0)}`, 14, 130);
-  doc.text(`2% Capital Build-Up: ${(selectedLoan.capitalBuildUp || 0)}`, 14, 138);
-  doc.text(`Net Amount: ${(selectedLoan.netAmount || 0)}`, 14, 146);
+  doc.text(`2% Loan Interest: ${(selectedLoan.interest || 0)}`, 14, y);
+  y += 8;
+  doc.text(`2% Service Charge: ${(selectedLoan.serviceCharge || 0)}`, 14, y);
+  y += 8;
+  doc.text(`1% Filing Fee: ${(selectedLoan.filingFee || 0)}`, 14, y);
+  y += 8;
+  doc.text(`2% Capital Build-Up: ${(selectedLoan.capitalBuildUp || 0)}`, 14, y);
+  y += 8;
+  doc.text(`Net Amount: ${(selectedLoan.netAmount || 0)}`, 14, y);
+  y += 100;
 
-  doc.save("LoanApplication.pdf");
+  // Signature lines
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const lineWidth = 50;
+  const gap = 20;
+  const startX = 14;
+  const midX = pageWidth / 2 - lineWidth / 2;
+  const endX = pageWidth - lineWidth - 14;
+
+  // Draw lines
+  doc.setLineWidth(0.3);
+  doc.line(startX, y, startX + lineWidth, y); // Member
+  doc.line(midX, y, midX + lineWidth, y); // Co-Borrower
+  doc.line(endX, y, endX + lineWidth, y); // President
+
+  // Add labels
+  doc.setFontSize(11);
+  doc.text('Member Name', startX + lineWidth / 2, y + 6, { align: 'center' });
+  doc.text('Co-Borrower Name', midX + lineWidth / 2, y + 6, { align: 'center' });
+  doc.text('President/Representative', endX + lineWidth / 2, y + 6, { align: 'center' });
+
+  doc.save('LoanApplication.pdf');
 };
 
   // helper: currency
