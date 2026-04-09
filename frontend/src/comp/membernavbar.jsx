@@ -2,6 +2,7 @@
 
 import { notify } from "../utils/toast";
 import React, { useState, useRef, useEffect } from "react";
+import { io } from "socket.io-client";
 import { FaBell, FaCog,  FaUserEdit, FaSignOutAlt, FaInfoCircle, FaTimes } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import EditProfilePopup from "../page/popup/editprofile.jsx";
@@ -86,6 +87,21 @@ useEffect(() => {
       }
     };
     fetchConfig();
+    // --- SOCKET.IO CLIENT FOR REAL-TIME CONFIG UPDATES ---
+    const socket = io(import.meta.env.VITE_API_URL || "http://localhost:8000", {
+      transports: ["websocket"]
+    });
+    socket.on("config-updated", (data) => {
+      if (data && data.config) {
+        setSiteLogo(data.config.logo || null);
+        setSiteName(data.config.siteName || "CTHMC");
+      } else {
+        fetchConfig();
+      }
+    });
+    return () => {
+      socket.disconnect();
+    };
   }, []);
 
   // Prevent going back after logout

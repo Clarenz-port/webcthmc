@@ -19,6 +19,13 @@ exports.createNotice = async (req, res) => {
       message,
     });
 
+    // --- SOCKET.IO EMIT ---
+    // Emit event so member dashboard updates instantly
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('notice-updated', { noticeId: notice.id });
+    }
+
     await logActivity({
       userId: req.user?.id,
       role: req.user?.role,

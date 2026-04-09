@@ -24,6 +24,13 @@ exports.addShares = async (req, res) => {
       ip: req.ip,
     });
 
+    // --- SOCKET.IO EMIT ---
+    // Emit event so member dashboard updates instantly
+    const io = req.app.get('io');
+    const memberId = userId;
+    if (io && memberId) {
+      io.emit('loan-updated', { memberId }); // reuse same event for dashboard update
+    }
     return res.status(201).json({ message: "Shares added successfully", share: newShare });
   } catch (err) {
     console.error("❌ Error adding shares:", err);

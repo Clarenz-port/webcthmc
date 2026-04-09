@@ -87,8 +87,15 @@ sequelize
       }
     })();
 
+    // --- SOCKET.IO SERVER ---
+    const http = require('http');
+    const { Server } = require('socket.io');
+    const server = http.createServer(app);
+    const io = new Server(server, { cors: { origin: process.env.FRONTEND_URL || "http://localhost:5173" } });
+    app.set('io', io);
+
     const PORT = process.env.PORT || 8000;
-    app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+    server.listen(PORT, () => console.log(`🚀 Server running with Socket.IO on port ${PORT}`));
   })
   .catch((err) => {
     console.error("❌ Database connection failed:", err.message);

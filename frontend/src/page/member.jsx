@@ -2,6 +2,7 @@
 import { notify } from "../utils/toast";
 import { FiPhone, FiMail, FiCalendar, FiMapPin, FiDollarSign, FiTrendingUp, FiTarget, FiLayers, FiZap,FiInfo } from "react-icons/fi";
 import React, { useState, useEffect, useCallback } from "react";
+import { io } from "socket.io-client";
 import API from '../apis/axios.js';
 import { useNavigate } from "react-router-dom";
 import {
@@ -27,6 +28,8 @@ import PurchaseHistory from "../page/popup/Purchasehis.jsx";
 import BillHistory from "../page/popup/billshis.jsx";
 
 export default function Member() {
+    // Latest unpaid amortization from approve_loan
+    const [latestUnpaidAmort, setLatestUnpaidAmort] = useState(null);
   const navigate = useNavigate();
 
   // UI states
@@ -111,32 +114,55 @@ export default function Member() {
   }, [navigate]);
 
   // fetch loans (active loan detection)
+  const fetchLoans = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+      const response = await API.get("/api/loans/members", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const records = Array.isArray(response.data) ? response.data : [];
+      const active = records.find((loan) =>
+        ["Approved", "Pending", "Active"].includes(loan.status)
+      );
+      setHasActiveLoan(!!active);
+      setActiveLoan(active || null);
+    } catch (err) {
+      console.error("Error checking loan status:", err);
+    }
+  };
   useEffect(() => {
-    const fetchLoans = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        if (!token) return;
-        const response = await API.get("/api/loans/members", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const records = Array.isArray(response.data) ? response.data : [];
-        const active = records.find((loan) =>
-          ["Approved", "Pending", "Active"].includes(loan.status)
-        );
-        setHasActiveLoan(!!active);
-        setActiveLoan(active || null);
-      } catch (err) {
-        console.error("Error checking loan status:", err);
-      }
-    };
     fetchLoans();
   }, []);
+
+  // --- SOCKET.IO CLIENT FOR REAL-TIME UPDATES ---
+  useEffect(() => {
+    // Only connect if user is loaded
+    if (!user) return;
+    const socket = io(import.meta.env.VITE_API_URL || "http://localhost:8000", {
+      transports: ["websocket"]
+    });
+
+    const memberId = user.id ?? user.userId ?? user.memberId;
+    socket.on("loan-updated", (data) => {
+      // If the update is for this member, refetch dashboard data
+      if (!data || !data.memberId || data.memberId === memberId) {
+        fetchLoans();
+        fetchMemberSharesTotal(memberId);
+      }
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [user]);
 
   // compute amount to pay (kept your logic)
   const [paidAmount, setPaidAmount] = useState("0.00");
   useEffect(() => {
     if (!activeLoan) {
       setPaidAmount("0.00");
+      setLatestUnpaidAmort(null);
       return;
     }
 
@@ -148,6 +174,24 @@ export default function Member() {
       return undefined;
     };
 
+    // Fetch latest unpaid amortization from approve_loan
+    const fetchLatestUnpaidAmort = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const loanId = activeLoan.id || activeLoan.loanId || activeLoan.loan_id;
+        if (!loanId) return setLatestUnpaidAmort(null);
+        const res = await API.get(`/api/loans/${loanId}/amortization`, {
+          headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        });
+        const rows = Array.isArray(res.data) ? res.data : [];
+        // Find the first unpaid (status not Paid/Late)
+        const unpaid = rows.find(r => String(r.status).toLowerCase() !== "paid" && String(r.status).toLowerCase() !== "late");
+        setLatestUnpaidAmort(unpaid || null);
+      } catch (err) {
+        setLatestUnpaidAmort(null);
+      }
+    };
+    fetchLatestUnpaidAmort();
     const monthlyRate = 0.02;
     const duration = parseInt(get(activeLoan, "duration", "loan_duration"), 10) || 1;
     const principal = parseFloat(get(activeLoan, "loanAmount", "loan_amount", "amount")) || 0;
@@ -614,10 +658,9 @@ export default function Member() {
                   {activeLoan && (
                     <div className="text-xs font-medium text-gray-500 mt-1">
                       Next payment:{" "}
-                      {activeLoan.dueDate ??
-                        activeLoan.nextPaymentDate ??
-                        activeLoan.next_payment_date ??
-                        "—"}
+                      {latestUnpaidAmort && latestUnpaidAmort.dueDate
+                        ? new Date(latestUnpaidAmort.dueDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+                        : "No Due Date"}
                     </div>
                   )}
                 </div>
@@ -658,7 +701,16 @@ export default function Member() {
             </div>
             <div>
               <p className="text-xs font-medium text-gray-500 uppercase tracking-tighter">To Pay (This Installment)</p>
-              <p className="text-lg font-bold text-gray-800">₱{paidAmount}</p>
+              {latestUnpaidAmort ? (
+                <>
+                  <p className="text-lg font-bold text-gray-800">
+                    ₱{formatMoney(latestUnpaidAmort.amortization)}
+                  </p>
+                
+                </>
+              ) : (
+                <p></p>
+              )}
             </div>
           </div>
 
@@ -668,12 +720,11 @@ export default function Member() {
               <FiCalendar size={18} />
             </div>
             <div>
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-tighter">Next Due Date</p>
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-tighter">Due Date</p>
               <p className="text-sm font-semibold text-gray-700">
-                {activeLoan.dueDate ??
-                  activeLoan.nextPaymentDate ??
-                  activeLoan.next_payment_date ??
-                  "No Due Date"}
+                {latestUnpaidAmort && latestUnpaidAmort.dueDate
+                  ? new Date(latestUnpaidAmort.dueDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+                  : "No Due Date"}
               </p>
             </div>
           </div>
@@ -975,4 +1026,3 @@ export default function Member() {
     </div>
   );
 }
-          

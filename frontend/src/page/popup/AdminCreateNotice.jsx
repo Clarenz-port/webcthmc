@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { io } from "socket.io-client";
 import { notify } from "../../utils/toast";
 import API from '../../apis/axios.js';
 import { 
@@ -25,9 +26,20 @@ export default function AdminCreateNotice() {
   const [editMessage, setEditMessage] = useState("");
   const token = localStorage.getItem("token");
 
-  // Fetch notices on mount
+  // Fetch notices on mount and listen for real-time updates
   useEffect(() => {
     fetchNotices();
+
+    // --- SOCKET.IO CLIENT FOR REAL-TIME UPDATES ---
+    const socket = io(import.meta.env.VITE_API_URL || "http://localhost:8000", {
+      transports: ["websocket"]
+    });
+    socket.on("notice-updated", () => {
+      fetchNotices();
+    });
+    return () => {
+      socket.disconnect();
+    };
   }, []);
 
   const fetchNotices = async () => {

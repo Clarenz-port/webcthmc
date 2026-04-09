@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from "react";
+import { io } from "socket.io-client";
 import { useNavigate } from "react-router-dom";
 import { FaCog } from "react-icons/fa";
 import API from "../apis/axios";
@@ -30,6 +31,21 @@ export default function Adminnavbar({ onManageNotice }) {
       }
     };
     fetchConfig();
+    // --- SOCKET.IO CLIENT FOR REAL-TIME CONFIG UPDATES ---
+    const socket = io(import.meta.env.VITE_API_URL || "http://localhost:8000", {
+      transports: ["websocket"]
+    });
+    socket.on("config-updated", (data) => {
+      if (data && data.config) {
+        setSiteLogo(data.config.logo || null);
+        setSiteName(data.config.siteName || "CTHMC");
+      } else {
+        fetchConfig();
+      }
+    });
+    return () => {
+      socket.disconnect();
+    };
   }, []);
 
   // Handle logout properly

@@ -63,7 +63,33 @@ exports.getApproveLoanSchedule = async (req, res) => {
   try {
     const { loanId } = req.params;
     const ApproveLoan = require('../models/approveloan');
-    const schedule = await ApproveLoan.getScheduleByLoanId(loanId);
+    // Fetch schedule rows for this loan
+    let schedule = await ApproveLoan.findAll({
+      where: { loanId },
+      order: [['month', 'ASC']],
+      attributes: ['id', 'month', 'interest', 'penalty', 'balance', 'amortization', 'dueDate', 'status', 'paidDate']
+    });
+
+    const today = new Date();
+    // Compute and update penalty for overdue, unpaid rows, but do NOT set status to 'Late' automatically
+    for (const row of schedule) {
+      if ((row.status !== 'Paid' && row.status !== 'Late') && row.dueDate && row.amortization) {
+        const due = new Date(row.dueDate);
+        if (due < today) {
+          const computedPenalty = Number(row.amortization) * 0.01;
+          if (Number(row.penalty) !== computedPenalty) {
+            row.penalty = computedPenalty;
+            await row.save();
+          }
+        }
+      }
+    }
+    // Re-fetch to ensure up-to-date values
+    schedule = await ApproveLoan.findAll({
+      where: { loanId },
+      order: [['month', 'ASC']],
+      attributes: ['month', 'interest', 'penalty', 'balance', 'amortization', 'dueDate', 'status', 'paidDate']
+    });
     res.json(schedule);
   } catch (err) {
     console.error('❌ Error fetching approve_loan schedule:', err);
@@ -111,6 +137,13 @@ exports.addLoanPayment = async (req, res) => {
         loan.status = 'Paid';
       }
       await loan.save();
+    }
+
+    // --- SOCKET.IO EMIT ---
+    // Emit event so member dashboard updates instantly
+    const io = req.app.get('io');
+    if (io && memberId) {
+      io.emit('loan-updated', { memberId });
     }
 
     res.json({ success: true, message: "Payment and schedule updated." });
@@ -177,6 +210,15 @@ exports.createLoan = async (req, res) => {
       status: "Pending",
       userId,
     });
+
+    // --- SOCKET.IO EMIT ---
+    // Emit event so member dashboard updates instantly
+    const io = req.app.get('io');
+    // Try to get memberId from userId or newLoan.userId
+    const memberId = userId || newLoan.userId;
+    if (io && memberId) {
+      io.emit('loan-updated', { memberId });
+    }
 
     res.status(201).json({
       message: "Loan application submitted successfully",
@@ -267,6 +309,14 @@ exports.approveLoan = async (req, res) => {
 
     await loan.save();
 
+    // --- SOCKET.IO EMIT ---
+    // Emit event so member dashboard updates instantly
+    const io = req.app.get('io');
+    const memberId = loan.userId;
+    if (io && memberId) {
+      io.emit('loan-updated', { memberId });
+    }
+
     // Capital Build Up: Add to Shares if capitalBuildUp exists and > 0
     if (loan.capitalBuildUp && parseFloat(loan.capitalBuildUp) > 0) {
       try {
@@ -298,8 +348,8 @@ exports.approveLoan = async (req, res) => {
     const monthlyRate = 0.02; // 2% per month
     let remainingBalance = principal;
     const monthlyPrincipal = months > 0 ? principal / months : principal;
-    let baseDate = loan.createdAt ? new Date(loan.createdAt) : new Date();
-    if (Number.isNaN(baseDate.getTime())) baseDate = new Date();
+    // Use approvalDate as the base for due dates to ensure all are after approval
+    let baseDate = approvalDate;
 
     const scheduleRows = [];
     for (let i = 1; i <= Math.max(1, months); i++) {
@@ -308,9 +358,8 @@ exports.approveLoan = async (req, res) => {
       if (i === months) {
         amortization = remainingBalance + interest;
       }
-      // Due date is every 1 month from baseDate
-      const dueDate = new Date(baseDate.getTime());
-      dueDate.setMonth(dueDate.getMonth() + i);
+      // Due date is every 1 day AFTER approval (first due is approval + 1 day)
+      const dueDate = new Date(baseDate.getTime() + i * 24 * 60 * 60 * 1000); // i=1: +1 day, i=2: +2 days, ...
       scheduleRows.push({
         loanId: loan.id,
         month: i,
@@ -429,6 +478,13 @@ exports.rejectLoan = async (req, res) => {
       console.warn("Notice creation failed (rejectLoan):", notifErr.message);
     }
 
+    // --- SOCKET.IO EMIT ---
+    // Emit event so member dashboard updates instantly
+    const io = req.app.get('io');
+    const memberId = loan.userId;
+    if (io && memberId) {
+      io.emit('loan-updated', { memberId });
+    }
     res.json({ message: "Loan rejected successfully", loan });
   } catch (error) {
     console.error("❌ Error rejecting loan:", error);

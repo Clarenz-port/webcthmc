@@ -161,7 +161,7 @@ export default function AddBillPaymentPopup({ isOpen, onClose, memberId, onSaved
       <div className="flex items-center gap-4">
         <div>
           <h2 id="bill-popup-title" className="text-2xl font-black text-[#2f5134] tracking-tight">
-            {isEditing ? "Edit Payment" : "Record Payment"}
+            {isEditing ? "Edit Payment" : "Record Bills Payment"}
           </h2>
         </div>
       </div>

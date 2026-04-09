@@ -104,6 +104,11 @@ const handlePayBills = (m) => { setSelectedMember(m); setMemberDetailsAction("pa
     }
   };
 
+  // Fetch pending members count on mount
+  useEffect(() => {
+    fetchPendingMembers();
+  }, []);
+
   const handleApprove = async (id) => {
     try {
       const token = localStorage.getItem("token");

@@ -320,7 +320,10 @@ useEffect(() => {
   computeOverview();
 }, [memberShares, loanHistory, purchases, bills, dividends]);
 
+
+// Auto-refresh schedule every 30 seconds while Pay Loan modal is open
 useEffect(() => {
+  let intervalId;
   const fetchSchedule = async () => {
     if (!isPaidPopupOpen || !loanHistory[0]?.id) return;
     setLoadingSchedule(true);
@@ -335,7 +338,13 @@ useEffect(() => {
     }
     setLoadingSchedule(false);
   };
-  fetchSchedule();
+  if (isPaidPopupOpen && loanHistory[0]?.id) {
+    fetchSchedule();
+    intervalId = setInterval(fetchSchedule, 30000); // 30 seconds
+  }
+  return () => {
+    if (intervalId) clearInterval(intervalId);
+  };
 }, [isPaidPopupOpen, loanHistory]);
 
   useEffect(() => {
@@ -661,6 +670,35 @@ useEffect(() => {
   };
 
   // ---------- UI ----------
+  // ...existing code...
+  const [loanBalances, setLoanBalances] = useState({});
+  const token = localStorage.getItem("token"); // Adjust if you use a different token source
+
+  useEffect(() => {
+    if (!approvedLoans || !approvedLoans.length) return;
+    const fetchBalances = async () => {
+      const balances = {};
+      for (const loan of approvedLoans) {
+        try {
+          const scheduleRes = await API.get(`/api/loans/${loan.id}/amortization`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const schedule = Array.isArray(scheduleRes.data) ? scheduleRes.data : [];
+          const totalPaid = schedule
+            .filter(row => row.status === "Paid")
+            .reduce((sum, row) => sum + (parseFloat(row.amortization) || 0), 0);
+          const balance = (parseFloat(loan.loanAmount) + parseFloat(loan.interest || 0)) - totalPaid;
+          balances[loan.id] = balance;
+        } catch {
+          balances[loan.id] = null;
+        }
+      }
+      setLoanBalances(balances);
+    };
+    fetchBalances();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [approvedLoans, token]);
+
   return (
     <div>
       <div className=" mx-auto space-y-3">
@@ -853,6 +891,19 @@ useEffect(() => {
           {btn.label}
         </button>
       ))}
+          {/* Loan History Modal using LoanApplication */}
+          {isLoanHistoryOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+              <div className="absolute inset-0" onClick={() => setIsLoanHistoryOpen(false)} />
+              <div className="relative w-[95vw] max-w-5xl bg-white rounded-2xl shadow-2xl overflow-auto z-60">
+                <LoanApplication
+                  memberId={member.id}
+                  memberName={name}
+                  onBack={() => setIsLoanHistoryOpen(false)}
+                />
+              </div>
+            </div>
+          )}
     </div>
   </div>
 
@@ -876,7 +927,7 @@ useEffect(() => {
             <th className="px-6 py-4 text-sm font-semibold text-gray-600 uppercase tracking-wider">Purpose</th>
             <th className="px-6 py-4 text-sm font-semibold text-gray-600 uppercase tracking-wider">Amount</th>
             <th className="px-6 py-4 text-sm font-semibold text-gray-600 uppercase tracking-wider text-center">Term</th>
-            
+            <th className="px-6 py-4 text-sm font-semibold text-gray-600 uppercase tracking-wider text-center">Balance</th>
             <th className="px-6 py-4 text-sm font-semibold text-gray-600 uppercase tracking-wider text-center">Action</th>
           </tr>
         </thead>
@@ -895,11 +946,15 @@ useEffect(() => {
                   {l.duration ?? "0"} Months
                 </span>
               </td>
+              <td className="px-6 py-5 text-center font-bold text-gray-700">
+                {loanBalances[l.id] !== undefined && loanBalances[l.id] !== null
+                  ? fmtMoney(loanBalances[l.id])
+                  : <span className="text-gray-400 text-xs">...</span>}
+              </td>
               <td className="px-6 py-5 text-center">
                 <button
                   className="px-3 py-1 bg-[#7e9e6c] text-white rounded-lg text-center text-xs font-bold shadow-sm hover:bg-[#6a865a] transition-all"
                   onClick={() => {
-                    // Show PaidLoanPopup for this loan
                     setLoanHistory([l]);
                     setIsPaidPopupOpen(true);
                   }}
@@ -1283,22 +1338,6 @@ useEffect(() => {
         onSaved={async () => { notify.success("Bill payment recorded!"); setIsBillOpen(false); await fetchMemberBills(); }}
       />
 
-      {isLoanHistoryOpen && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center pt-12 px-4">
-    <div className="absolute inset-0 bg-black/50" onClick={() => setIsLoanHistoryOpen(false)} />
-    <div className="relative w-full max-w-4xl z-60">
-      <LoanApplication
-        onBack={() => setIsLoanHistoryOpen(false)}
-        memberId={member.id}
-        memberName={name}
-        onLoanUpdated={(updatedLoan) => {
-          // keep the displayed loanHistory in sync when a loan is updated from LoanApplication
-          setLoanHistory((prev) => (prev || []).map((l) => (l.id === updatedLoan.id ? { ...l, ...updatedLoan } : l)));
-        }}
-      />
-    </div>
-  </div>
-)}
 
       {isPaidPopupOpen && (
         <div className="fixed inset-0 bg-black/45 flex items-center justify-center z-[900] p-4 animate-in fade-in duration-200">
@@ -1332,48 +1371,59 @@ useEffect(() => {
                 <tbody className="divide-y divide-gray-50">
   {loadingSchedule ? (
     <tr>
-      <td colSpan={6} className="text-center py-8 text-gray-400">Loading schedule...</td>
+      <td colSpan={7} className="text-center py-8 text-gray-400">Loading schedule...</td>
     </tr>
   ) : schedule.length === 0 ? (
     <tr>
-      <td colSpan={6} className="text-center py-8 text-gray-400">No schedule found.</td>
+      <td colSpan={7} className="text-center py-8 text-gray-400">No schedule found.</td>
     </tr>
   ) : (
     (() => {
-      // Find the first unpaid row (not Paid)
-      const firstUnpaidIdx = schedule.findIndex(r => r.status !== "Paid");
-      return schedule.map((row, idx) => (
-        <tr key={idx}>
-          <td className="px-6 py-3 text-gray-700 font-medium">{row.month}</td>
-          <td className="px-6 py-3 text-right text-gray-500">{row.dueDate ? formatDate(row.dueDate) : "-"}</td>
-          <td className="px-6 py-3 text-right font-semibold text-gray-800">{fmtMoney(row.amortization)}</td>
-          <td className="px-6 py-3 text-center">
-            <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
-              row.status === "Paid"
-                ? "bg-green-100 text-green-700"
-                : row.status === "Late"
-                ? "bg-red-100 text-red-700"
-                : "bg-gray-100 text-gray-600"
-            }`}>{row.status}</span>
-          </td>
-          <td className="px-6 py-3 text-center text-orange-600">{fmtMoney(row.penalty)}</td>
-          <td className="px-6 py-3 text-center">
-            {row.paidDate ? formatDate(row.paidDate) : (row.status === "Paid" ? "—" : "")}
-          </td>
-          <td className="px-6 py-3 text-center">
-            {/* Only show Paid button for the first unpaid row */}
-            {row.status !== "Paid" && idx === firstUnpaidIdx && (
-              <button
-                className="px-3 py-1 bg-[#7e9e6c] text-white rounded-lg text-center text-xs font-bold shadow-sm hover:bg-[#6a865a] transition-all"
-                onClick={() => setPayModal({ open: true, row })}
-                title="Mark as Paid"
-              >
-                Paid
-              </button>
-            )}
-          </td>
-        </tr>
-      ));
+      // Find the first row that is neither Paid nor Late
+      const firstUnpaidIdx = schedule.findIndex(r => r.status !== "Paid" && r.status !== "Late");
+      const today = new Date();
+      return schedule.map((row, idx) => {
+        // Compute penalty if overdue and not paid/late, but do NOT override status
+        let penalty = Number(row.penalty) || 0;
+        if (row.status !== "Paid" && row.status !== "Late" && row.dueDate) {
+          const due = new Date(row.dueDate);
+          if (due < today) {
+            penalty = Number(row.amortization) * 0.01;
+          }
+        }
+        return (
+          <tr key={idx}>
+            <td className="px-6 py-3 text-gray-700 font-medium">{row.month}</td>
+            <td className="px-6 py-3 text-right text-gray-500">{row.dueDate ? formatDate(row.dueDate) : "-"}</td>
+            <td className="px-6 py-3 text-right font-semibold text-gray-800">{fmtMoney(row.amortization)}</td>
+            <td className="px-6 py-3 text-center">
+              <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                row.status === "Paid"
+                  ? "bg-green-100 text-green-700"
+                  : row.status === "Late"
+                  ? "bg-red-100 text-red-700"
+                  : "bg-gray-100 text-gray-600"
+              }`}>{row.status}</span>
+            </td>
+            <td className="px-6 py-3 text-center text-orange-600">{fmtMoney(penalty)}</td>
+            <td className="px-6 py-3 text-center">
+              {row.paidDate ? formatDate(row.paidDate) : (row.status === "Paid" ? "—" : "")}
+            </td>
+            <td className="px-6 py-3 text-center">
+              {/* Only show Paid button for the first unpaid and not late row */}
+              {row.status !== "Paid" && row.status !== "Late" && idx === firstUnpaidIdx && (
+                <button
+                  className="px-3 py-1 bg-[#7e9e6c] text-white rounded-lg text-center text-xs font-bold shadow-sm hover:bg-[#6a865a] transition-all"
+                  onClick={() => setPayModal({ open: true, row: { ...row, penalty } })}
+                  title="Mark as Paid"
+                >
+                  Paid
+                </button>
+              )}
+            </td>
+          </tr>
+        );
+      });
     })()
   )}
 </tbody>
@@ -1388,22 +1438,46 @@ useEffect(() => {
     <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-8 flex flex-col items-center">
       <h2 className="text-xl font-bold mb-4 text-[#56794a]">Confirm Payment</h2>
       <div className="mb-4 text-center">
-  <div className="text-gray-700 mb-2">
-    <span className="font-semibold">Month:</span> {payModal.row.month}
-  </div>
-  <div className="text-gray-700 mb-2">
-    <span className="font-semibold">Amortization:</span> {fmtMoney(payModal.row.amortization)}
-  </div>
-  <div className="text-gray-700 mb-2">
-    <span className="font-semibold">Penalty:</span> {fmtMoney(payModal.row.penalty)}
-  </div>
-  <div className="text-gray-700 mb-2">
-    <span className="font-semibold">Paid Date:</span> {new Date().toLocaleString()}
-  </div>
-  <div className="text-lg font-bold text-[#7e9e6c] mt-2">
-    Total to Pay: {fmtMoney(Number(payModal.row.amortization) + Number(payModal.row.penalty))}
-  </div>
-</div>
+        <div className="text-gray-700 mb-2">
+          <span className="font-semibold">Month:</span> {payModal.row.month}
+        </div>
+        <div className="text-gray-700 mb-2">
+          <span className="font-semibold">Amortization:</span> {fmtMoney(payModal.row.amortization)}
+        </div>
+        <div className="text-gray-700 mb-2">
+          <span className="font-semibold">Penalty:</span> {
+            (() => {
+              let penalty = Number(payModal.row.penalty) || 0;
+              if (payModal.row.status !== "Paid" && payModal.row.status !== "Late" && payModal.row.dueDate) {
+                const due = new Date(payModal.row.dueDate);
+                const today = new Date();
+                if (due < today) {
+                  penalty = Number(payModal.row.amortization) * 0.01;
+                }
+              }
+              return fmtMoney(penalty);
+            })()
+          }
+        </div>
+        <div className="text-gray-700 mb-2">
+          <span className="font-semibold">Paid Date:</span> {new Date().toLocaleString()}
+        </div>
+        <div className="text-lg font-bold text-[#7e9e6c] mt-2">
+          Total to Pay: {
+            (() => {
+              let penalty = Number(payModal.row.penalty) || 0;
+              if (payModal.row.status !== "Paid" && payModal.row.status !== "Late" && payModal.row.dueDate) {
+                const due = new Date(payModal.row.dueDate);
+                const today = new Date();
+                if (due < today) {
+                  penalty = Number(payModal.row.amortization) * 0.01;
+                }
+              }
+              return fmtMoney(Number(payModal.row.amortization) + penalty);
+            })()
+          }
+        </div>
+      </div>
       <div className="flex gap-4 mt-4">
         <button
   className="px-6 py-2 bg-[#7e9e6c] text-white rounded-lg font-bold hover:bg-[#6a865a] transition-all"

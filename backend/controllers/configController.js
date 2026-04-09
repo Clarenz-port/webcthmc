@@ -73,6 +73,13 @@ exports.updateConfig = async (req, res) => {
       });
     }
 
+    // Emit real-time update event if config changed
+    if (changedFields.length > 0 && req.app && req.app.get) {
+      const io = req.app.get('io');
+      if (io) {
+        io.emit('config-updated', { config });
+      }
+    }
     res.json({ success: true, config });
   } catch (err) {
     res.status(500).json({ error: 'Failed to update config' });

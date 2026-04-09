@@ -1,5 +1,6 @@
 
 import React, { useEffect, useState } from "react";
+import { io } from "socket.io-client";
 import notify from "../utils/toast";
 import API from "../apis/axios";
 import { FiArrowLeft, FiSave, FiUpload, FiTrash2, FiGlobe, FiImage, FiCheckCircle } from 'react-icons/fi';
@@ -10,19 +11,30 @@ export default function Configuration({ onBack }) {
   const [saving, setSaving] = useState(false);
 
 
-  // Fetch config from backend on mount
+  // Fetch config from backend
+  const fetchConfig = async () => {
+    try {
+      const res = await API.get("/api/config");
+      setLogoPreview(res.data.logo || null);
+      setSiteName(res.data.siteName || "CTHMC");
+    } catch (err) {
+      setLogoPreview(null);
+      setSiteName("CTHMC");
+    }
+  };
+
+  // Fetch config on mount and listen for real-time updates
   useEffect(() => {
-    const fetchConfig = async () => {
-      try {
-        const res = await API.get("/api/config");
-        setLogoPreview(res.data.logo || null);
-        setSiteName(res.data.siteName || "CTHMC");
-      } catch (err) {
-        setLogoPreview(null);
-        setSiteName("CTHMC");
-      }
-    };
     fetchConfig();
+    const socket = io(import.meta.env.VITE_API_URL || "http://localhost:8000", {
+      transports: ["websocket"]
+    });
+    socket.on("config-updated", () => {
+      fetchConfig();
+    });
+    return () => {
+      socket.disconnect();
+    };
   }, []);
 
   // Compress image using canvas to stay under storage limits

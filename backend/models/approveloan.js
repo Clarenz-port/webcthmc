@@ -50,13 +50,5 @@ const ApproveLoan = sequelize.define('ApproveLoan', {
   timestamps: true,
 });
 
-// Static method to get amortization schedule by loanId
-ApproveLoan.getScheduleByLoanId = async function(loanId) {
-  return await this.findAll({
-    where: { loanId },
-    order: [['month', 'ASC']],
-    attributes: ['month', 'interest', 'penalty', 'balance', 'amortization', 'dueDate', 'status', 'paidDate']
-  });
-};
 
 module.exports = ApproveLoan;
