@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import notify from '../../utils/toast.js';
 import { FaUser, FaPhone, FaEnvelope, FaBirthdayCake, FaEdit, FaCamera, FaTimes, FaLock, FaCheckCircle, FaMapMarkerAlt } from 'react-icons/fa';
 import API from '../../apis/axios.js';
@@ -28,37 +28,23 @@ export default function EditProfilePopup({ isOpen, onClose, member, onSave }) {
 
   const [saving, setSaving] = useState(false);
 
-  // IMAGE UPLOAD
-  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'>
-    <rect fill='%23e5e7eb' width='100%' height='100%' rx='16' ry='16'/>
-    <text x='50%' y='50%' font-size='18' text-anchor='middle' fill='%237e9e6c' dy='.35em'>Avatar</text>
-  </svg>`;
-  const DEFAULT_PLACEHOLDER = `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 
-  const [imagePreviewUrl, setImagePreviewUrl] = useState(DEFAULT_PLACEHOLDER);
-  const [imageFile, setImageFile] = useState(null);
-  const [removeAvatar, setRemoveAvatar] = useState(false);
-  const fileInputRef = useRef(null);
+  // Helper to get initials
+  const getInitials = (firstName, lastName) => {
+    return `${(firstName?.[0] || '').toUpperCase()}${(lastName?.[0] || '').toUpperCase()}`;
+  };
 
   // Defensive: handle member loading and show loading state
   useEffect(() => {
     if (!isOpen) return;
+
     if (!member) {
       setLoading(true);
       setProfile({});
-      setImagePreviewUrl(DEFAULT_PLACEHOLDER);
       return;
     }
     setLoading(false);
     const id = member.id ?? member._id ?? null;
-    const avatar = member.avatarUrl ?? member.avatar ?? null;
-    const baseUrl = (import.meta.env.VITE_API_URL || window?.VITE_API_URL || "http://localhost:8000").replace(/\/api$/, "");
-    const preview = avatar
-      ? (avatar.startsWith("http")
-          ? avatar
-          : `${baseUrl}${avatar.startsWith("/") ? avatar : "/" + avatar}`)
-      : DEFAULT_PLACEHOLDER;
-
     setProfile({
       id,
       firstName: member.firstName ?? "",
@@ -69,11 +55,7 @@ export default function EditProfilePopup({ isOpen, onClose, member, onSave }) {
       birthdate: member.birthdate ?? "",
       username: member.username ?? "",
       address: member.address ?? "",
-      avatarUrl: avatar ?? null,
     });
-    setImagePreviewUrl(preview);
-    setImageFile(null);
-    setRemoveAvatar(false);
 
     setPwError("");
     setPwSuccess("");
@@ -94,14 +76,7 @@ export default function EditProfilePopup({ isOpen, onClose, member, onSave }) {
     return () => window.removeEventListener("popstate", handleBackButton);
   }, [isOpen, onClose]);
 
-  // Cleanup object URL on unmount/when preview changes
-  useEffect(() => {
-    return () => {
-      if (imagePreviewUrl && imagePreviewUrl.startsWith("blob:")) {
-        try { URL.revokeObjectURL(imagePreviewUrl); } catch {}
-      }
-    };
-  }, [imagePreviewUrl]);
+
 
   if (!isOpen) return null;
 
@@ -123,36 +98,7 @@ export default function EditProfilePopup({ isOpen, onClose, member, onSave }) {
   const handleEditToggle = (field) =>
     setIsEditing((prev) => ({ ...prev, [field]: !prev[field] }));
 
-  // Image selection handler
-  const handleImageSelect = (e) => {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    if (!f.type.startsWith("image/")) {
-      notify.error("Selected file must be an image.");
-      return;
-    }
-    if (f.size > 5 * 1024 * 1024) {
-      notify.error("Image must be smaller than 5MB.");
-      return;
-    }
-    setError("");
-    if (imagePreviewUrl && imagePreviewUrl.startsWith("blob:")) {
-      try { URL.revokeObjectURL(imagePreviewUrl); } catch {}
-    }
-    const url = URL.createObjectURL(f);
-    setImageFile(f);
-    setImagePreviewUrl(url);
-  };
 
-  const openFileDialog = () => fileInputRef.current?.click();
-
-  // Remove picture handler
-  const handleRemovePicture = () => {
-    setRemoveAvatar(true);
-    setImageFile(null);
-    setImagePreviewUrl(DEFAULT_PLACEHOLDER);
-    setProfile((prev) => ({ ...prev, avatarUrl: null }));
-  };
 
   // Core save handler: uploads avatar (if any) then updates profile (and password if requested)
   const handleSave = async () => {
@@ -213,82 +159,7 @@ export default function EditProfilePopup({ isOpen, onClose, member, onSave }) {
         address: profile.address || null,
         ...(wantsPasswordChange ? { oldPassword, password: newPassword } : {}),
       };
-      let uploadedAvatarUrl = null;
-      if (removeAvatar) {
-        try {
-          await API.delete(`/api/members/${id}/avatar`, { headers: { ...authHeader } });
-        } catch {
-          // fallback to PUT
-          try {
-            const payloadRemove = { avatarUrl: null };
-            await API.put(`/api/members/${id}`, payloadRemove, {
-              headers: { "Content-Type": "application/json", ...authHeader },
-            });
-          } catch {}
-        }
-      } else if (imageFile) {
-        try {
-          const form = new FormData();
-          form.append("avatar", imageFile);
-          const avatarRes = await API.post(
-            `/api/members/${id}/avatar`,
-            form,
-            {
-              headers: {
-                "Content-Type": "multipart/form-data",
-                ...authHeader,
-              },
-            }
-          );
-          uploadedAvatarUrl = avatarRes.data?.avatarUrl ?? avatarRes.data?.url ?? null;
-        } catch {
-          // fallback to multipart PUT
-          try {
-            const form = new FormData();
-            Object.entries(payload).forEach(([k, v]) => {
-              if (v !== null && v !== undefined) form.append(k, v);
-            });
-            form.append("avatar", imageFile);
-            const putRes = await API.put(
-              `/api/members/${id}`,
-              form,
-              {
-                headers: {
-                  "Content-Type": "multipart/form-data",
-                  ...authHeader,
-                },
-              }
-            );
-            uploadedAvatarUrl = putRes.data?.member?.avatarUrl ?? putRes.data?.avatarUrl ?? null;
-            const updatedMember = putRes.data?.member ?? putRes.data ?? { id, ...payload, avatarUrl: uploadedAvatarUrl };
-            const baseDomain = (import.meta.env.VITE_API_URL || window?.VITE_API_URL || "http://localhost:8000").replace(/\/api$/, "");
-            const fullAvatar = uploadedAvatarUrl && !uploadedAvatarUrl.startsWith("http")
-              ? (uploadedAvatarUrl.startsWith("/")
-                  ? `${baseDomain}${uploadedAvatarUrl}`
-                  : `${baseDomain}/${uploadedAvatarUrl}`)
-              : uploadedAvatarUrl;
-            if (fullAvatar) {
-              setProfile((prev) => ({ ...prev, avatarUrl: fullAvatar }));
-              setImagePreviewUrl(fullAvatar);
-            }
-            if (typeof onSave === "function") onSave(updatedMember);
-            setIsEditing({ name: false, phone: false, email: false, birthdate: false, username: false, address: false });
-            setPwSuccess(wantsPasswordChange ? "Password changed + profile updated." : "");
-            setPwError("");
-            setError("");
-            setShowPasswordPanel(false);
-            setOldPassword("");
-            setNewPassword("");
-            setConfirmNewPassword("");
-            setImageFile(null);
-            setSaving(false);
-            return;
-          } catch {}
-        }
-      }
-      if (uploadedAvatarUrl) {
-        payload.avatarUrl = uploadedAvatarUrl;
-      }
+
       const res = await API.put(`/api/members/${id}`, payload, {
         headers: {
           "Content-Type": "application/json",
@@ -296,18 +167,7 @@ export default function EditProfilePopup({ isOpen, onClose, member, onSave }) {
         },
       });
       const updated = res.data?.member ?? res.data ?? { id, ...payload };
-      let returnedAvatar = updated.avatarUrl ?? updated.avatar ?? payload.avatarUrl ?? null;
-      const baseDomain = (import.meta.env.VITE_API_URL || window?.VITE_API_URL || "http://localhost:8000").replace(/\/api$/, "");
-      if (returnedAvatar && !returnedAvatar.startsWith("http")) {
-        returnedAvatar = returnedAvatar.startsWith("/")
-          ? `${baseDomain}${returnedAvatar}`
-          : `${baseDomain}/${returnedAvatar}`;
-      }
-      if (returnedAvatar) {
-        updated.avatarUrl = returnedAvatar;
-        setProfile((prev) => ({ ...prev, avatarUrl: returnedAvatar }));
-        setImagePreviewUrl(returnedAvatar);
-      }
+
       if (typeof onSave === "function") onSave(updated);
       notify.success("Profile saved successfully!");
       setProfile((prev) => ({ ...prev, ...updated }));
@@ -319,7 +179,7 @@ export default function EditProfilePopup({ isOpen, onClose, member, onSave }) {
       setOldPassword("");
       setNewPassword("");
       setConfirmNewPassword("");
-      setImageFile(null);
+
     } catch (err) {
       const msg = err?.response?.data?.message || err?.response?.data?.error || err?.message || "Failed to save changes. Check server logs.";
       setError(msg);
@@ -344,48 +204,11 @@ export default function EditProfilePopup({ isOpen, onClose, member, onSave }) {
         </div>
         {/* SCROLLABLE CONTENT */}
         <div className="overflow-y-auto max-h-[calc(90vh-80px)] p-8">
-          {/* PROFILE PICTURE SECTION */}
+          {/* PROFILE INITIALS AVATAR SECTION */}
           <div className="flex flex-col items-center mb-8">
-            <div className="relative group cursor-pointer" onClick={openFileDialog}>
-              <img
-                src={imagePreviewUrl}
-                className="w-32 h-32 rounded-[100px] border-4 border-white shadow-lg object-cover transition-transform group-hover:scale-[1.02]"
-                alt="Profile"
-              />
-              <div className="absolute inset-0 bg-black/40 rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                <FaCamera className="text-white text-2xl" />
-              </div>
-              <div className="absolute -bottom-2 -right-2 bg-[#7e9e6c] p-2 rounded-lg shadow-md text-white">
-                <FaEdit size={14} />
-              </div>
+            <div className="w-32 h-32 rounded-full bg-[#e5e7eb] flex items-center justify-center text-4xl font-bold text-[#7e9e6c]">
+              {getInitials(profile.firstName, profile.lastName)}
             </div>
-            <div className="mt-4 flex gap-4">
-              <button
-                type="button"
-                onClick={openFileDialog}
-                className="text-sm font-medium text-[#7e9e6c] hover:text-[#6a8e5a]"
-              >
-                Update Photo
-              </button>
-              {(profile.avatarUrl || imageFile) && (
-                <button
-                  type="button"
-                  onClick={handleRemovePicture}
-                  disabled={saving}
-                  className="text-sm font-medium text-red-500 hover:text-red-600 disabled:opacity-50"
-                >
-                  {saving ? "Removing..." : "Remove"}
-                </button>
-              )}
-            </div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleImageSelect}
-            />
-            <p className="text-[11px] text-gray-400 mt-2 uppercase tracking-wider font-semibold">Max 5MB • JPG or PNG</p>
           </div>
           {/* FORM FIELDS */}
           <div className="space-y-5">

@@ -7,6 +7,8 @@ import Login from "./page/login.jsx";
 import Signup from "./page/signup.jsx";
 import Admin from "./page/admin.jsx";
 import Member from "./page/member.jsx"; // 👈 member dashboard
+import ForgotPassword from "./page/popup/forgot-password.jsx";
+import ResetPassword from "./page/popup/reset-password.jsx";
 
 import Navbar from "./comp/navbar.jsx";
 import MemberNavbar from "./comp/membernavbar.jsx"; // 👈 member-specific header
@@ -34,6 +36,8 @@ function AppWrapper() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/member" element={<Member />} />
           <Route path="/admin" element={<Admin onBack={() => navigate("/")} />} />
         </Routes>

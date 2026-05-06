@@ -198,9 +198,9 @@ export default function AccountOnlyPopup({ onClose = () => {}, inline = false })
 
     {/* 2. ADMINS TABLE */}
     <div className="flex-1 overflow-y-auto custom-scrollbar">
-      <div className="bg-white border border-gray-100 rounded-3xl overflow-hidden shadow-sm">
+      <div className="bg-white border border-gray-100 rounded-3xl overflow-hidden shadow-sm" style={{ maxHeight: '50vh', overflowY: 'auto' }}>
         <table className="w-full text-sm">
-          <thead>
+          <thead className="sticky top-0 z-10 bg-gray-50">
             <tr className="bg-gray-50/80 border-b border-gray-100">
               <th className="px-6 py-4 text-left font-black text-gray-400 uppercase tracking-widest text-[10px]">Full Name</th>
               <th className="px-6 py-4 text-left font-black text-gray-400 uppercase tracking-widest text-[10px]">Username</th>

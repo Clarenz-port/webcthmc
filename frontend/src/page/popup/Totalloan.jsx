@@ -386,9 +386,9 @@ useEffect(() => {
             <p className="font-bold uppercase tracking-widest text-xs italic text-gray-400">No upcoming loan due dates found</p>
           </div>
         ) : (
-          <div className="bg-gray-50 rounded-t-[2rem] overflow-x-auto">
+          <div className="bg-gray-50 rounded-t-[2rem] overflow-x-auto" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
             <table className="w-full">
-              <thead>
+              <thead  className="bg-gray-50 sticky top-0 z-10">
                 <tr className="text-gray-400">
                   <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-left"><div className="flex items-center gap-2"><FiUser /> Member</div></th>
                   <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-left"><div className="flex items-center gap-2"><FiActivity /> Type</div></th>

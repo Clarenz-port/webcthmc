@@ -288,7 +288,7 @@ try {
         );
       }
       return (
-        <div className="bg-gray-50 rounded-t-[2rem] overflow-x-auto">
+        <div className="bg-gray-50 rounded-t-[2rem] overflow-x-auto" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
           {/* Click outside handler for dropdown */}
           {showStatusDropdown && (
             <div
@@ -297,7 +297,7 @@ try {
             />
           )}
           <table className="w-full">
-            <thead>
+            <thead  className="bg-gray-50 sticky top-0 z-10">
               <tr className="text-gray-400">
                 <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-left"> Approval Date</th>
                 <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-left"> Member</th>

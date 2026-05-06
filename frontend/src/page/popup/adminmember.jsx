@@ -45,7 +45,7 @@ import {
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, Tooltip, Legend);
 
-export default function MemberDetails({ member, onBack, openAction }) {
+export default function MemberDetails({ member, onBack, openAction, onSharesChanged }) {
   const [isPaidPopupOpen, setIsPaidPopupOpen] = useState(false);
   const [isBillOpen, setIsBillOpen] = useState(false);
   const [isBillHistoryOpen, setIsBillHistoryOpen] = useState(false);
@@ -629,6 +629,9 @@ useEffect(() => {
       });
       notify.success(res.data.message || "Shares added!");
       await fetchMemberSharesTotal();
+      if (typeof onSharesChanged === "function") {
+        onSharesChanged();
+      }
       setIsSharePopupOpen(false);
     } catch (err) {
       console.error("Add shares error:", err?.response?.data || err);
@@ -1098,72 +1101,71 @@ useEffect(() => {
                   <p className="text-sm text-gray-400 mt-1">No purchase history available for this member.</p>
                 </div>
               ) : (
-                <div className="border border-gray-100 rounded-xl overflow-hidden shadow-sm">
-                          <table className="w-full text-sm">
-                            <thead className="bg-gray-50">
-                              <tr className="border-b border-gray-100">
-                                <th className="text-left px-4 py-4 font-bold text-gray-500 uppercase tracking-tighter">Date</th>
-                                <th className="text-left px-4 py-4 font-bold text-gray-500 uppercase tracking-tighter">Items Summary</th>
-                                <th className="text-right px-4 py-4 font-bold text-gray-500 uppercase tracking-tighter">Cost</th> 
-                                <th className="text-right px-4 py-4 font-bold text-gray-500 uppercase tracking-tighter">Total Income</th>
-                                <th className="text-right px-4 py-4 font-bold text-gray-500 uppercase tracking-tighter">Total</th>
-  
-                                <th className="text-center px-4 py-4 font-bold text-gray-500 uppercase tracking-tighter">Status</th>
-<th className="text-center px-4 py-4 font-bold text-gray-500 uppercase tracking-tighter">Action</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-50">
-                              {purchases.map((p, i) => {
-                                const pid = p.id || p._id || p.purchaseId || i;
-                                const statusStr = String(p.status ?? p.paymentStatus ?? "unknown").toLowerCase();
-                                // Compute total income if not present
-                                const totalIncome = typeof p.income === 'number' ? p.income : (Array.isArray(p.items) ? p.items.reduce((sum, it) => sum + (((it.unitPrice || 0) - (it.costOfSale || 0)) * (it.qty || 1)), 0) : 0);
-                                const cost = typeof p.cost === 'number' ? p.cost : (Array.isArray(p.items) ? p.items.reduce((sum, it) => sum + ((it.costOfSale || 0) * (it.qty || 1)), 0) : 0);
-                                const incomePerUnit = Array.isArray(p.items) && p.items.length > 0 ? (p.items[0].unitPrice || 0) - (p.items[0].costOfSale || 0) : (p.incomePerUnit || 0);
-                                return (
-                                  <tr key={pid} className="group hover:bg-[#d6ead8]/10 transition-colors">
-                                    <td className="px-4 py-4 text-gray-600 font-medium whitespace-nowrap">
-                                      {(p.createdAt || p.created_at || p.date) ? new Date(p.createdAt || p.created_at || p.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "-"}
-                                    </td>
-                                    <td className="px-4 py-4">
-                                      <p className="text-gray-800 font-semibold line-clamp-1 truncate max-w-[190px]">
-                                        {itemsSummary(p.items)}
-                                      </p>
-                                    </td>
-                                    <td className="px-4 py-4 text-right text-gray-700">
-                                      {fmtMoney(cost)}
-                                    </td>
-                                    <td className="px-4 py-4 text-right text-gray-700">
-                                      {fmtMoney(totalIncome)}
-                                    </td>
-                                    <td className="px-4 py-4 text-right font-bold text-[#7e9e6c]">
-                                      {fmtMoney(p.total ?? p.totalAmount ?? p.amount ?? p.price ?? 0)}
-                                    </td>
-                                    <td className="px-4 py-4 text-center">
-                                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
-                                        statusStr === 'paid' ? 'bg-green-100 text-green-700' :
-                                        statusStr === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                                        'bg-gray-100 text-gray-600'
-                                      }`}>
-                                        {statusStr}
-                                      </span>
-                                      
-                                    </td>
-                                    <td>
-                                      <button
-                                        className="ml-2 px-3 py-1 bg-[#7e9e6c] text-white rounded-lg text-xs font-bold shadow-sm hover:bg-[#6a865a] transition-all"
-                                        onClick={() => setSelectedPurchase(p)}
-                                        title="View Details"
-                                      >
-                                        View Details
-                                      </button>
-                                    </td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
-                        </div>
+                <div className="border border-gray-100 rounded-xl overflow-hidden shadow-sm" style={{ maxHeight: '50vh', overflowY: 'auto' }}>
+                  <table className="w-full text-sm">
+                    <thead className="sticky top-0 z-10 bg-gray-50">
+                      <tr className="border-b border-gray-100">
+                        <th className="text-left px-4 py-4 font-bold text-gray-500 uppercase tracking-tighter bg-gray-50">Date</th>
+                        <th className="text-left px-4 py-4 font-bold text-gray-500 uppercase tracking-tighter bg-gray-50">Items Summary</th>
+                        <th className="text-right px-4 py-4 font-bold text-gray-500 uppercase tracking-tighter bg-gray-50">Cost</th> 
+                        <th className="text-right px-4 py-4 font-bold text-gray-500 uppercase tracking-tighter bg-gray-50">Total Income</th>
+                        <th className="text-right px-4 py-4 font-bold text-gray-500 uppercase tracking-tighter bg-gray-50">Total</th>
+                        <th className="text-center px-4 py-4 font-bold text-gray-500 uppercase tracking-tighter bg-gray-50">Status</th>
+                        <th className="text-center px-4 py-4 font-bold text-gray-500 uppercase tracking-tighter bg-gray-50">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {purchases.map((p, i) => {
+                        const pid = p.id || p._id || p.purchaseId || i;
+                        const statusStr = String(p.status ?? p.paymentStatus ?? "unknown").toLowerCase();
+                        // Compute total income if not present
+                        const totalIncome = typeof p.income === 'number' ? p.income : (Array.isArray(p.items) ? p.items.reduce((sum, it) => sum + (((it.unitPrice || 0) - (it.costOfSale || 0)) * (it.qty || 1)), 0) : 0);
+                        const cost = typeof p.cost === 'number' ? p.cost : (Array.isArray(p.items) ? p.items.reduce((sum, it) => sum + ((it.costOfSale || 0) * (it.qty || 1)), 0) : 0);
+                        const incomePerUnit = Array.isArray(p.items) && p.items.length > 0 ? (p.items[0].unitPrice || 0) - (p.items[0].costOfSale || 0) : (p.incomePerUnit || 0);
+                        return (
+                          <tr key={pid} className="group hover:bg-[#d6ead8]/10 transition-colors">
+                            <td className="px-4 py-4 text-gray-600 font-medium whitespace-nowrap">
+                              {(p.createdAt || p.created_at || p.date) ? new Date(p.createdAt || p.created_at || p.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "-"}
+                            </td>
+                            <td className="px-4 py-4">
+                              <p className="text-gray-800 font-semibold line-clamp-1 truncate max-w-[190px]">
+                                {itemsSummary(p.items)}
+                              </p>
+                            </td>
+                            <td className="px-4 py-4 text-right text-gray-700">
+                              {fmtMoney(cost)}
+                            </td>
+                            <td className="px-4 py-4 text-right text-gray-700">
+                              {fmtMoney(totalIncome)}
+                            </td>
+                            <td className="px-4 py-4 text-right font-bold text-[#7e9e6c]">
+                              {fmtMoney(p.total ?? p.totalAmount ?? p.amount ?? p.price ?? 0)}
+                            </td>
+                            <td className="px-4 py-4 text-center">
+                              <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                                statusStr === 'paid' ? 'bg-green-100 text-green-700' :
+                                statusStr === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                                'bg-gray-100 text-gray-600'
+                              }`}>
+                                {statusStr}
+                              </span>
+                              
+                            </td>
+                            <td>
+                              <button
+                                className="ml-2 px-3 py-1 bg-[#7e9e6c] text-white rounded-lg text-xs font-bold shadow-sm hover:bg-[#6a865a] transition-all"
+                                onClick={() => setSelectedPurchase(p)}
+                                title="View Details"
+                              >
+                                View Details
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </div>
             {/* PURCHASE DETAILS MODAL (selectedPurchase) */}
@@ -1255,20 +1257,20 @@ useEffect(() => {
         </div>
       ) : (
         // DATA TABLE
-        <div className="border border-gray-100 rounded-xl overflow-hidden shadow-sm">
+        <div className="border border-gray-100 rounded-xl overflow-hidden shadow-sm" style={{ maxHeight: '50vh', overflowY: 'auto' }}>
           <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-gray-50/80 border-b border-gray-100">
-                <th className="px-4 py-4 text-left font-bold text-gray-500 uppercase tracking-tighter">
+            <thead className="sticky top-0 z-10 bg-gray-50/80">
+              <tr className="border-b border-gray-100">
+                <th className="px-4 py-4 text-left font-bold text-gray-500 uppercase tracking-tighter bg-gray-50/80">
                   <div className="flex items-center gap-2"><FiCalendar size={14} /> Date</div>
                 </th>
-                <th className="px-4 py-4 text-left font-bold text-gray-500 uppercase tracking-tighter">
+                <th className="px-4 py-4 text-left font-bold text-gray-500 uppercase tracking-tighter bg-gray-50/80">
                   <div className="flex items-center gap-2"><FiTag size={14} /> Bill Name</div>
                 </th>
-                <th className="px-4 py-4 text-center font-bold text-gray-500 uppercase tracking-tighter">
+                <th className="px-4 py-4 text-center font-bold text-gray-500 uppercase tracking-tighter bg-gray-50/80">
                   <div className="flex items-center justify-center gap-2"><FiCreditCard size={14} /> Method</div>
                 </th>
-                <th className="px-4 py-4 text-right font-bold text-gray-500 uppercase tracking-tighter">
+                <th className="px-4 py-4 text-right font-bold text-gray-500 uppercase tracking-tighter bg-gray-50/80">
                    <div className="flex items-center justify-end gap-2">Amount</div>
                 </th>
               </tr>

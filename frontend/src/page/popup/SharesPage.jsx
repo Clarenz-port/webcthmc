@@ -173,18 +173,18 @@ export default function SharesPage({ onBack, members = [] }) {
         <p className="font-bold uppercase tracking-widest text-xs">No contributions and savings transactions found</p>
       </div>
     ) : (
-      <div className="bg-gray-50 rounded-t-[2rem] mt-3 overflow-x-auto">
+      <div className="bg-gray-50 rounded-t-[2rem] mt-3 overflow-x-auto" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
         <table className="w-full text-left">
-          <thead>
+          <thead className="bg-gray-50 sticky top-0 z-10">
             <tr className="text-[#7e9e6c]">
-              <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em]"><div className="flex items-center gap-2"><FiCalendar /> Date</div></th>
-              <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em]"><div className="flex items-center gap-2"><FiUser /> Member</div></th>
-              <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em]"><div className="flex items-center gap-2"><FiDollarSign /> Amount</div></th>
-              <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] border-r-0 rounded-r-2xl"><div className="flex items-center gap-2"><FiCreditCard /> Payment</div></th>
+              <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] bg-gray-50"><div className="flex items-center gap-2"><FiCalendar /> Date</div></th>
+              <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] bg-gray-50"><div className="flex items-center gap-2"><FiUser /> Member</div></th>
+              <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] bg-gray-50"><div className="flex items-center gap-2"><FiDollarSign /> Amount</div></th>
+              <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] border-r-0 rounded-r-2xl bg-gray-50"><div className="flex items-center gap-2"><FiCreditCard /> Payment</div></th>
             </tr>
           </thead>
 
-          <tbody>
+          <tbody >
             {shares.map((r, idx) => {
               // Keeping your existing property fallbacks
               const rawDate = r.date ?? r.createdAt ?? r.created_at ?? r.transaction_date;

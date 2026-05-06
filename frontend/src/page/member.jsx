@@ -67,8 +67,10 @@ export default function Member() {
   const [dividendsRows, setDividendsRows] = useState([]);
   const [loadingDividends, setLoadingDividends] = useState(false);
 
-  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><rect fill='%23e5e7eb' width='100%' height='100%' rx='16' ry='16'/><text x='50%' y='50%' font-size='18' text-anchor='middle' fill='%237e9e6c' dy='.35em'>Avatar</text></svg>`;
-  const DEFAULT_AVATAR = `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+  // Helper to get initials for avatar
+  const getInitials = (firstName, lastName) => {
+    return `${(firstName?.[0] || '').toUpperCase()}${(lastName?.[0] || '').toUpperCase()}`;
+  };
 
   const formatMoney = (val) => {
     if (val === null || val === undefined || val === "") return "0.00";
@@ -80,23 +82,7 @@ export default function Member() {
     });
   };
 
-  const getAvatarSrc = (u) => {
-    if (!u) return DEFAULT_AVATAR;
-  
-  const avatarUrl = u.avatarUrl ?? u.avatar ?? null;
-  if (!avatarUrl) return DEFAULT_AVATAR;
-  
-  // If it's already a full external URL (like a Google profile pic), use it
-  if (avatarUrl.startsWith("http")) return avatarUrl;
-  
-  // Get the base domain and strip '/api' if it's there
-  const baseDomain = (import.meta.env.VITE_API_URL || "http://localhost:8000").replace(/\/api$/, "");
-  
-  // Ensure the relative path starts with a single slash
-  const rel = avatarUrl.startsWith("/") ? avatarUrl : `/${avatarUrl}`;
-  
-  return `${baseDomain}${rel}`;
-};
+
 
   // fetch profile
   useEffect(() => {
@@ -405,6 +391,18 @@ export default function Member() {
       notify.success("⚠️ You cannot apply for a new loan until your approved loan is fully paid or closed.");
       return;
     }
+    // Require BOTH: at least 1 year member AND at least 10,000 shares
+    if (user) {
+      const joinedDate = new Date(user.createdAt);
+      const now = new Date();
+      const oneYearAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+      const isOneYear = joinedDate <= oneYearAgo;
+      const hasEnoughShares = memberSharesTotal >= 10000;
+      if (!(isOneYear && hasEnoughShares)) {
+        notify.error("You must be a member for at least 1 year and have at least ₱10,000 in shares to use this feature.");
+        return;
+      }
+    }
     setIsLoanNowOpen(true);
   };
 
@@ -472,13 +470,11 @@ export default function Member() {
       <div className="h-24 bg-green-700 w-full" />
 
       <div className="px-2 pb-8 -mt-16 flex flex-col items-center">
-        {/* Profile Image */}
+        {/* Profile Initials Avatar */}
         <div className="relative">
-          <img
-            src={getAvatarSrc(user)}
-            alt={`${user.firstName ?? ""} ${user.lastName ?? ""}`}
-            className="w-32 h-32 rounded-full border-4 border-white shadow-md object-cover"
-          />
+          <div className="w-32 h-32 rounded-full bg-[#e5e7eb] flex items-center justify-center text-4xl font-bold text-[#7e9e6c] border-4 border-white shadow-md">
+            {getInitials(user?.firstName, user?.lastName)}
+          </div>
         </div>
 
         {/* Name & Join Date */}

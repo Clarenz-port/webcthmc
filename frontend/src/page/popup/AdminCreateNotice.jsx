@@ -216,14 +216,14 @@ export default function AdminCreateNotice() {
         <p className="text-gray-400 font-medium">No active notices found.</p>
       </div>
     ) : (
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto" style={{ maxHeight: '50vh', overflowY: 'auto' }}>
         <table className="w-full text-sm border border-gray-100 rounded-xl overflow-hidden">
-          <thead className="bg-gray-50">
+          <thead className="bg-gray-50 sticky top-0 z-10">
             <tr>
-              <th className="px-4 py-3 text-left font-bold text-gray-500">Title</th>
-              <th className="px-4 py-3 text-left font-bold text-gray-500">Message</th>
-              <th className="px-4 py-3 text-left font-bold text-gray-500">Date</th>
-              <th className="px-4 py-3 text-center font-bold text-gray-500">Actions</th>
+              <th className="px-4 py-3 text-left font-bold text-gray-500 bg-gray-50">Title</th>
+              <th className="px-4 py-3 text-left font-bold text-gray-500 bg-gray-50">Message</th>
+              <th className="px-4 py-3 text-left font-bold text-gray-500 bg-gray-50">Date</th>
+              <th className="px-4 py-3 text-center font-bold text-gray-500 bg-gray-50">Actions</th>
             </tr>
           </thead>
           <tbody>

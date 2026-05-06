@@ -65,24 +65,24 @@ export default function Sharehistory({ isOpen, onClose, rows = [], loading = fal
                   </p>
                 </div>
       ) : (
-        <div className="relative border border-gray-100 rounded-xl overflow-hidden shadow-sm">
+        <div className="relative border border-gray-100 rounded-xl overflow-hidden shadow-sm" style={{ maxHeight: '50vh', overflowY: 'auto' }}>
           <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-gray-50 border-b border-gray-100">
-                <th className="px-4 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">
+            <thead className="sticky top-0 z-10 bg-gray-50">
+              <tr className="border-b border-gray-100">
+                <th className="px-4 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider bg-gray-50">
                   <div className="flex items-center gap-2">
                     <FiCalendar/> Date
                   </div>
                 </th>
-                <th className="px-4 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                <th className="px-4 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider bg-gray-50">
                   <div className="flex items-center gap-2">
                     <FiCreditCard/> Method
                   </div>
                 </th>
-                <th className="px-4 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                <th className="px-4 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider bg-gray-50">
                   Note
                 </th>
-                <th className="px-4 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">
+                <th className="px-4 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right bg-gray-50">
                   Amount
                 </th>
               </tr>

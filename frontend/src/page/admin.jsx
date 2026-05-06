@@ -1,5 +1,7 @@
 // src/page/Admin.jsx
-import React, { useState, useEffect } from "react";
+
+import React, { useState, useEffect, useRef } from "react";
+import { io } from "socket.io-client";
 import { useNavigate } from "react-router-dom";
 import { 
   FaClipboardList, 
@@ -24,7 +26,6 @@ import {
   FiMail, FiPhone, FiMapPin, 
   FiChevronLeft, FiDollarSign, FiShoppingCart, FiTrendingUp, FiCreditCard, FiMoreHorizontal,FiChevronDown
 } from "react-icons/fi";
-
 import API from '../apis/axios.js';
 import Adminnavbar from "../comp/adminnavbar.jsx";
 import Sidebar from "../comp/adminsidebar.jsx";
@@ -34,14 +35,14 @@ import ManageNotice from "../page/popup/AdminCreateNotice.jsx";
 import PendingLoanApplications from "../page/popup/pendingloanadmin.jsx";
 import Approvedloan from "../page/popup/approvedloan.jsx";
 import TotalLoan from "../page/popup/Totalloan.jsx";
-
 import LoanStatusDonut from "../comp/charts/LoanStatusDonut.jsx";
 import SharesLineChart from "../comp/charts/SharesLineChart.jsx";
 import SharesPage from "../page/popup/SharesPage.jsx";
-
-// Import the real ReportModal from the popup folder
 import ReportModal from "./popup/ReportModal.jsx";  
 import Configuration from "./configuration.jsx";
+
+
+
 
 export default function Admin({ onBack }) {
   const [memberDetailsAction, setMemberDetailsAction] = useState(null);
@@ -66,6 +67,28 @@ export default function Admin({ onBack }) {
   // TOTAL SHARES
   const [sharesTotal, setSharesTotal] = useState(0);
   const [loadingSharesTotal, setLoadingSharesTotal] = useState(false);
+
+  // Expose a function to refresh shares total
+  const refreshSharesTotal = async () => {
+    setLoadingSharesTotal(true);
+    try {
+      const token = (localStorage.getItem("token") || "").trim();
+      const res = await API.get("/api/shares", {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
+      const rows = res?.data ?? [];
+      const arr = Array.isArray(rows) ? rows : rows.rows ?? [];
+      const sum = arr.reduce((acc, r) => {
+        const amt = r.shareamount ?? r.shareAmount ?? r.amount ?? r.value ?? 0;
+        return acc + Number(amt || 0);
+      }, 0);
+      setSharesTotal(sum);
+    } catch (err) {
+      console.warn("Failed to fetch shares total (refresh):", err?.message || err);
+    } finally {
+      setLoadingSharesTotal(false);
+    }
+  };
 
   // Report modal open state
   const [showReportModal, setShowReportModal] = useState(false);
@@ -519,173 +542,166 @@ setDueDateCount(dueDateCount);
   }, [approvedMembers, searchTerm, sortOrder]);
 
   return (
-    <div>
-  
-  {/* HEADER SECTION */}
-    <div className="border-b border-gray-50 ">
-      <div className="flex flex-col md:flex-row md:items-center mb-2 justify-between gap-6">
-        <div className="flex items-center gap-5">
-          <button
-            onClick={() => setActiveSection("dashboard")}
-            className="p-3 bg-white border border-gray-100 text-gray-500 hover:text-[#7e9e6c] hover:border-[#7e9e6c] rounded-xl transition-all shadow-sm active:scale-95 group"
-            title="Back to Dashboard"
-          >
-            <FiArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
-          </button>
-          <div>
-            <h2 className="text-3xl font-black text-gray-800 tracking-tight">Members</h2>
-            <div className="flex items-center gap-2 mt-1">
-              <span className="flex h-2 w-2 rounded-full bg-[#7e9e6c]"></span>
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
-                {approvedMembers.length} Approved Members
-              </p>
+    <div className="flex flex-col h-full min-h-0">
+      {/* HEADER SECTION */}
+      <div className="border-b border-gray-50 ">
+        <div className="flex flex-col md:flex-row md:items-center mb-2 justify-between gap-6">
+          <div className="flex items-center gap-5">
+            <button
+              onClick={() => setActiveSection("dashboard")}
+              className="p-3 bg-white border border-gray-100 text-gray-500 hover:text-[#7e9e6c] hover:border-[#7e9e6c] rounded-xl transition-all shadow-sm active:scale-95 group"
+              title="Back to Dashboard"
+            >
+              <FiArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
+            </button>
+            <div>
+              <h2 className="text-3xl font-black text-gray-800 tracking-tight">Members</h2>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="flex h-2 w-2 rounded-full bg-[#7e9e6c]"></span>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+                  {approvedMembers.length} Approved Members
+                </p>
+              </div>
             </div>
           </div>
-        </div>
-  <div className="bg-white rounded-[2rem] shadow-2xl shadow-gray-200/50 border border-gray-100 overflow-hidden flex flex-col max-h-[90vh]"></div>
-        {/* SEARCH ROW */}
-        <div className="flex items-center gap-4">
-
-          <div className="relative w-full md:w-80 group">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <FiSearch className={`transition-colors ${searchTerm ? "text-[#7e9e6c]" : "text-gray-300"}`} />
+          {/* SEARCH ROW */}
+          <div className="flex items-center gap-4">
+            <div className="relative w-full md:w-80 group">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <FiSearch className={`transition-colors ${searchTerm ? "text-[#7e9e6c]" : "text-gray-300"}`} />
+              </div>
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search members..."
+                className="w-full bg-gray-50 border border-gray-400 py-3 pl-11 pr-12 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-[#7e9e6c]/20 transition-all placeholder:text-gray-300"
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm("")}
+                  className="absolute inset-y-0 right-0 pr-4  flex items-center text-gray-300 hover:text-red-400 transition-colors"
+                >
+                  <FiX size={18} />
+                </button>
+              )}
             </div>
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search members..."
-              className="w-full bg-gray-50 border border-gray-400 py-3 pl-11 pr-12 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-[#7e9e6c]/20 transition-all placeholder:text-gray-300"
-            />
-            {searchTerm && (
-              <button
-                onClick={() => setSearchTerm("")}
-                className="absolute inset-y-0 right-0 pr-4  flex items-center text-gray-300 hover:text-red-400 transition-colors"
-              >
-                <FiX size={18} />
-              </button>
-            )}
+            <button
+              onClick={() => { fetchPendingMembers(); setShowPendingMembersModal(true); }}
+              className="flex items-center gap-2 px-4 py-2 bg-purple-100 text-purple-600 rounded-xl hover:bg-purple-200 transition-all shadow-sm active:scale-95"
+              title="View Pending Members"
+            >
+              <FaUserClock size={16} />
+              Pending Members
+            </button>
           </div>
-          <button
-            onClick={() => { fetchPendingMembers(); setShowPendingMembersModal(true); }}
-            className="flex items-center gap-2 px-4 py-2 bg-purple-100 text-purple-600 rounded-xl hover:bg-purple-200 transition-all shadow-sm active:scale-95"
-            title="View Pending Members"
-          >
-            <FaUserClock size={16} />
-            Pending Members
-          </button>
         </div>
       </div>
-    </div>
-  <div className="bg-white rounded-[2rem] shadow-2xl shadow-gray-200/50 border border-gray-100 overflow-hidden flex flex-col max-h-[90vh]"></div>
-    {/* TABLE AREA */}
-    <div className="flex-1 rounded-t-[2rem] bg-white overflow-auto">
-      <table className="w-full text-left border-collapse">
-        <thead>
-          <tr className="bg-gray-50/50 sticky top-0 z-10 backdrop-blur-md">
-            <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-100">
-              <div 
-                className="flex items-center gap-2 relative cursor-pointer select-none"
-                onClick={e => {
-                  e.stopPropagation();
-                  setShowSortDropdown(v => !v);
-                }}
-              >
-                <FiUser className="text-[#7e9e6c]" /> Member<FiChevronDown size={14} className="text-gray-500 group-hover:text-[#7e9e6c] transition-colors" />
-                <div className="relative">
-                  {/* Dropdown */}
-                  {showSortDropdown && (
-                    <div className="absolute z-10 top-6 left-0 bg-white border border-gray-200 rounded shadow-md w-28">
-                      <button
-                        className={`w-full px-3 py-2 text-left text-xs hover:bg-gray-50 ${sortOrder === "az" ? "font-bold text-[#7e9e6c]" : ""}`}
-                        onClick={e => { e.stopPropagation(); setSortOrder("az"); setShowSortDropdown(false); }}
-                      >A - Z</button>
-                      <button
-                        className={`w-full px-3 py-2 text-left text-xs hover:bg-gray-50 ${sortOrder === "za" ? "font-bold text-[#7e9e6c]" : ""}`}
-                        onClick={e => { e.stopPropagation(); setSortOrder("za"); setShowSortDropdown(false); }}
-                      >Z - A</button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </th>
-            <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-100">
-              <div className="flex items-center gap-2"><FiMail className="text-[#7e9e6c]" /> Contact Info</div>
-            </th>
-            <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-100">
-              <div className="flex items-center gap-2"><FiMapPin className="text-[#7e9e6c]" /> Address</div>
-            </th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-50">
-          {members.length === 0 ? (
-            <tr>
-              <td colSpan="4" className="px-8 py-20 text-center">
-                <div className="flex flex-col items-center opacity-30">
-                  <FiUser size={48} />
-                  <p className="mt-4 font-bold uppercase tracking-widest text-xs">No members found in database</p>
-                </div>
-              </td>
-            </tr>
-          ) : filteredMembers.length === 0 ? (
-            <tr>
-              <td colSpan="4" className="px-8 py-20 text-center">
-                <p className="text-gray-400 italic">No results matching "{searchTerm}"</p>
-              </td>
-            </tr>
-          ) : (
-            filteredMembers.map((m) => {
-              const fullName = `${m.firstName || ""} ${m.middleName || ""} ${m.lastName || ""}`.trim();
-              const fullAddress = m.address || "—";
-              
-              return (
-                <tr
-                  key={m.id}
-                  onClick={() => handleSelectMember(m)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleSelectMember(m); }}
-                  className="hover:bg-gray-50 cursor-pointer transition-colors"
-                >
-                  <td className="px-8 py-5">
-                    <p className="text-sm font-black text-gray-800 group-hover:text-[#7e9e6c] transition-colors uppercase tracking-tight">
-                      {fullName || "Unnamed Member"}
-                    </p>
-                    <p className="text-[10px] text-gray-400 font-bold mt-0.5">ID: {m.id?.toString().slice(-6).toUpperCase() || 'N/A'}</p>
-                  </td>
-                  
-                  <td className="px-8 py-5">
-                    <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-2 text-xs text-gray-600 font-medium">
-                      <FiMail size={12} className="text-gray-300" /> {m.email || "—"}
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-gray-600 font-medium">
-                      <FiPhone size={12} className="text-gray-300" /> {m.phoneNumber || "—"}
+      {/* TABLE AREA */}
+      <div className="flex-1 min-h-0 rounded-t-[2rem] bg-white overflow-hidden flex flex-col">
+        <div className="overflow-auto" style={{ maxHeight: '62vh' }}>
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-gray-50/50 sticky top-0 z-10 backdrop-blur-md">
+                <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-100">
+                  <div 
+                    className="flex items-center gap-2 relative cursor-pointer select-none"
+                    onClick={e => {
+                      e.stopPropagation();
+                      setShowSortDropdown(v => !v);
+                    }}
+                  >
+                    <FiUser className="text-[#7e9e6c]" /> Member<FiChevronDown size={14} className="text-gray-500 group-hover:text-[#7e9e6c] transition-colors" />
+                    <div className="relative">
+                      {/* Dropdown */}
+                      {showSortDropdown && (
+                        <div className="absolute z-10 top-6 left-0 bg-white border border-gray-200 rounded shadow-md w-28">
+                          <button
+                            className={`w-full px-3 py-2 text-left text-xs hover:bg-gray-50 ${sortOrder === "az" ? "font-bold text-[#7e9e6c]" : ""}`}
+                            onClick={e => { e.stopPropagation(); setSortOrder("az"); setShowSortDropdown(false); }}
+                          >A - Z</button>
+                          <button
+                            className={`w-full px-3 py-2 text-left text-xs hover:bg-gray-50 ${sortOrder === "za" ? "font-bold text-[#7e9e6c]" : ""}`}
+                            onClick={e => { e.stopPropagation(); setSortOrder("za"); setShowSortDropdown(false); }}
+                          >Z - A</button>
+                        </div>
+                      )}
                     </div>
                   </div>
-                </td>
-
-                <td className="px-8 py-5">
-                  <p className="text-xs text-gray-500 max-w-[200px] leading-relaxed line-clamp-2 italic">
-                    {fullAddress}
-                  </p>
-                </td>
-
-                
+                </th>
+                <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-100">
+                  <div className="flex items-center gap-2"><FiMail className="text-[#7e9e6c]" /> Contact Info</div>
+                </th>
+                <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-100">
+                  <div className="flex items-center gap-2"><FiMapPin className="text-[#7e9e6c]" /> Address</div>
+                </th>
               </tr>
-            );
-          })
-        )}
-      </tbody>
-    </table>
-  </div>
-
-  {/* FOOTER STATS */}
-  <div className="px-8 py-4 bg-gray-50 rounded-b-[2rem] border-t border-gray-100 flex justify-between items-center text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-    <span>Showing results for current filter</span>
-    <span className="text-[#7e9e6c]">{filteredMembers.length} Active Profiles</span>
-  </div>
-</div>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {members.length === 0 ? (
+                <tr>
+                  <td colSpan="4" className="px-8 py-20 text-center">
+                    <div className="flex flex-col items-center opacity-30">
+                      <FiUser size={48} />
+                      <p className="mt-4 font-bold uppercase tracking-widest text-xs">No members found in database</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : filteredMembers.length === 0 ? (
+                <tr>
+                  <td colSpan="4" className="px-8 py-20 text-center">
+                    <p className="text-gray-400 italic">No results matching "{searchTerm}"</p>
+                  </td>
+                </tr>
+              ) : (
+                filteredMembers.map((m) => {
+                  const fullName = `${m.firstName || ""} ${m.middleName || ""} ${m.lastName || ""}`.trim();
+                  const fullAddress = m.address || "—";
+                  
+                  return (
+                    <tr
+                      key={m.id}
+                      onClick={() => handleSelectMember(m)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleSelectMember(m); }}
+                      className="hover:bg-gray-50 cursor-pointer transition-colors"
+                    >
+                      <td className="px-8 py-5">
+                        <p className="text-sm font-black text-gray-800 group-hover:text-[#7e9e6c] transition-colors uppercase tracking-tight">
+                          {fullName || "Unnamed Member"}
+                        </p>
+                        <p className="text-[10px] text-gray-400 font-bold mt-0.5">ID: {m.id?.toString().slice(-6).toUpperCase() || 'N/A'}</p>
+                      </td>
+                      <td className="px-8 py-5">
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-2 text-xs text-gray-600 font-medium">
+                            <FiMail size={12} className="text-gray-300" /> {m.email || "—"}
+                          </div>
+                          <div className="flex items-center gap-2 text-xs text-gray-600 font-medium">
+                            <FiPhone size={12} className="text-gray-300" /> {m.phoneNumber || "—"}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-8 py-5">
+                        <p className="text-xs text-gray-500 max-w-[200px] leading-relaxed line-clamp-2 italic">
+                          {fullAddress}
+                        </p>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {/* FOOTER STATS */}
+      <div className="px-8 py-4 bg-gray-50 rounded-b-[2rem] border-t border-gray-100 flex justify-between items-center text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+        <span>Showing results for current filter</span>
+        <span className="text-[#7e9e6c]">{filteredMembers.length} Active Profiles</span>
+      </div>
+    </div>
   );
 };
 
@@ -947,6 +963,7 @@ const UsersActivityView = () => {
     member={selectedMember}
     onBack={() => { setSelectedMember(null); setActiveSection("dashboard"); setMemberDetailsAction(null); }}
     openAction={memberDetailsAction}
+    onSharesChanged={refreshSharesTotal}
   />
         ) : activeSection === "shares" ? (
           <SharesPage onBack={() => setActiveSection("dashboard")} members={members} />
@@ -1111,9 +1128,9 @@ const UsersActivityView = () => {
                     <p className="text-sm text-gray-400 mt-2">All members have been processed.</p>
                   </div>
                 ) : (
-                  <div className="overflow-x-auto">
+                  <div className="overflow-x-auto" style={{ maxHeight: '50vh', overflowY: 'auto' }}>
                     <table className="w-full text-left border-collapse">
-                      <thead>
+                      <thead className="sticky top-0 z-10 bg-gray-50">
                         <tr className="bg-gray-50/80 border-b border-gray-100">
                           <th className="px-4 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest">Name</th>
                           <th className="px-4 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest">Username</th>

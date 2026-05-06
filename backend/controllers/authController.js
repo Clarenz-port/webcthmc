@@ -1,3 +1,82 @@
+// VERIFY OTP
+exports.verifyOtp = async (req, res) => {
+  const { phone, otp } = req.body;
+  if (!phone || !otp) return res.status(400).json({ success: false, message: "Phone and OTP required" });
+  try {
+    const user = await User.findOne({ where: { phoneNumber: phone } });
+    if (!user) return res.status(404).json({ success: false, message: "No account with that phone number." });
+    if (!user.resetCode || !user.resetCodeExpires) return res.status(400).json({ success: false, message: "No reset code found. Please request again." });
+    if (user.resetCode !== otp) return res.status(400).json({ success: false, message: "Invalid OTP." });
+    if (user.resetCodeExpires < Date.now()) return res.status(400).json({ success: false, message: "OTP expired. Please request again." });
+    // Optionally clear code after verification
+    user.resetCode = null;
+    user.resetCodeExpires = null;
+    await user.save();
+    res.json({ success: true, message: "OTP verified." });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Failed to verify OTP." });
+  }
+};
+
+// RESET PASSWORD/USERNAME
+exports.resetPassword = async (req, res) => {
+  const { phone, otp, newPassword, newUsername } = req.body;
+  if (!phone || !otp || !newPassword) return res.status(400).json({ success: false, message: "Phone, OTP, and new password required" });
+  try {
+    const user = await User.findOne({ where: { phoneNumber: phone } });
+    if (!user) return res.status(404).json({ success: false, message: "No account with that phone number." });
+    // For security, check OTP again (in case user skipped verify step)
+    if (!user.resetCode || !user.resetCodeExpires) return res.status(400).json({ success: false, message: "No reset code found. Please request again." });
+    if (user.resetCode !== otp) return res.status(400).json({ success: false, message: "Invalid OTP." });
+    if (user.resetCodeExpires < Date.now()) return res.status(400).json({ success: false, message: "OTP expired. Please request again." });
+    // Update password
+    user.password = await bcrypt.hash(newPassword, 10);
+    // Optionally update username
+    if (newUsername && newUsername !== user.username) {
+      // Check if username exists
+      const exists = await User.findOne({ where: { username: newUsername } });
+      if (exists) return res.status(400).json({ success: false, message: "Username already taken." });
+      user.username = newUsername;
+    }
+    user.resetCode = null;
+    user.resetCodeExpires = null;
+    await user.save();
+    res.json({ success: true, message: "Password/Username updated." });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Failed to reset password/username." });
+  }
+};
+const crypto = require("crypto");
+const { sendSMS } = require("../utils/sms");
+// FORGOT PASSWORD (phone-based)
+exports.forgotPassword = async (req, res) => {
+  const { phone } = req.body;
+  if (!phone) return res.status(400).json({ success: false, message: "Phone number is required" });
+
+  try {
+    // Find user by phone number
+    const user = await User.findOne({ where: { phoneNumber: phone } });
+    if (!user) return res.status(404).json({ success: false, message: "No account with that phone number." });
+
+    // Generate a 6-digit code
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    // Save code and expiry to user (in-memory for demo, or add to DB in production)
+    user.resetCode = code;
+    user.resetCodeExpires = Date.now() + 10 * 60 * 1000; // 10 min expiry
+    await user.save();
+
+    // Send SMS
+    const smsMsg = `Your CTHMC password reset code is: ${code}`;
+    await sendSMS([phone], smsMsg);
+
+    res.json({ success: true, message: "Reset code sent to your phone." });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Failed to send reset code." });
+  }
+};
 require("dotenv").config();
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");

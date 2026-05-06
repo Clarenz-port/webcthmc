@@ -309,15 +309,15 @@ export default function LoanApplication({ onBack, memberId = null, memberName = 
       <p className="text-gray-500 font-medium">No loan records found in your history.</p>
     </div>
   ) : (
-    <div className="overflow-hidden rounded-xl border border-gray-200 shadow-sm">
+    <div className="overflow-hidden rounded-xl border border-gray-200 shadow-sm" style={{ maxHeight: '50vh', overflowY: 'auto' }}>
       <table className="w-full text-left border-collapse">
-        <thead>
-          <tr className="bg-gray-50 border-b border-gray-200">
-            <th className="py-4 px-6 text-xs font-semibold text-gray-600 uppercase tracking-wider">Date Applied</th>
-            <th className="py-4 px-6 text-xs font-semibold text-gray-600 uppercase tracking-wider">Amount</th>
-            <th className="py-4 px-6 text-xs font-semibold text-gray-600 uppercase tracking-wider">Term</th>
-            <th className="py-4 px-6 text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
-            <th className="py-4 px-6 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Action</th>
+        <thead className="sticky top-0 z-10 bg-gray-50">
+          <tr className="border-b border-gray-200">
+            <th className="py-4 px-6 text-xs font-semibold text-gray-600 uppercase tracking-wider bg-gray-50">Date Applied</th>
+            <th className="py-4 px-6 text-xs font-semibold text-gray-600 uppercase tracking-wider bg-gray-50">Amount</th>
+            <th className="py-4 px-6 text-xs font-semibold text-gray-600 uppercase tracking-wider bg-gray-50">Term</th>
+            <th className="py-4 px-6 text-xs font-semibold text-gray-600 uppercase tracking-wider bg-gray-50">Status</th>
+            <th className="py-4 px-6 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider bg-gray-50">Action</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-100">

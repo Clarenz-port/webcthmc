@@ -82,6 +82,7 @@ export default function Signup() {
       });
 
       notify.success("Registration successful, Please wait for an admin to approve your account before you can log in.");
+      setTimeout(() => navigate("/login"), 2000);
     } catch (err) {
       const msg = err.response?.data?.message || "Registration failed.";
       setError(msg);

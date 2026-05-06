@@ -219,7 +219,7 @@ export default function PendingLoanApplications({ onBack }) {
         <p className="font-bold uppercase tracking-widest text-xs italic text-gray-400">No pending applications found</p>
       </div>
     ) : (
-      <div className="bg-gray-50 rounded-t-[2rem] overflow-x-auto">
+      <div className="bg-gray-50 rounded-t-[2rem] overflow-x-auto" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
         <table className="w-full">
           <thead>
             <tr className="text-gray-400">
