@@ -227,7 +227,16 @@ export default function AdminCreateNotice() {
             </tr>
           </thead>
           <tbody>
-            {notices.map((notice) => (
+            {notices
+              .filter(
+                (notice) =>
+                  !(
+                    notice.title?.toLowerCase().includes("loan approved") ||
+                    notice.message?.toLowerCase().includes("your loan application") ||
+                    notice.message?.toLowerCase().includes("has been approved")
+                  )
+              )
+              .map((notice) => (
               <tr key={notice.id} className="border-b border-gray-50 hover:bg-indigo-50/20 transition-colors">
                 {editingId === notice.id ? (
                   <>

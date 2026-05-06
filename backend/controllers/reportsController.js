@@ -422,7 +422,7 @@ if (reportType === "bills") {
 }
 
 if (reportType === "income") {
-  doc.fontSize(10).text("    INCOME STATEMENT (SUMMARY)");
+  doc.font("Helvetica-Bold").fontSize(15).text("    INCOME STATEMENT (SUMMARY)");
   doc.moveDown(1);
 
   // Revenues
@@ -520,7 +520,7 @@ if (reportType === "income") {
      BALANCE SHEET SUMMARY
   ===================================================== */
   if (reportType === "balance") {
-  doc.fontSize(10).text("    BALANCE SHEET (SUMMARY)");
+  doc.font("Helvetica-Bold").fontSize(15).text("    BALANCE SHEET (SUMMARY)");
   doc.moveDown(1);
 
   const totalShares = Number((await Shares.sum("shareamount", { where: { ...dateWhere } })) || 0);
@@ -542,7 +542,7 @@ if (reportType === "income") {
   const totalLiabilities = 0;
 
   const totalAssets = totalCash + totalLoansReceivable + totalPurchasesReceivable;
-  const retainedEarnings = totalAssets - totalLiabilities - totalShares;
+  const retainedEarnings = totalAssets - totalLiabilities;
   const totalEquity = totalShares + retainedEarnings;
 
   // Small helper for consistent currency formatting
@@ -560,7 +560,7 @@ if (reportType === "income") {
   doc.font("Helvetica-Bold").fontSize(11).text("ASSETS", leftX, y);
   y += lineHeight;
   doc.font("Helvetica").fontSize(10);
-  doc.text("Cash", leftX, y, { width: amtX - leftX - 10 });
+  doc.text("Cash Purchases", leftX, y, { width: amtX - leftX - 10 });
   doc.text(fmt(totalCash), amtX, y, { width: amtWidth, align: "right" });
   y += lineHeight;
   doc.text("Loans Receivable", leftX, y, { width: amtX - leftX - 10 });
@@ -619,23 +619,24 @@ if (reportType === "income") {
 }
 
   if (reportType === "cashflow") {
-  doc.fontSize(10).text("    CASH FLOW (SUMMARY)");
+  doc.font("Helvetica-Bold").fontSize(15).text("    CASH FLOW (SUMMARY)");
   doc.moveDown(1);
+
 
   // compute values
   const salesCash = Number((await Purchase.sum("total", { where: { status: "paid", ...dateWhere } })) || 0);
   const loanPayments = Number((await Payment.sum("amountPaid", { where: { ...dateWhere } })) || 0);
   const sharesCash = Number((await Shares.sum("shareamount", { where: { ...dateWhere } })) || 0);
+  const billsCash = Number((await Bill.sum("amount")) || 0);
 
-  const totalInflows = salesCash + loanPayments + sharesCash;
+  const totalInflows = salesCash + loanPayments + sharesCash + billsCash;
 
   const allLoans = await Loan.findAll();
   const loanDisbursements = (await Loan.findAll({ where: { ...approvalDateWhere, approvalDate: approvalDateWhere ? approvalDateWhere.approvalDate : undefined } }))
-  .filter(l => l.approvalDate)
-  .reduce((s, l) => s + Number(l.loanAmount || 0), 0);
+    .filter(l => l.approvalDate)
+    .reduce((s, l) => s + Number(l.loanAmount || 0), 0);
   const dividendsCash = Number((await Dividend.sum("amount")) || 0);
-  const billsCash = Number((await Bill.sum("amount")) || 0);
-  const totalOutflows = loanDisbursements + dividendsCash + billsCash;
+  const totalOutflows = loanDisbursements + dividendsCash;
 
   // layout settings
   const leftX = 20;
@@ -662,8 +663,13 @@ if (reportType === "income") {
   doc.text(formatCurrency(loanPayments), rightX, y, { width: rightWidth, align: "right" });
   y += rowHeight;
 
+
   doc.text("Share Capital Contributions", leftX, y, { width: rightX - leftX - 10 });
   doc.text(formatCurrency(sharesCash), rightX, y, { width: rightWidth, align: "right" });
+  y += rowHeight;
+
+  doc.text("Bills Paid", leftX, y, { width: rightX - leftX - 10 });
+  doc.text(formatCurrency(billsCash), rightX, y, { width: rightWidth, align: "right" });
   y += rowHeight;
 
   // separator + total inflows
@@ -688,9 +694,7 @@ if (reportType === "income") {
   doc.text(formatCurrency(dividendsCash), rightX, y, { width: rightWidth, align: "right" });
   y += rowHeight;
 
-  doc.text("Bills Paid", leftX, y, { width: rightX - leftX - 10 });
-  doc.text(formatCurrency(billsCash), rightX, y, { width: rightWidth, align: "right" });
-  y += rowHeight;
+
 
   // separator + total outflows
   doc.moveTo(leftX, y - 6).lineTo(rightX1 + rightWidth, y - 6).stroke();
@@ -699,11 +703,11 @@ if (reportType === "income") {
   doc.font("Helvetica-Bold").fontSize(11);
   doc.text("TOTAL CASH OUTFLOWS", leftX, y, { width: rightX - leftX - 10 });
   doc.text(formatCurrency(totalOutflows), rightX, y, { width: rightWidth, align: "right" });
-  y += rowHeight + 6;
+  y += rowHeight + 9;
 
   // NET CASH FLOW
   const net = totalInflows - totalOutflows;
-  doc.font("Helvetica-Bold").fontSize(12);
+  doc.font("Helvetica-Bold").fontSize(13);
   doc.text("NET CASH FLOW", leftX, y, { width: rightX - leftX - 10 });
   doc.text(formatNetVal(net), rightX, y, { width: rightWidth, align: "right" });
 
@@ -1249,7 +1253,15 @@ if (reportType === "bills" || reportType === "all") {
       ? new Date(b.createdAt).toLocaleDateString("en-PH")
       : "-";
 
-    const name = `${b.User?.firstName || ""} ${b.User?.middleName || ""} ${b.User?.lastName || ""}`.trim();
+    let name = "";
+    if (b.User) {
+      name = `${b.User.firstName || ""} ${b.User.middleName || ""} ${b.User.lastName || ""}`.replace(/\s+/g, " ").trim();
+    } else if (b.userId) {
+      // fallback to userId if User association is missing
+      name = `User #${b.userId}`;
+    } else {
+      name = "-";
+    }
 
     const billName = b.billName || b.name || "-";
     const paymentMethod = b.paymentMethod || "-";

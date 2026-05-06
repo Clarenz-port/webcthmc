@@ -1,5 +1,6 @@
 // src/page/popup/approvedloan.jsx
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { 
   FiArrowLeft, 
   FiClock, 
@@ -13,6 +14,7 @@ import API from '../../apis/axios.js';
 import MemberDetails from "../popup/adminmember.jsx";
 
 export default function Duedate({ onBack, onView, onDueDateCountChange }) {
+  const navigate = useNavigate();
   const [loanRecords, setLoanRecords] = useState([]);
   const [selectedLoan, setSelectedLoan] = useState(null);
   const [schedule, setSchedule] = useState([]);
@@ -106,7 +108,7 @@ useEffect(() => {
   useEffect(() => {
     let mounted = true;
 
-    const fetchApprovedLoans = async () => {
+    const fetchDueApproveLoans = async () => {
       try {
         setLoading(true);
         setError(null);
@@ -123,125 +125,69 @@ useEffect(() => {
           approved = [];
         }
 
-        // 2) fetch purchases
-        let purchases = [];
-        try {
-          const res = await API.get("/api/purchases/all", {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          purchases = Array.isArray(res.data) ? res.data : res.data?.purchases ?? [];
-        } catch {
-          purchases = [];
+        // 2) For each loan, fetch amortization schedule (ApproveLoan rows)
+        let dueRows = [];
+        for (const loan of approved) {
+          try {
+            const schedRes = await API.get(`/api/loans/${loan.id}/amortization`, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            const schedule = Array.isArray(schedRes.data) ? schedRes.data : [];
+            for (const row of schedule) {
+              if (row.status !== 'Paid' && row.status !== 'Late' && row.dueDate) {
+                const dueDate = new Date(row.dueDate);
+                const daysRemaining = daysFromToday(dueDate);
+                if (typeof daysRemaining === 'number' && daysRemaining <= 5) {
+                  dueRows.push({
+                    id: row.id,
+                    loanId: loan.id,
+                    memberId: loan.memberId,
+                    memberName: loan.memberName || loan.name || 'Unknown',
+                    type: 'Loan',
+                    dueDate,
+                    daysRemaining,
+                    status: row.status,
+                    amortization: row.amortization,
+                    penalty: row.penalty,
+                  });
+
+                  // --- SEND SMS NOTIFICATION ---
+                  // Only send if member has a phone number and daysRemaining is close
+                  if (loan.memberPhone || loan.phone || loan.mobile) {
+                    const phone = loan.memberPhone || loan.phone || loan.mobile;
+                    const message = `Hello ${loan.memberName || loan.name || 'Member'}, your loan due in ${dueDate.toLocaleDateString('en-PH')} in total of ${row.amortization ? Number(row.amortization).toLocaleString('en-PH', { style: 'currency', currency: 'PHP' }) : ''} please pay before duedate thank you.`;
+                    try {
+                      await API.post('/api/sms/send', {
+                        to: phone,
+                        message,
+                      }, {
+                        headers: { Authorization: `Bearer ${token}` },
+                      });
+                    } catch (smsErr) {
+                      // Optionally log or ignore SMS errors
+                      console.warn('Failed to send SMS to', phone, smsErr);
+                    }
+                  }
+                  // --- END SMS NOTIFICATION ---
+                }
+              }
+            }
+          } catch (err) {
+            // skip loan if error
+          }
         }
 
-        // Normalize purchases
-        const normalizedPurchases = (purchases || [])
-          .map((p) => {
-            const status =
-              p.status ||
-              p.paymentStatus ||
-              p.payment_status ||
-              "unpaid";
-
-            const isPaid = ["paid", "completed", "done", "fully paid"].includes(
-              String(status).toLowerCase().trim()
-            );
-
-            // Remove paid purchases
-            if (isPaid) return null;
-
-            const pm = p.paymentMethod ?? p.payment_method ?? p.method ?? null;
-            const oneMonth = isOneMonthMethod(pm);
-
-            let due =
-              p.due_date ||
-              p.dueDate ||
-              p.paymentDue ||
-              p.payment_due ||
-              null;
-
-            if (due) {
-              due = new Date(due);
-            } else if (oneMonth) {
-              const created = new Date(p.createdAt || p.date || Date.now());
-              due = new Date(created);
-              due.setMonth(due.getMonth() + 1);
-            }
-
-            return {
-              id: p.id || p._id || p.purchaseId,
-              memberId: p.memberId ?? p.userId ?? p.customerId ?? p.customer?.id ?? p.member?.id ?? null,
-              memberName:
-                p.memberName ||
-                p.customerName ||
-                p.name ||
-                p.firstName ||
-                p.customer?.name ||
-                p.member?.name ||
-                "Unknown",
-              type: "Purchase",
-              total: Number(p.total || p.amount || 0),
-              payAmount: Number(p.total || p.amount || 0),
-              nextDueDate: due || null,
-              daysRemaining: due ? daysFromToday(due) : null,
-              isOneMonth: oneMonth,
-              _raw: p,
-            };
-          })
-          .filter(Boolean); // remove paid ones
-
-        // 3) Enhance loans
-        const enhancedLoans = (await Promise.all(
-          approved.map(async (loan) => {
-            let payments = [];
-            try {
-              const res = await API.get(`/api/loans/${loan.id}/payments`, {
-                headers: { Authorization: `Bearer ${token}` },
-              });
-              payments = res.data || [];
-            } catch {
-              payments = [];
-            }
-
-            const paymentsSum = payments.reduce(
-              (acc, p) => acc + (parseFloat(p.amountPaid || p.amount || 0) || 0),
-              0
-            );
-
-            const schedule = buildSchedule(loan, paymentsSum);
-            const totalDue = schedule.reduce((acc, s) => acc + s.totalPayment, 0);
-            const isFullyPaid = paymentsSum >= totalDue;
-
-            // Exclude fully paid loans
-            if (isFullyPaid) return null;
-
-            const next = findNextDueFromSchedule(schedule);
-            const nextDue = next ? next.dueDate : null;
-
-            return {
-              ...loan,
-              type: "Loan",
-              payAmount: schedule[0]?.totalPayment || loan.loanAmount,
-              nextDueDate: nextDue,
-              daysRemaining: nextDue ? daysFromToday(nextDue) : null,
-              _schedule: schedule,
-            };
-          })
-        )).filter(Boolean);
-
-        const merged = [...enhancedLoans, ...normalizedPurchases];
-
         // Sort by nearest due
-        merged.sort((a, b) => {
-          const da = a.nextDueDate ? new Date(a.nextDueDate).getTime() : Infinity;
-          const db = b.nextDueDate ? new Date(b.nextDueDate).getTime() : Infinity;
+        dueRows.sort((a, b) => {
+          const da = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
+          const db = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
           return da - db;
         });
 
         if (!mounted) return;
-        setLoanRecords(merged);
+        setLoanRecords(dueRows);
       } catch (err) {
-        if (mounted) setError("Failed to load approved loans.");
+        if (mounted) setError("Failed to load due dates.");
       } finally {
         if (mounted) {
           setLoading(false);
@@ -250,7 +196,7 @@ useEffect(() => {
       }
     };
 
-    fetchApprovedLoans();
+    fetchDueApproveLoans();
     return () => (mounted = false);
   }, []);
 
@@ -314,7 +260,40 @@ useEffect(() => {
   };
 
   const openMemberDetailsForRecord = async (record) => {
-    const member = await resolveMemberFromRecord(record);
+    let member = null;
+    // If record.memberId is missing, try to fetch from loan
+    let memberId = record.memberId;
+    if (!memberId && record.loanId) {
+      try {
+        const token = localStorage.getItem("token")?.trim();
+        const res = await API.get(`/api/loans/${record.loanId}`);
+        if (res.data && (res.data.userId || res.data.memberId)) {
+          memberId = res.data.userId || res.data.memberId;
+        }
+      } catch (err) {
+        // fallback to null
+      }
+    }
+    if (memberId) {
+      try {
+        const token = localStorage.getItem("token")?.trim();
+        const res = await API.get(`/api/members/${encodeURIComponent(memberId)}`, {
+          headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+          validateStatus: null,
+        });
+        if (res.status < 400 && res.data) {
+          member = {
+            id: res.data.id ?? res.data._id ?? res.data.memberId ?? memberId,
+            ...res.data,
+          };
+        }
+      } catch (err) {
+        // fallback to null
+      }
+    }
+    if (!member) {
+      member = await resolveMemberFromRecord(record);
+    }
     const memberWithContext = {
       ...(member || {}),
       // include the full raw record so MemberDetails can highlight which purchase/loan triggered this
@@ -375,90 +354,129 @@ useEffect(() => {
             <div className="w-10 h-10 border-4 border-gray-100 border-t-[#7e9e6c] rounded-full animate-spin" />
             <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Fetching payment records...</p>
           </div>
-        ) : error ? (
+        ) : error ? ( 
           <div className="flex flex-col items-center justify-center py-20 text-red-500 bg-red-50 rounded-[2rem] border border-red-100">
             <FiAlertCircle size={48} className="mb-4" />
             <p className="font-bold">{error}</p>
           </div>
-        ) : loanRecords.filter(r => r.type === 'Loan' && r.daysRemaining <= 5).length === 0 ? (
-          <div className="flex flex-col items-center bg-white rounded-t-[2rem] justify-center py-20 text-gray-300">
-            <FiCalendar size={64} className="mb-4 opacity-20" />
-            <p className="font-bold uppercase tracking-widest text-xs italic text-gray-400">No upcoming loan due dates found</p>
-          </div>
-        ) : (
-          <div className="bg-gray-50 rounded-t-[2rem] overflow-x-auto" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
-            <table className="w-full">
-              <thead  className="bg-gray-50 sticky top-0 z-10">
-                <tr className="text-gray-400">
-                  <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-left"><div className="flex items-center gap-2"><FiUser /> Member</div></th>
-                  <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-left"><div className="flex items-center gap-2"><FiActivity /> Type</div></th>
-                  <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-left">Due Status</th>
-                  <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-center">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loanRecords.filter(record => record.type === 'Loan' && record.daysRemaining <= 5).map((record, index) => {
-                  const isOverdue = record.daysRemaining < 0;
-                  return (
-                    <tr key={record.id || index}>
-                      {/* Member Column */}
-                      <td className={`px-6 py-4 bg-white`}>
-                        <p className="text-sm font-black text-gray-800 uppercase tracking-tight">{record.memberName}</p>
-                      </td>
+        ) : (() => {
+          // Filter: Only show unpaid loans with due date within 5 days
+          const filteredLoans = loanRecords.filter(record => {
+            return (
+              record.type === 'Loan' &&
+              typeof record.daysRemaining === 'number' &&
+              record.daysRemaining <= 5
+            );
+          });
+          // Debug: log filtered loans
+          console.log('Filtered Loans for Due Table:', filteredLoans);
+          if (filteredLoans.length === 0) {
+            return (
+              <div className="flex flex-col items-center bg-white rounded-t-[2rem] justify-center py-20 text-gray-300">
+                <FiCalendar size={64} className="mb-4 opacity-20" />
+                <p className="font-bold uppercase tracking-widest text-xs italic text-gray-400">No upcoming loan due dates found</p>
+              </div>
+            );
+          }
+          return (
+            <div className="bg-gray-50 rounded-t-[2rem] overflow-x-auto" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
+              <table className="w-full">
+                <thead className="bg-gray-50 sticky top-0 z-10">
+                  <tr className="text-gray-400">
+                    <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-left"><div className="flex items-center gap-2"><FiUser /> Member</div></th>
+                    <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-left"><div className="flex items-center gap-2"><FiActivity /> Type</div></th>
+                    <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-left">Due Status</th>
+                    <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-left">Amortization</th>
+                    <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-center">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredLoans.map((record, index) => {
+                    const isOverdue = record.daysRemaining < 0;
+                    return (
+                      <tr key={record.id || index}>
+                        {/* Member Column - now clickable */}
+                        <td className={`px-6 py-4 bg-white`}>
+                          <button
+                            className="text-sm font-black text-gray-800 uppercase tracking-tight hover:underline hover:text-[#7e9e6c] focus:outline-none"
+                            title="View Member Details"
+                            onClick={async () => {
+                              await openMemberDetailsForRecord(record);
+                            }}
+                          >
+                            {record.memberName}
+                          </button>
+                        </td>
 
-                      {/* Type Column */}
-                      <td className={`px-6 py-4 bg-white`}>
-                        <span className={`text-[11px] font-black px-2 py-1 rounded-md uppercase tracking-tighter bg-purple-100 text-purple-600`}>
-                          {record.type}
-                        </span>
-                        <div className="text-[10px] font-bold text-gray-400 mt-1 italic">
-                          {/* Only show for loan */}
-                        </div>
-                      </td>
+                        {/* Type Column */}
+                        <td className={`px-6 py-4 bg-white`}>
+                          <span className={`text-[11px] font-black px-2 py-1 rounded-md uppercase tracking-tighter bg-purple-100 text-purple-600`}>
+                            {record.type}
+                          </span>
+                          <div className="text-[10px] font-bold text-gray-400 mt-1 italic">
+                            Amortization
+                          </div>
+                        </td>
 
-                      {/* Next Due Column */}
-                      <td className={`px-6 py-4 bg-white`}>
-                        {loadingNextDue ? (
-                          <span className="text-[10px] font-bold text-gray-300 animate-pulse">Calculating...</span>
-                        ) : record.nextDueDate ? (
+                        {/* Next Due Column */}
+                        <td className={`px-6 py-4 bg-white`}>
                           <div className="flex flex-col">
                             <span className="text-xs font-bold text-gray-600">
-                              {new Date(record.nextDueDate).toLocaleDateString("en-PH", { month: 'short', day: 'numeric', year: 'numeric' })}
+                              {record.dueDate ? new Date(record.dueDate).toLocaleDateString("en-PH", { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
                             </span>
                             <span className={`text-[10px] font-black uppercase mt-1 ${isOverdue ? 'text-red-500' : 'text-[#7e9e6c]'}`}>
                               {isOverdue 
                                 ? `${Math.abs(record.daysRemaining)} day(s) overdue` 
                                 : `${record.daysRemaining} days remaining`}
-                            </span>
+                            </span> 
                           </div>
-                        ) : (
-                          <span className="text-gray-300">—</span>
-                        )}
-                      </td>
+                        </td>
+                        <td className={`px-10 py-4 bg-white`}>
+                          <div className="flex flex-col font-bold">
 
-                      {/* Action Column */}
-                      <td className={`px-6 py-4 bg-white  text-center`}>
-                        <button
-                          onClick={async () => {
-                            if (typeof onView === "function") {
-                              onView(record);
-                              return;
-                            }
-                            await openMemberDetailsForRecord(record);
-                          }}
-                          className="p-3 bg-white border  border-gray-100 text-[#7e9e6c] rounded-xl hover:bg-[#7e9e6c] hover:text-white hover:border-[#7e9e6c] transition-all shadow-sm active:scale-90"
-                          title="View Member Details"
-                        >
-                          <FiEye size={18} />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+                              {formatCurrency(record.amortization)}
+                              {record.penalty && Number(record.penalty) > 0 && (
+                                <span className="text-xs text-red-500">Penalty: {formatCurrency(record.penalty)}</span>
+                              )}
+                          </div>
+                        </td>
+
+                        {/* Action Column */}
+                        <td className={`px-6 py-4 bg-white  text-center`}>
+                          <button
+                            onClick={() => {
+                              if (typeof onView === "function") {
+                                onView(record);
+                                return;
+                              }
+                              const id = record.memberId;
+                              const idNum = Number(id);
+                              if (
+                                id !== undefined &&
+                                id !== null &&
+                                id !== '' &&
+                                !isNaN(idNum) &&
+                                isFinite(idNum)
+                              ) {
+                                navigate(`/members/${idNum}`);
+                              } else {
+                                alert("No valid member ID found for this record.");
+                              }
+                            }}
+                            className="p-3 bg-white border  border-gray-100 text-[#7e9e6c] rounded-xl hover:bg-[#7e9e6c] hover:text-white hover:border-[#7e9e6c] transition-all shadow-sm active:scale-90"
+                            title="View Member Details"
+                          >
+                            <FiEye size={18} />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          );
+        })()}
       </div>
 
       {/* FOOTER LEGEND */}

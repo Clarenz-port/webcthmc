@@ -351,6 +351,18 @@ exports.approveLoan = async (req, res) => {
     // Use approvalDate as the base for due dates to ensure all are after approval
     let baseDate = approvalDate;
 
+    // Helper to add months safely
+    function addMonthsSafe(date, monthsToAdd) {
+      const d = new Date(date.getTime());
+      const origDay = d.getDate();
+      const targetMonthIndex = d.getMonth() + monthsToAdd;
+      const targetYear = d.getFullYear() + Math.floor(targetMonthIndex / 12);
+      const targetMonth = ((targetMonthIndex % 12) + 12) % 12;
+      const lastDayOfTargetMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
+      const day = Math.min(origDay, lastDayOfTargetMonth);
+      return new Date(targetYear, targetMonth, day, d.getHours(), d.getMinutes(), d.getSeconds(), d.getMilliseconds());
+    }
+
     const scheduleRows = [];
     for (let i = 1; i <= Math.max(1, months); i++) {
       const interest = remainingBalance * monthlyRate;
@@ -358,8 +370,8 @@ exports.approveLoan = async (req, res) => {
       if (i === months) {
         amortization = remainingBalance + interest;
       }
-      // Due date is every 1 day AFTER approval (first due is approval + 1 day)
-      const dueDate = new Date(baseDate.getTime() + i * 24 * 60 * 60 * 1000); // i=1: +1 day, i=2: +2 days, ...
+      // Due date is every 1 month after approval (first due is approval + 1 month)
+      const dueDate = addMonthsSafe(baseDate, i);
       scheduleRows.push({
         loanId: loan.id,
         month: i,

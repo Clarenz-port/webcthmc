@@ -207,182 +207,157 @@ const handlePayBills = (m) => { setSelectedMember(m); setMemberDetailsAction("pa
     }, []);
 
   useEffect(() => {
-  let mounted = true;
+    let mounted = true;
 
-  const fetchCounts = async () => {
-    setLoadingCounts(true);
-    try {
-      const token = (localStorage.getItem("token") || "").trim();
-
-      // FETCH LOANS
-      let pendingCount = 0;
-      let approvedOrPaidCount = 0;
-      let approvedLoans = [];
-
+    const fetchCounts = async () => {
+      setLoadingCounts(true);
       try {
-        const resCounts = await API.get("/api/loans/loan-counts", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        pendingCount = resCounts.data.pending ?? 0;
-        approvedOrPaidCount = resCounts.data.approvedOrPaid ?? 0;
-      } catch (err) {
-        console.warn("loan-counts endpoint failed:", err?.message);
-      }
+        const token = (localStorage.getItem("token") || "").trim();
 
-      try {
-        const res = await API.get("/api/loans/approved-loans", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        approvedLoans = Array.isArray(res.data) ? res.data : [];
-      } catch (err) {
-        const resAll = await API.get("/api/loans/members", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const allLoans = Array.isArray(resAll.data) ? resAll.data : resAll.data?.loans ?? [];
-        approvedLoans = allLoans.filter((l) =>
-          ["approved"].includes(String(l.status).toLowerCase())
-        );
-      }
+        // FETCH LOANS
+        let pendingCount = 0;
+        let approvedOrPaidCount = 0;
+        let approvedLoans = [];
 
+        try {
+          const resCounts = await API.get("/api/loans/loan-counts", {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          pendingCount = resCounts.data.pending ?? 0;
+          approvedOrPaidCount = resCounts.data.approvedOrPaid ?? 0;
+        } catch (err) {
+          console.warn("loan-counts endpoint failed:", err?.message);
+        }
 
-// Filter approved loans to exclude fully paid ones
-      const filteredApprovedLoans = (await Promise.all(
-        approvedLoans.map(async (loan) => {
-          let payments = [];
-          try {
-            const res = await API.get(`/api/loans/${loan.id}/payments`, {
-              headers: { Authorization: `Bearer ${token}` },
-            });
-            payments = res.data || [];
-          } catch {}
-
-          const paymentsSum = payments.reduce(
-            (acc, p) => acc + (parseFloat(p.amountPaid || p.amount || 0) || 0),
-            0
+        try {
+          const res = await API.get("/api/loans/approved-loans", {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          approvedLoans = Array.isArray(res.data) ? res.data : [];
+        } catch (err) {
+          const resAll = await API.get("/api/loans/members", {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const allLoans = Array.isArray(resAll.data) ? resAll.data : resAll.data?.loans ?? [];
+          approvedLoans = allLoans.filter((l) =>
+            ["approved"].includes(String(l.status).toLowerCase())
           );
+        }
 
-          // Build schedule to calculate total due
-          const principal = parseFloat(loan.loanAmount) || 0;
-          const months = parseInt(loan.duration, 10) || 0;
-          const monthlyRate = 0.02;
-          const schedule = [];
-          let remainingBalance = principal;
-          const approvalDate = loan.approvalDate ? new Date(loan.approvalDate) : new Date(loan.createdAt || Date.now());
-          const monthlyPrincipal = months > 0 ? principal / months : principal;
-          let paidSoFar = 0;
+        // Filter approved loans to exclude fully paid ones
+        const filteredApprovedLoans = (await Promise.all(
+          approvedLoans.map(async (loan) => {
+            let payments = [];
+            try {
+              const res = await API.get(`/api/loans/${loan.id}/payments`, {
+                headers: { Authorization: `Bearer ${token}` },
+              });
+              payments = res.data || [];
+            } catch {}
 
-          for (let i = 1; i <= Math.max(1, months); i++) {
-            const interestPayment = remainingBalance * monthlyRate;
-            let principalPayment = monthlyPrincipal;
-            let totalPayment = principalPayment + interestPayment;
+            const paymentsSum = payments.reduce(
+              (acc, p) => acc + (parseFloat(p.amountPaid || p.amount || 0) || 0),
+              0
+            );
 
-            if (i === months) {
-              totalPayment = remainingBalance + interestPayment;
-              principalPayment = remainingBalance;
+            // Build schedule to calculate total due
+            const principal = parseFloat(loan.loanAmount) || 0;
+            const months = parseInt(loan.duration, 10) || 0;
+            const monthlyRate = 0.02;
+            const schedule = [];
+            let remainingBalance = principal;
+            const approvalDate = loan.approvalDate ? new Date(loan.approvalDate) : new Date(loan.createdAt || Date.now());
+            const monthlyPrincipal = months > 0 ? principal / months : principal;
+            let paidSoFar = 0;
+
+            for (let i = 1; i <= Math.max(1, months); i++) {
+              const interestPayment = remainingBalance * monthlyRate;
+              let principalPayment = monthlyPrincipal;
+              let totalPayment = principalPayment + interestPayment;
+
+              if (i === months) {
+                totalPayment = remainingBalance + interestPayment;
+                principalPayment = remainingBalance;
+              }
+
+              schedule.push({
+                month: i,
+                interestPayment: Number(interestPayment.toFixed(2)),
+                totalPayment: Number(totalPayment.toFixed(2)),
+                remainingBalance: Number(remainingBalance.toFixed(2)),
+                dueDate: new Date(approvalDate.getFullYear(), approvalDate.getMonth() + i, approvalDate.getDate()),
+              });
+
+              remainingBalance -= principalPayment;
+              paidSoFar += totalPayment;
             }
 
-            schedule.push({
-              month: i,
-              interestPayment: Number(interestPayment.toFixed(2)),
-              totalPayment: Number(totalPayment.toFixed(2)),
-              remainingBalance: Number(remainingBalance.toFixed(2)),
-              dueDate: new Date(approvalDate.getFullYear(), approvalDate.getMonth() + i, approvalDate.getDate()),
+            const totalDue = schedule.reduce((acc, s) => acc + s.totalPayment, 0);
+            const isFullyPaid = paymentsSum >= totalDue;
+
+            return isFullyPaid ? null : loan;
+          })
+        )).filter(Boolean);
+
+        // FETCH UNPAID PURCHASES
+        let purchaseDue = [];
+        try {
+          const resPurchases = await API.get("/api/purchases/pending", {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          purchaseDue = Array.isArray(resPurchases.data) ? resPurchases.data : [];
+        } catch (err) {
+          console.warn("Failed to fetch pending purchases:", err?.message);
+          purchaseDue = [];
+        }
+
+        // Fetch due date count from ApproveLoan amortization schedule (like Totalloan.jsx)
+        let dueDateCount = 0;
+        for (const loan of filteredApprovedLoans) {
+          try {
+            const schedRes = await API.get(`/api/loans/${loan.id}/amortization`, {
+              headers: { Authorization: `Bearer ${token}` },
             });
+            const schedule = Array.isArray(schedRes.data) ? schedRes.data : [];
+            for (const row of schedule) {
+              if (row.status !== 'Paid' && row.status !== 'Late' && row.dueDate) {
+                const dueDate = new Date(row.dueDate);
+                const today = new Date();
+                const t = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
+                const d = Date.UTC(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+                const daysRemaining = Math.round((d - t) / (1000 * 60 * 60 * 24));
+                if (typeof daysRemaining === 'number' && daysRemaining <= 5) {
+                  dueDateCount++;
+                }
+              }
+            }
+          } catch {}
+        }
 
-            remainingBalance -= principalPayment;
-            paidSoFar += totalPayment;
-          }
+        if (!mounted) return;
 
-          const totalDue = schedule.reduce((acc, s) => acc + s.totalPayment, 0);
-          const isFullyPaid = paymentsSum >= totalDue;
-
-          return isFullyPaid ? null : loan;
-        })
-      )).filter(Boolean);
-
-      // FETCH UNPAID PURCHASES
-       let purchaseDue = [];
-      try {
-        const resPurchases = await API.get("/api/purchases/pending", {
-          headers: { Authorization: `Bearer ${token}` },
+        setLoanCounts({
+          pending: pendingCount || 0,
+          approvedOrPaid: filteredApprovedLoans.length,
+          approvedOrPaid1: approvedLoans.length,
+          total: filteredApprovedLoans.length + purchaseDue.length,
         });
-        purchaseDue = Array.isArray(resPurchases.data) ? resPurchases.data : [];
+
+        setPurchaseDueCount(purchaseDue.length);
+        setDueDateCount(dueDateCount);
+
       } catch (err) {
-        console.warn("Failed to fetch pending purchases:", err?.message);
-        purchaseDue = [];
+        console.error("❌ Error fetching counts:", err);
+        setLoanCounts({ pending: 0, approvedOrPaid: 0, total: 0 });
+        setPurchaseDueCount(0);
+      } finally {
+        if (mounted) setLoadingCounts(false);
       }
+    };
 
-      if (!mounted) return;
-
-      setLoanCounts({
-        pending: pendingCount || 0,
-        approvedOrPaid: filteredApprovedLoans.length, 
-        approvedOrPaid1: approvedLoans.length,// Updated to use filtered count
-        total: filteredApprovedLoans.length + purchaseDue.length, // MERGED COUNT with filtered loans
-      });
-
-      setPurchaseDueCount(purchaseDue.length);
-
-      let dueDateCount = 0;
-const today = new Date();
-
-for (const loan of filteredApprovedLoans) {
-  // Build the payment schedule
-  const principal = parseFloat(loan.loanAmount) || 0;
-  const months = parseInt(loan.duration, 10) || 0;
-  const approvalDate = loan.approvalDate ? new Date(loan.approvalDate) : new Date(loan.createdAt || Date.now());
-  const monthlyPrincipal = months > 0 ? principal / months : principal;
-  const monthlyRate = 0.02;
-  let remainingBalance = principal;
-  let payments = [];
-  try {
-    const res = await API.get(`/api/loans/${loan.id}/payments`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    payments = res.data || [];
-  } catch {}
-  const paymentsSum = payments.reduce(
-    (acc, p) => acc + (parseFloat(p.amountPaid || p.amount || 0) || 0),
-    0
-  );
-
-  let paidSoFar = 0;
-  let foundNextDue = false;
-  for (let i = 1; i <= Math.max(1, months); i++) {
-    const interestPayment = remainingBalance * monthlyRate;
-    let principalPayment = monthlyPrincipal;
-    let totalPayment = principalPayment + interestPayment;
-    if (i === months) {
-      totalPayment = remainingBalance + interestPayment;
-      principalPayment = remainingBalance;
-    }
-    paidSoFar += totalPayment;
-    if (!foundNextDue && paymentsSum < paidSoFar) {
-      // This is the next unpaid due date
-      const dueDate = new Date(approvalDate.getFullYear(), approvalDate.getMonth() + i, approvalDate.getDate());
-      const t = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
-      const d = Date.UTC(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
-      const daysRemaining = Math.round((d - t) / (1000 * 60 * 60 * 24));
-      if (daysRemaining <= 5) dueDateCount++;
-      foundNextDue = true;
-    }
-    remainingBalance -= principalPayment;
-  }
-}
-setDueDateCount(dueDateCount);
-
-    } catch (err) {
-      console.error("❌ Error fetching counts:", err);
-      setLoanCounts({ pending: 0, approvedOrPaid: 0, total: 0 });
-      setPurchaseDueCount(0);
-    } finally {
-      if (mounted) setLoadingCounts(false);
-    }
-  };
-
-  fetchCounts();
-  return () => (mounted = false);
-}, []);
+    fetchCounts();
+    return () => (mounted = false);
+  }, []);
 
 
   /* -------------------------------------------------------------------------
@@ -599,7 +574,7 @@ setDueDateCount(dueDateCount);
       </div>
       {/* TABLE AREA */}
       <div className="flex-1 min-h-0 rounded-t-[2rem] bg-white overflow-hidden flex flex-col">
-        <div className="overflow-auto" style={{ maxHeight: '62vh' }}>
+        <div className="overflow-auto" style={{ maxHeight: '72vh' }}>
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-gray-50/50 sticky top-0 z-10 backdrop-blur-md">

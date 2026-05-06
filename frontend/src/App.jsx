@@ -9,10 +9,17 @@ import Admin from "./page/admin.jsx";
 import Member from "./page/member.jsx"; // 👈 member dashboard
 import ForgotPassword from "./page/popup/forgot-password.jsx";
 import ResetPassword from "./page/popup/reset-password.jsx";
+import MemberDetails from "./page/popup/adminmember.jsx";
+import { useParams } from "react-router-dom";
 
 import Navbar from "./comp/navbar.jsx";
 import MemberNavbar from "./comp/membernavbar.jsx"; // 👈 member-specific header
 import AdminNavbar from "./comp/adminnavbar.jsx";   // 👈 admin-specific header
+
+function MemberDetailsPage() {
+  const { id } = useParams();
+  return <MemberDetails member={{ id }} />;
+}
 
 function AppWrapper() {
   const location = useLocation();
@@ -40,6 +47,7 @@ function AppWrapper() {
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/member" element={<Member />} />
           <Route path="/admin" element={<Admin onBack={() => navigate("/")} />} />
+          <Route path="/admin/member/:id" element={<MemberDetailsPage />} />
         </Routes>
       </main>
     </>

@@ -95,14 +95,13 @@ export default function PurchaseHistory({ onBack, rows = [], loading = false }) 
           </p>
         </div>
       ) : (
-        <div className="border border-gray-100 rounded-xl overflow-hidden shadow-sm">
+        <div className="border border-gray-100 rounded-xl overflow-hidden shadow-sm" style={{ maxHeight: '50vh', overflowY: 'auto' }}>
           <table className="w-full text-sm">
-            <thead className="bg-gray-50">
+            <thead className="sticky top-0 z-10 bg-gray-50">
               <tr className="border-b border-gray-100">
                 <th className="text-left px-4 py-4 font-bold text-gray-500 uppercase tracking-tighter">Date</th>
                 <th className="text-left px-4 py-4 font-bold text-gray-500 uppercase tracking-tighter">Items Summary</th>
-                <th className="text-right px-4 py-4 font-bold text-gray-500 uppercase tracking-tighter">Total</th>
-                <th className="text-right px-4 py-4 font-bold text-gray-500 uppercase tracking-tighter">Due Date</th>
+                <th className=" px-4 py-4 font-bold text-gray-500 uppercase tracking-tighter">Total</th>
                 <th className="text-center px-4 py-4 font-bold text-gray-500 uppercase tracking-tighter">Status</th>
                 <th className="text-center px-4 py-4 font-bold text-gray-500 uppercase tracking-tighter">Action</th>
               </tr>
@@ -122,12 +121,10 @@ export default function PurchaseHistory({ onBack, rows = [], loading = false }) 
                         {itemsSummary(p.items)}
                       </p>
                     </td>
-                    <td className="px-4 py-4 text-right font-bold text-[#7e9e6c]">
+                    <td className="px-4 py-4 text-center font-bold text-[#7e9e6c]">
                       {fmtMoney(p.total ?? p.totalAmount ?? p.amount ?? p.price ?? 0)}
                     </td>
-                    <td className="px-4 py-4 text-right text-gray-500 italic">
-                      {p.dueDate ? formatDate(p.dueDate) : "—"}
-                    </td>
+
                     <td className="px-4 py-4 text-center">
                       <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
                         statusStr === 'paid' ? 'bg-green-100 text-green-700' :
@@ -192,14 +189,6 @@ export default function PurchaseHistory({ onBack, rows = [], loading = false }) 
             </table>
 
             <div className="bg-gray-50 rounded-xl p-4 space-y-2">
-              <div className="flex justify-between text-gray-500 text-xs">
-                <span>Surcharge</span>
-                <span>{fmtMoney(selectedPurchase.surcharge)}</span>
-              </div>
-              <div className="flex justify-between text-gray-500 text-xs">
-                <span>Subtotal</span>
-                <span>{fmtMoney(selectedPurchase.subtotal)}</span>
-              </div>
               <div className="flex justify-between text-gray-900 font-black text-lg border-t border-gray-200 pt-2">
                 <span>Total Amount</span>
                 <span className="text-[#7e9e6c]">{fmtMoney(selectedPurchase.total)}</span>
@@ -212,8 +201,7 @@ export default function PurchaseHistory({ onBack, rows = [], loading = false }) 
                 <span>{formatDate(selectedPurchase.createdAt || selectedPurchase.date)}</span>
               </div>
               <div className="flex items-center gap-2 text-xs text-gray-500">
-                <FiClock className="text-orange-500" />
-                <span>Due: {selectedPurchase.dueDate ? formatDate(selectedPurchase.dueDate) : "N/A"}</span>
+  
               </div>
             </div>
           </div>

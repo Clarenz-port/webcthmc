@@ -78,9 +78,9 @@ export default function BillsHistory({
           </p>
         </div>
       ) : (
-        <div className="border border-gray-100 rounded-xl overflow-hidden shadow-sm">
+        <div className="border border-gray-100 rounded-xl overflow-hidden shadow-sm" style={{ maxHeight: '50vh', overflowY: 'auto' }}>
           <table className="w-full text-sm">
-            <thead>
+            <thead className="sticky top-0 z-10 bg-gray-50">
               <tr className="bg-gray-50/80 border-b border-gray-100">
                 <th className="px-4 py-4 text-left font-bold text-gray-500 uppercase tracking-tighter">
                   <div className="flex items-center gap-2"><FiCalendar/> Date</div>

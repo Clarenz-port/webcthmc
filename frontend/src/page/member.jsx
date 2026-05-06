@@ -696,13 +696,17 @@ export default function Member() {
               <FiDollarSign size={18} />
             </div>
             <div>
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-tighter">To Pay (This Installment)</p>
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-tighter">To Pay</p>
               {latestUnpaidAmort ? (
                 <>
                   <p className="text-lg font-bold text-gray-800">
                     ₱{formatMoney(latestUnpaidAmort.amortization)}
                   </p>
-                
+                  {latestUnpaidAmort.penalty && Number(latestUnpaidAmort.penalty) > 0 && (
+                    <p className="text-xs font-semibold text-red-600 mt-1">
+                      Penalty: ₱{formatMoney(latestUnpaidAmort.penalty)}
+                    </p>
+                  )}
                 </>
               ) : (
                 <p></p>

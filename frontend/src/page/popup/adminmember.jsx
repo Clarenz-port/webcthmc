@@ -1208,7 +1208,17 @@ useEffect(() => {
                         <span>Total Amount</span>
                         <span className="text-[#7e9e6c]">{fmtMoney(selectedPurchase.total)}</span>
                       </div>
+                      
                     </div>
+                     <div className="mt-6 grid grid-cols-2 gap-4">
+                                  <div className="flex items-center gap-2 text-xs text-gray-500">
+                                    <FiCalendar className="text-[#7e9e6c]" />
+                                    <span>{formatDate(selectedPurchase.createdAt || selectedPurchase.date)}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2 text-xs text-gray-500">
+                      
+                                  </div>
+                                </div>
                   </div>
                 </div>
               </div>
