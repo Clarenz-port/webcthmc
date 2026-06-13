@@ -1,13 +1,9 @@
 
-import { notify } from "../utils/toast";
 import { useState, useEffect } from "react";
 import API from '../apis/axios.js';
 import { Link, useNavigate } from "react-router-dom";
 
-import { 
-  FaUser, FaEnvelope, FaCalendar, FaMapMarkerAlt, 
-  FaPhone, FaLock, FaEye, FaEyeSlash, FaIdCard ,  FaLeaf, FaSignInAlt
-} from "react-icons/fa";
+import { FaLeaf, FaSignInAlt } from "react-icons/fa";
 
 export default function Signup() {
   const navigate = useNavigate();
@@ -45,6 +41,8 @@ export default function Signup() {
   const [error, setError] = useState("");
   const [siteLogo, setSiteLogo] = useState(null);
   const [siteName, setSiteName] = useState('CTHMC');
+  const [showModal, setShowModal] = useState(false);
+  const [modalContent, setModalContent] = useState({ type: '', title: '', message: '' });
 
   // Handles typing in inputs
   const handleChange = (e) => {
@@ -60,7 +58,12 @@ export default function Signup() {
     e.preventDefault();
 
     if (form.password !== form.confirmPassword) {
-      notify.error("Passwords do not match.");
+      setModalContent({
+        type: 'error',
+        title: 'Password Mismatch',
+        message: 'The passwords you entered do not match. Please check and try again.'
+      });
+      setShowModal(true);
       setError("Passwords do not match.");
       return;
     }
@@ -81,12 +84,26 @@ export default function Signup() {
         confirmPassword: form.confirmPassword,
       });
 
-      notify.success("Registration successful, Please wait for an admin to approve your account before you can log in.");
-      setTimeout(() => navigate("/login"), 2000);
+      setModalContent({
+        type: 'success',
+        title: 'Registration Successful!',
+        message: 'Your account has been created successfully. Please wait for an admin to approve your account before you can log in. You will be redirected to the login page shortly.'
+      });
+      setShowModal(true);
+      
+      setTimeout(() => {
+        setShowModal(false);
+        navigate("/login");
+      }, 4000);
     } catch (err) {
       const msg = err.response?.data?.message || "Registration failed.";
       setError(msg);
-      notify.error(msg);
+      setModalContent({
+        type: 'error',
+        title: 'Registration Failed',
+        message: msg
+      });
+      setShowModal(true);
     }
   };
 
@@ -291,6 +308,61 @@ export default function Signup() {
           </button>
         </form>
       </div>
+
+      {/* Modal Popup */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 overflow-hidden animate-in fade-in zoom-in duration-200">
+            
+            {/* Header */}
+            <div className={`px-6 py-4 ${modalContent.type === 'success' ? 'bg-green-50' : 'bg-red-50'}`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  {modalContent.type === 'success' ? (
+                    <div className="w-10 h-10 bg-green-500 text-white rounded-full flex items-center justify-center">
+                      ✓
+                    </div>
+                  ) : (
+                    <div className="w-10 h-10 bg-red-500 text-white rounded-full flex items-center justify-center">
+                      !
+                    </div>
+                  )}
+                  <h3 className={`text-xl font-bold ${modalContent.type === 'success' ? 'text-green-800' : 'text-red-800'}`}>
+                    {modalContent.title}
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="text-gray-400 hover:text-gray-600 text-xl font-bold w-8 h-8 flex items-center justify-center"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="px-6 py-6">
+              <p className="text-gray-700 leading-relaxed">
+                {modalContent.message}
+              </p>
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 bg-gray-50 flex justify-end">
+              <button
+                onClick={() => setShowModal(false)}
+                className={`px-6 py-2 rounded-xl font-bold transition-all ${
+                  modalContent.type === 'success' 
+                    ? 'bg-green-500 text-white hover:bg-green-600' 
+                    : 'bg-red-500 text-white hover:bg-red-600'
+                }`}
+              >
+                {modalContent.type === 'success' ? 'Continue' : 'Try Again'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1519,5 +1519,136 @@ doc.font("Helvetica-Bold").fontSize(11).text(acct, LEFT);
   }
 };
 
+exports.generatePreview = async (req, res) => {
+  try {
+    const { reportType, period = "all", year = new Date().getFullYear(), month } = req.body;
+
+    await logActivity({
+      userId: req.user?.id,
+      role: req.user?.role,
+      action: "Generate Report Preview",
+      details: { reportType, period, year, month },
+      ip: req.ip,
+    });
+
+    function getDateRange(period, year, month) {
+      if (!period || period === "all") return null;
+      const y = Number(year);
+      if (period === "yearly") {
+        const start = new Date(y, 0, 1);
+        const end = new Date(y + 1, 0, 1);
+        return { start, end };
+      }
+      if (period === "monthly") {
+        const m = Number(month) - 1;
+        const start = new Date(y, m, 1);
+        const end = new Date(y, m + 1, 1);
+        return { start, end };
+      }
+      return null;
+    }
+
+    const range = getDateRange(period, year, month);
+    const dateWhere = range ? { createdAt: { [Op.gte]: range.start, [Op.lt]: range.end } } : {};
+    const approvalDateWhere = range ? { approvalDate: { [Op.gte]: range.start, [Op.lt]: range.end } } : {};
+
+    let previewData = {};
+
+    if (reportType === "balance") {
+      const totalShares = Number((await Shares.sum("shareamount", { where: { ...dateWhere } })) || 0);
+      const approvedLoans = await Loan.findAll({ where: { status: "Approved", ...dateWhere } });
+      
+      let totalLoansReceivable = 0;
+      for (const loan of approvedLoans) {
+        const balance = Number(loan.balance || 0);
+        const paid = Number((await Payment.sum("amountPaid", { where: { loanId: loan.id, ...dateWhere } })) || 0);
+        totalLoansReceivable += Math.max(balance - paid, 0);
+      }
+
+      const totalPurchasesReceivable = Number((await Purchase.sum("total", { where: { status: "not paid", ...dateWhere } })) || 0);
+      const cashFromPaidPurchases = Number((await Purchase.sum("total", { where: { status: "paid", ...dateWhere } })) || 0);
+      const totalCash = cashFromPaidPurchases;
+      const totalLiabilities = 0;
+      const totalAssets = totalCash + totalLoansReceivable + totalPurchasesReceivable;
+      const retainedEarnings = totalAssets - totalLiabilities;
+      const totalEquity = totalShares + retainedEarnings;
+
+      previewData.balanceSheet = {
+        totalCash,
+        totalLoansReceivable,
+        totalPurchasesReceivable,
+        totalAssets,
+        totalLiabilities,
+        totalShares,
+        retainedEarnings,
+        totalEquity
+      };
+    }
+
+    if (reportType === "income") {
+      const salesRevenue = Number((await Purchase.sum("total", { where: { status: "paid", ...dateWhere } })) || 0);
+      const purchaseInterest = Number((await Purchase.sum("surcharge", { where: { status: "paid", ...dateWhere } })) || 0);
+      const capitalBuildUp = Number((await Shares.sum("shareamount", { where: { ...dateWhere } })) || 0);
+
+      const allLoans = await Loan.findAll({ where: { ...dateWhere } });
+      const paidLoans = allLoans.filter(l => String(l.status || "").toLowerCase() === "paid");
+      const loanInterest = paidLoans.reduce((s, l) => s + Number(l.interest || 0), 0);
+      const serviceCharges = paidLoans.reduce((s, l) => s + Number(l.serviceCharge || 0), 0);
+      const filingFees = paidLoans.reduce((s, l) => s + Number(l.filingFee || 0), 0);
+
+      const totalRevenue = salesRevenue + purchaseInterest + loanInterest + serviceCharges + filingFees + capitalBuildUp;
+      const dividendsPaid = Number((await Dividend.sum("amount", { where: { ...dateWhere } })) || 0);
+      const totalExpenses = dividendsPaid;
+      const netIncome = totalRevenue - totalExpenses;
+
+      previewData.incomeStatement = {
+        salesRevenue,
+        purchaseInterest,
+        loanInterest,
+        serviceCharges,
+        filingFees,
+        capitalBuildUp,
+        totalRevenue,
+        dividendsPaid,
+        totalExpenses,
+        netIncome
+      };
+    }
+
+    if (reportType === "cashflow") {
+      const salesCash = Number((await Purchase.sum("total", { where: { status: "paid", ...dateWhere } })) || 0);
+      const loanPayments = Number((await Payment.sum("amountPaid", { where: { ...dateWhere } })) || 0);
+      const sharesCash = Number((await Shares.sum("shareamount", { where: { ...dateWhere } })) || 0);
+      const billsCash = Number((await Bill.sum("amount")) || 0);
+      const totalInflows = salesCash + loanPayments + sharesCash + billsCash;
+
+      const loanDisbursements = (await Loan.findAll({ where: { ...approvalDateWhere, approvalDate: approvalDateWhere ? approvalDateWhere.approvalDate : undefined } }))
+        .filter(l => l.approvalDate)
+        .reduce((s, l) => s + Number(l.loanAmount || 0), 0);
+      const dividendsCash = Number((await Dividend.sum("amount")) || 0);
+      const totalOutflows = loanDisbursements + dividendsCash;
+      const netCashFlow = totalInflows - totalOutflows;
+
+      previewData.cashFlow = {
+        salesCash,
+        loanPayments,
+        sharesCash,
+        billsCash,
+        totalInflows,
+        loanDisbursements,
+        dividendsCash,
+        totalOutflows,
+        netCashFlow
+      };
+    }
+
+    res.json(previewData);
+
+  } catch (err) {
+    console.error("PREVIEW ERROR:", err);
+    res.status(500).json({ message: "Preview generation failed", error: err.message });
+  }
+};
+
 
 

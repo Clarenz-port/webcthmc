@@ -49,9 +49,13 @@ export default function Member() {
   const [hasActiveLoan, setHasActiveLoan] = useState(false);
   const [activeLoan, setActiveLoan] = useState(null);
 
-  // shares
-  const [memberSharesTotal, setMemberSharesTotal] = useState(0);
-  const [loadingShares, setLoadingShares] = useState(true);
+  // shares - separate contributions and savings
+  const [memberContributionsTotal, setMemberContributionsTotal] = useState(0);
+  const [memberSavingsTotal, setMemberSavingsTotal] = useState(0);
+  const [loadingContributions, setLoadingContributions] = useState(true);
+  const [loadingSavings, setLoadingSavings] = useState(true);
+  const [contributionsRows, setContributionsRows] = useState([]);
+  const [savingsRows, setSavingsRows] = useState([]);
   const [shareHistoryRows, setShareHistoryRows] = useState([]);
   const [loadingShareHistory, setLoadingShareHistory] = useState(false);
 
@@ -130,12 +134,22 @@ export default function Member() {
     });
 
     const memberId = user.id ?? user.userId ?? user.memberId;
+    
+    // Join user-specific room
+    socket.emit('join-user-room', memberId);
+
     socket.on("loan-updated", (data) => {
       // If the update is for this member, refetch dashboard data
       if (!data || !data.memberId || data.memberId === memberId) {
         fetchLoans();
-        fetchMemberSharesTotal(memberId);
+        fetchMemberContributions(memberId);
+        fetchMemberSavings(memberId);
       }
+    });
+
+    socket.on("notice-updated", () => {
+      // Refetch notices when a new one is created
+      // This will be handled by membernavbar.jsx
     });
 
     return () => {
@@ -202,29 +216,45 @@ export default function Member() {
     setPaidAmount(formatMoney(amountToPay));
   }, [activeLoan]);
 
-  // fetch shares total
-  const fetchMemberSharesTotal = async (memberId) => {
-    setLoadingShares(true);
+  // fetch contributions total
+  const fetchMemberContributions = async (memberId) => {
+    setLoadingContributions(true);
     try {
       const token = localStorage.getItem("token");
-      const res = await API.get(`/api/shares/member/${memberId}`, {
+      const res = await API.get(`/api/shares/member/${memberId}/contributions`, {
         headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       });
-      const rows = Array.isArray(res.data) ? res.data : [];
-      const sum = rows.reduce((acc, r) => {
-        const v = Number(r.shareamount ?? r.shareAmount ?? r.amount ?? 0);
-        return acc + (Number.isNaN(v) ? 0 : v);
-      }, 0);
-      setMemberSharesTotal(sum);
+      setMemberContributionsTotal(res.data.total || 0);
+      setContributionsRows(res.data.contributions || []);
     } catch (err) {
-      console.error("Failed to fetch member shares total:", err?.response?.data || err);
-      setMemberSharesTotal(0);
+      console.error("Failed to fetch member contributions:", err?.response?.data || err);
+      setMemberContributionsTotal(0);
+      setContributionsRows([]);
     } finally {
-      setLoadingShares(false);
+      setLoadingContributions(false);
     }
   };
 
-  // fetch share history
+  // fetch savings total  
+  const fetchMemberSavings = async (memberId) => {
+    setLoadingSavings(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await API.get(`/api/shares/member/${memberId}/savings`, {
+        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      });
+      setMemberSavingsTotal(res.data.total || 0);
+      setSavingsRows(res.data.savings || []);
+    } catch (err) {
+      console.error("Failed to fetch member savings:", err?.response?.data || err);
+      setMemberSavingsTotal(0);
+      setSavingsRows([]);
+    } finally {
+      setLoadingSavings(false);
+    }
+  };
+
+  // fetch share history (both contributions and savings)
   const fetchShareHistory = async (memberId) => {
     setLoadingShareHistory(true);
     try {
@@ -242,11 +272,12 @@ export default function Member() {
     }
   };
 
-  // when user loads, fetch shares
+  // when user loads, fetch contributions and savings
   useEffect(() => {
     if (!user?.id && !user?.userId && !user?.memberId) return;
     const memberId = user.id ?? user.userId ?? user.memberId;
-    fetchMemberSharesTotal(memberId);
+    fetchMemberContributions(memberId);
+    fetchMemberSavings(memberId);
   }, [user]);
 
   // open share history
@@ -397,9 +428,9 @@ export default function Member() {
       const now = new Date();
       const oneYearAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
       const isOneYear = joinedDate <= oneYearAgo;
-      const hasEnoughShares = memberSharesTotal >= 10000;
-      if (!(isOneYear && hasEnoughShares)) {
-        notify.error("You must be a member for at least 1 year and have at least ₱10,000 in shares to use this feature.");
+      const hasEnoughContributions = memberContributionsTotal >= 10000;
+      if (!(isOneYear && hasEnoughContributions)) {
+        notify.error("You must be a member for at least 1 year and have at least ₱10,000 in contributions to use this feature.");
         return;
       }
     }
@@ -540,10 +571,10 @@ export default function Member() {
   )}
 </Card>
 
-          {/* SHARES CARD */}
+          {/* CONTRIBUTIONS AND SAVINGS CARD */}
           <Card className="col-span-3 overflow-hidden rounded-2xl border-none shadow-lg bg-white">
             <div className="flex items-center pt-10 pl-5 gap-2 mb-1">
-          <h3 className="text-2xl font-bold text-gray-800">Contribution and Savings</h3>
+          <h3 className="text-2xl font-bold text-gray-800">Contributions & Savings</h3>
         </div>
 
   <div className="flex flex-col md:flex-row items-stretch min-h-[350px]">
@@ -552,24 +583,56 @@ export default function Member() {
     <div className="flex-1 p-6 flex flex-col justify-between">
 
       {/* Balance Display */}
-      <div className="mt-8 mb-8 relative group">
-        <div className="absolute -inset-1 bg-gradient-to-r from-green-100 to-[#d6ead8] rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
-        <div className="relative bg-[#f0f9f1] border border-green-100 p-6 rounded-xl shadow-sm">
-          <span className="text-xs font-bold text-green-700 uppercase tracking-wider">Total Contribution and Savings</span>
-          <div className="flex items-baseline gap-1 mt-1">
-            <span className="text-2xl font-bold text-green-800">₱</span>
-            <span className="text-4xl font-black text-green-900 tracking-tight">
-              {loadingShares ? "..." : formatMoney(memberSharesTotal)}
+      <div className="space-y-6">
+        
+        {/* Contributions */}
+        <div className="relative group">
+          <div className="absolute -inset-1 bg-gradient-to-r from-green-100 to-[#d6ead8] rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
+          <div className="relative bg-[#f0f9f1] border border-green-100 p-4 rounded-xl shadow-sm">
+            <span className="text-xs font-bold text-green-700 uppercase tracking-wider">Contributions (Loan Eligible)</span>
+            <div className="flex items-baseline gap-1 mt-1">
+              <span className="text-xl font-bold text-green-800">₱</span>
+              <span className="text-2xl font-black text-green-900 tracking-tight">
+                {loadingContributions ? "..." : formatMoney(memberContributionsTotal)}
+              </span>
+            </div>
+            {loadingContributions && (
+              <div className="h-1 w-16 bg-green-200 animate-pulse rounded-full mt-2" />
+            )}
+          </div>
+        </div>
+
+        {/* Savings */}
+        <div className="relative group">
+          <div className="absolute -inset-1 bg-gradient-to-r from-blue-100 to-[#dbeafe] rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
+          <div className="relative bg-[#eff6ff] border border-blue-100 p-4 rounded-xl shadow-sm">
+            <span className="text-xs font-bold text-blue-700 uppercase tracking-wider">Savings (Personal)</span>
+            <div className="flex items-baseline gap-1 mt-1">
+              <span className="text-xl font-bold text-blue-800">₱</span>
+              <span className="text-2xl font-black text-blue-900 tracking-tight">
+                {loadingSavings ? "..." : formatMoney(memberSavingsTotal)}
+              </span>
+            </div>
+            {loadingSavings && (
+              <div className="h-1 w-16 bg-blue-200 animate-pulse rounded-full mt-2" />
+            )}
+          </div>
+        </div>
+
+        {/* Total */}
+        <div className="pt-2 border-t border-gray-200">
+          <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Total</span>
+          <div className="flex items-baseline gap-1">
+            <span className="text-xl font-bold text-gray-700">₱</span>
+            <span className="text-2xl font-black text-gray-800 tracking-tight">
+              {formatMoney(memberContributionsTotal + memberSavingsTotal)}
             </span>
           </div>
-          {loadingShares && (
-            <div className="h-1 w-24 bg-green-200 animate-pulse rounded-full mt-2" />
-          )}
         </div>
       </div>
 
       {/* Action Button */}
-      <div>
+      <div className="mt-6">
         <button
           onClick={handleOpenShareHistory}
           className="group inline-flex items-center gap-3 px-6 py-3 rounded-xl bg-white border-2 border-green-600 text-green-700 font-bold shadow-sm transition-all hover:bg-green-600 hover:text-white active:scale-95"

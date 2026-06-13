@@ -13,6 +13,7 @@ export default function AddSharesPopup({
   const [selectedAmount, setSelectedAmount] = useState(null);
   const [pressedAmt, setPressedAmt] = useState(null); // for brief visual feedback
   const [paymentMethod, setPaymentMethod] = useState("GCash"); // default to GCash
+  const [type, setType] = useState("contribution"); // new: contribution vs savings
 
   const amounts = [
     1000, 2000, 5000,
@@ -24,6 +25,7 @@ export default function AddSharesPopup({
     if (!isOpen) {
       setSelectedAmount(null);
       setPaymentMethod("GCash");
+      setType("contribution");
     }
   }, [isOpen]);
 
@@ -34,7 +36,7 @@ export default function AddSharesPopup({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [selectedAmount, onClose, paymentMethod]);
+  }, [selectedAmount, onClose, paymentMethod, type]);
 
   if (!isOpen) return null;
 
@@ -46,8 +48,8 @@ export default function AddSharesPopup({
   const handleConfirm = () => {
     const amt = Number(selectedAmount) || 0;
     if (!amt || amt <= 0) return notify.success("Please enter or select an amount greater than zero.");
-    // Call onConfirm with both amount and payment method
-    onConfirm && onConfirm(amt, paymentMethod);
+    // Call onConfirm with amount, payment method, and type
+    onConfirm && onConfirm(amt, paymentMethod, type);
     onClose && onClose();
   };
 
@@ -162,6 +164,45 @@ export default function AddSharesPopup({
               </button>
             );
           })}
+        </div>
+      </div>
+
+      {/* TYPE SELECTION */}
+      <div className="mb-6">
+        <label className="flex items-center gap-2 text-xs font-bold text-gray-500 uppercase mb-3 ml-1 tracking-wide">
+          <FaWallet className="text-[#7e9e6c]" /> Type
+        </label>
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => setType("contribution")}
+            className={`p-4 rounded-2xl border-2 font-bold text-sm transition-all ${
+              type === "contribution"
+                ? "bg-green-50 border-green-500 text-green-700"
+                : "bg-gray-50 border-gray-200 text-gray-600 hover:border-green-300"
+            }`}
+          >
+            <div className="text-center">
+              <div className="text-lg mb-1">💰</div>
+              <div>Contribution</div>
+              <div className="text-xs opacity-70 mt-1">Can be used for loans</div>
+            </div>
+          </button>
+          <button
+            type="button"
+            onClick={() => setType("savings")}
+            className={`p-4 rounded-2xl border-2 font-bold text-sm transition-all ${
+              type === "savings"
+                ? "bg-blue-50 border-blue-500 text-blue-700"
+                : "bg-gray-50 border-gray-200 text-gray-600 hover:border-blue-300"
+            }`}
+          >
+            <div className="text-center">
+              <div className="text-lg mb-1">🏦</div>
+              <div>Savings</div>
+              <div className="text-xs opacity-70 mt-1">Personal savings only</div>
+            </div>
+          </button>
         </div>
       </div>
 

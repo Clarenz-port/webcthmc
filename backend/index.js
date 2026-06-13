@@ -94,6 +94,23 @@ sequelize
     const io = new Server(server, { cors: { origin: process.env.FRONTEND_URL || "http://localhost:5173" } });
     app.set('io', io);
 
+    // Handle Socket.IO connections
+    io.on('connection', (socket) => {
+      console.log('Client connected:', socket.id);
+
+      // Allow clients to join a room based on their userId
+      socket.on('join-user-room', (userId) => {
+        if (userId) {
+          socket.join(`user-${userId}`);
+          console.log(`User ${userId} joined room: user-${userId}`);
+        }
+      });
+
+      socket.on('disconnect', () => {
+        console.log('Client disconnected:', socket.id);
+      });
+    });
+
     const PORT = process.env.PORT || 8000;
     server.listen(PORT, () => console.log(`🚀 Server running with Socket.IO on port ${PORT}`));
   })

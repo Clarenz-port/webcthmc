@@ -23,7 +23,13 @@ exports.createNotice = async (req, res) => {
     // Emit event so member dashboard updates instantly
     const io = req.app.get('io');
     if (io) {
-      io.emit('notice-updated', { noticeId: notice.id });
+      if (notice.userId) {
+        // Targeted notice - emit only to that user
+        io.to(`user-${notice.userId}`).emit('notice-updated', { noticeId: notice.id, userId: notice.userId });
+      } else {
+        // Broadcast notice - emit to all
+        io.emit('notice-updated', { noticeId: notice.id });
+      }
     }
 
     await logActivity({
@@ -74,6 +80,29 @@ exports.getAllNotices = async (req, res) => {
     res.status(500).json({
       message: "Failed to fetch notices",
     });
+  }
+};
+
+// Returns notices for the logged-in member:
+// - notices addressed specifically to them (userId = req.user.id)
+// - broadcast notices (userId = null)
+exports.getMyNotices = async (req, res) => {
+  try {
+    const { Op } = require("sequelize");
+    const notices = await Notice.findAll({
+      where: {
+        [Op.or]: [
+          { userId: req.user.id },
+          { userId: null },
+        ],
+      },
+      order: [["createdAt", "DESC"]],
+    });
+
+    res.json(notices);
+  } catch (error) {
+    console.error("Fetch my notices error:", error);
+    res.status(500).json({ message: "Failed to fetch notices" });
   }
 };
 

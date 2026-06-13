@@ -20,6 +20,12 @@ const Shares = sequelize.define("Shares", {
     allowNull: false,
     defaultValue: "Cash"
   },
+  type: {
+    type: DataTypes.ENUM("contribution", "savings"),
+    allowNull: false,
+    defaultValue: "contribution", // default to contribution for backward compatibility
+
+  },
   note: {
     type: DataTypes.STRING,
     allowNull: true

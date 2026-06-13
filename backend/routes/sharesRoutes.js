@@ -15,6 +15,16 @@ router.post('/add', verifyToken, sharesController.addShares);
 router.get('/member/:id', verifyToken, sharesController.getMemberShares);
 
 // =============================
+// GET CONTRIBUTIONS OF SPECIFIC MEMBER (for loan eligibility)
+// =============================
+router.get('/member/:id/contributions', verifyToken, sharesController.getMemberContributions);
+
+// =============================
+// GET SAVINGS OF SPECIFIC MEMBER (cannot be used for loans)
+// =============================
+router.get('/member/:id/savings', verifyToken, sharesController.getMemberSavings);
+
+// =============================
 // GET SHARES SUMMARY BY YEAR
 // =============================
 router.get('/by-year/:year', sharesController.getSharesByYear);

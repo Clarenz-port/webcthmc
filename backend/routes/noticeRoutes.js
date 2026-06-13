@@ -4,11 +4,15 @@ const { verifyToken, allowRoles } = require("../middleware/authMiddleware");
 const {
   createNotice,
   getAllNotices,
+  getMyNotices,
   deleteNotice,
   updateNotice,
 } = require("../controllers/noticeController");
 
-// Members
+// Members — returns only their own + broadcast notices
+router.get("/my", verifyToken, getMyNotices);
+
+// Admin / Superadmin — returns all notices
 router.get("/", verifyToken, getAllNotices);
 
 // Admin / Superadmin

@@ -6,7 +6,7 @@ const { fn, col, literal, QueryTypes } = require("sequelize");
 
 exports.addShares = async (req, res) => {
   try {
-    const { userId, shareamount, date, paymentMethod } = req.body;
+    const { userId, shareamount, date, paymentMethod, type } = req.body;
     if (!userId || !shareamount) return res.status(400).json({ message: "Missing required fields" });
 
     const newShare = await Shares.create({
@@ -14,13 +14,14 @@ exports.addShares = async (req, res) => {
       shareamount,
       date: date ? new Date(date) : new Date(),
       paymentMethod: ["GCash", "Cash"].includes(paymentMethod) ? paymentMethod : "Cash",
+      type: ["contribution", "savings"].includes(type) ? type : "contribution", // default to contribution
     });
 
     await logActivity({
       userId: req.user?.id,
       role: req.user?.role,
-      action: "Add Shares",
-      details: { shareId: newShare.id, memberId: newShare.userId, amount: newShare.shareamount },
+      action: `Add ${type === 'savings' ? 'Savings' : 'Contribution'}`,
+      details: { shareId: newShare.id, memberId: newShare.userId, amount: newShare.shareamount, type: newShare.type },
       ip: req.ip,
     });
 
@@ -30,7 +31,7 @@ exports.addShares = async (req, res) => {
     if (io) {
       io.emit('shares-updated', { memberId: userId });
     }
-    return res.status(201).json({ message: "Shares added successfully", share: newShare });
+    return res.status(201).json({ message: `${type === 'savings' ? 'Savings' : 'Contribution'} added successfully`, share: newShare });
   } catch (err) {
     console.error("❌ Error adding shares:", err);
     return res.status(500).json({ message: "Server error adding shares", error: err.message });
@@ -49,6 +50,50 @@ exports.getMemberShares = async (req, res) => {
   } catch (err) {
     console.error("❌ Error fetching shares:", err);
     return res.status(500).json({ message: "Error fetching shares", error: err.message });
+  }
+};
+
+// Get member contributions only (can be used for loan eligibility)
+exports.getMemberContributions = async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const contributions = await Shares.findAll({
+      where: { 
+        userId,
+        type: 'contribution'
+      },
+      order: [["createdAt", "DESC"]],
+      raw: true,
+    });
+    
+    const total = contributions.reduce((sum, c) => sum + (parseFloat(c.shareamount) || 0), 0);
+    
+    return res.json({ contributions, total });
+  } catch (err) {
+    console.error("❌ Error fetching contributions:", err);
+    return res.status(500).json({ message: "Error fetching contributions", error: err.message });
+  }
+};
+
+// Get member savings only (cannot be used for loans)
+exports.getMemberSavings = async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const savings = await Shares.findAll({
+      where: { 
+        userId,
+        type: 'savings'
+      },
+      order: [["createdAt", "DESC"]],
+      raw: true,
+    });
+    
+    const total = savings.reduce((sum, s) => sum + (parseFloat(s.shareamount) || 0), 0);
+    
+    return res.json({ savings, total });
+  } catch (err) {
+    console.error("❌ Error fetching savings:", err);
+    return res.status(500).json({ message: "Error fetching savings", error: err.message });
   }
 };
 exports.getSharesByYear = async (req, res) => {

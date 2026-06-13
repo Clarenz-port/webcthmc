@@ -52,7 +52,7 @@ useEffect(() => {
     try {
       const token = localStorage.getItem("token");
 
-      const res = await API.get("/api/notices", {
+      const res = await API.get("/api/notices/my", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -87,10 +87,17 @@ useEffect(() => {
       }
     };
     fetchConfig();
-    // --- SOCKET.IO CLIENT FOR REAL-TIME CONFIG UPDATES ---
+    
+    // --- SOCKET.IO CLIENT FOR REAL-TIME CONFIG AND NOTICE UPDATES ---
     const socket = io(import.meta.env.VITE_API_URL || "http://localhost:8000", {
       transports: ["websocket"]
     });
+
+    // Join user-specific room if member is loaded
+    if (member?.id) {
+      socket.emit('join-user-room', member.id);
+    }
+
     socket.on("config-updated", (data) => {
       if (data && data.config) {
         setSiteLogo(data.config.logo || null);
@@ -99,10 +106,31 @@ useEffect(() => {
         fetchConfig();
       }
     });
+
+    // Listen for notice updates
+    socket.on("notice-updated", async () => {
+      // Refetch notices when a new one is created
+      try {
+        const token = localStorage.getItem("token");
+        const res = await API.get("/api/notices/my", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = res.data || [];
+        setNotices(data);
+        
+        // Update unread count
+        const ids = getReadIds();
+        const unread = data.filter((n) => !ids.includes(n.id)).length;
+        setUnreadCount(unread);
+      } catch (err) {
+        console.error("Failed to refetch notices:", err);
+      }
+    });
+
     return () => {
       socket.disconnect();
     };
-  }, []);
+  }, [member]);
 
   // Prevent going back after logout
   useEffect(() => {

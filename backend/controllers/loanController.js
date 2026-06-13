@@ -143,7 +143,7 @@ exports.addLoanPayment = async (req, res) => {
     // Emit event so member dashboard updates instantly
     const io = req.app.get('io');
     if (io && memberId) {
-      io.emit('loan-updated', { memberId });
+      io.to(`user-${memberId}`).emit('loan-updated', { memberId });
     }
 
     res.json({ success: true, message: "Payment and schedule updated." });
@@ -217,7 +217,7 @@ exports.createLoan = async (req, res) => {
     // Try to get memberId from userId or newLoan.userId
     const memberId = userId || newLoan.userId;
     if (io && memberId) {
-      io.emit('loan-updated', { memberId });
+      io.to(`user-${memberId}`).emit('loan-updated', { memberId });
     }
 
     res.status(201).json({
@@ -314,7 +314,7 @@ exports.approveLoan = async (req, res) => {
     const io = req.app.get('io');
     const memberId = loan.userId;
     if (io && memberId) {
-      io.emit('loan-updated', { memberId });
+      io.to(`user-${memberId}`).emit('loan-updated', { memberId });
     }
 
     // Capital Build Up: Add to Shares if capitalBuildUp exists and > 0
@@ -495,7 +495,7 @@ exports.rejectLoan = async (req, res) => {
     const io = req.app.get('io');
     const memberId = loan.userId;
     if (io && memberId) {
-      io.emit('loan-updated', { memberId });
+      io.to(`user-${memberId}`).emit('loan-updated', { memberId });
     }
     res.json({ message: "Loan rejected successfully", loan });
   } catch (error) {

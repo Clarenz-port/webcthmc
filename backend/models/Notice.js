@@ -10,6 +10,10 @@ const Notice = sequelize.define("Notice", {
     type: DataTypes.TEXT,
     allowNull: false,
   },
+  userId: {
+    type: DataTypes.INTEGER,
+    allowNull: true, // null = broadcast to all members (admin notices)
+  },
 }, {
   timestamps: true,
 });
